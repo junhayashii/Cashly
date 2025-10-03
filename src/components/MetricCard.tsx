@@ -20,9 +20,9 @@ export function MetricCard({
 }: MetricCardProps) {
   const changeColor =
     changeType === "positive"
-      ? "text-success"
+      ? "text-green-600"
       : changeType === "negative"
-      ? "text-destructive"
+      ? "text-red-600"
       : "text-muted-foreground";
 
   return (

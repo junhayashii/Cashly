@@ -19,8 +19,17 @@ import {
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface Transaction {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  date: string;
+  type: "income" | "expense";
+}
+
 interface AddTransactionDialogProps {
-  onAddTransaction: (transaction: any) => void;
+  onAddTransaction: (transaction: Transaction) => void;
 }
 
 export function AddTransactionDialog({
@@ -28,7 +37,13 @@ export function AddTransactionDialog({
 }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    amount: string;
+    category: string;
+    type: "income" | "expense";
+    date: string;
+  }>({
     title: "",
     amount: "",
     category: "",
@@ -98,10 +113,7 @@ export function AddTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          size="sm"
-          className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90"
-        >
+        <Button size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
           Add Transaction
         </Button>
@@ -118,7 +130,11 @@ export function AddTransactionDialog({
             <Select
               value={formData.type}
               onValueChange={(value) =>
-                setFormData({ ...formData, type: value, category: "" })
+                setFormData({
+                  ...formData,
+                  type: value as "income" | "expense",
+                  category: "",
+                })
               }
             >
               <SelectTrigger id="type" className="bg-background border-border">
@@ -209,10 +225,7 @@ export function AddTransactionDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-primary to-accent"
-            >
+            <Button type="submit" className="flex-1">
               Add Transaction
             </Button>
           </div>

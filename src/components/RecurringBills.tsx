@@ -8,7 +8,7 @@ interface Bill {
   amount: number;
   dueDate: string;
   status: "paid" | "pending" | "overdue";
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const bills: Bill[] = [

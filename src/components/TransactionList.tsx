@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -20,16 +19,12 @@ import {
   Filter,
 } from "lucide-react";
 
-interface Transaction {
-  id: string;
-  title: string;
-  category: string;
-  amount: number;
-  date: string;
-  type: "income" | "expense";
-}
+import { Transaction } from "@/types";
 
-const categoryIcons: Record<string, any> = {
+const categoryIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   Income: ArrowDownRight,
   Salary: ArrowDownRight,
   Freelance: ArrowDownRight,
@@ -77,8 +72,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <div className="relative">
+      <div className="flex flex-col md:flex-row items-center gap-3 mb-6">
+        <div className="flex-1 relative w-full md:-auto">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search transactions..."
@@ -87,32 +82,33 @@ export function TransactionList({ transactions }: TransactionListProps) {
             className="pl-9 bg-background border-border"
           />
         </div>
+        <div className="flex gap-3">
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="bg-background border-border">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border z-50">
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="income">Income</SelectItem>
+              <SelectItem value="expense">Expenses</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="bg-background border-border">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-popover border-border z-50">
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="income">Income</SelectItem>
-            <SelectItem value="expense">Expenses</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="bg-background border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-popover border-border z-50">
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="bg-background border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border z-50">
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Transactions */}
@@ -134,14 +130,10 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 <div className="flex items-center gap-4">
                   <div
                     className={`p-2 rounded-lg ${
-                      isPositive ? "bg-success/10" : "bg-muted"
+                      isPositive ? "bg-primary/10" : "bg-muted"
                     }`}
                   >
-                    <Icon
-                      className={`h-5 w-5 ${
-                        isPositive ? "text-success" : "text-muted-foreground"
-                      }`}
-                    />
+                    <Icon className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
                     <p className="font-medium text-foreground">
@@ -162,7 +154,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
                     {Math.abs(transaction.amount).toFixed(2)}
                   </span>
                   {isPositive ? (
-                    <ArrowUpRight className="h-5 w-5 text-success" />
+                    <ArrowUpRight className="h-5 w-5 text-green-600" />
                   ) : (
                     <ArrowDownRight className="h-5 w-5 text-muted-foreground" />
                   )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import {
   Card,
   CardContent,
@@ -21,84 +21,13 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  monthlyBudget: number;
-  spent: number;
-  transactions: number;
-}
+import { Category } from "@/types";
+import { initialCategories } from "@/data/category";
 
-const initialCategories: Category[] = [
-  {
-    id: "1",
-    name: "Food & Dining",
-    icon: "ShoppingCart",
-    color: "bg-primary",
-    monthlyBudget: 600,
-    spent: 420,
-    transactions: 24,
-  },
-  {
-    id: "2",
-    name: "Housing",
-    icon: "Home",
-    color: "bg-accent",
-    monthlyBudget: 1500,
-    spent: 1200,
-    transactions: 3,
-  },
-  {
-    id: "3",
-    name: "Transport",
-    icon: "Car",
-    color: "bg-success",
-    monthlyBudget: 400,
-    spent: 280,
-    transactions: 12,
-  },
-  {
-    id: "4",
-    name: "Entertainment",
-    icon: "Coffee",
-    color: "bg-warning",
-    monthlyBudget: 200,
-    spent: 150,
-    transactions: 8,
-  },
-  {
-    id: "5",
-    name: "Travel",
-    icon: "Plane",
-    color: "bg-destructive",
-    monthlyBudget: 500,
-    spent: 0,
-    transactions: 0,
-  },
-  {
-    id: "6",
-    name: "Healthcare",
-    icon: "Heart",
-    color: "bg-pink-500",
-    monthlyBudget: 300,
-    spent: 125,
-    transactions: 4,
-  },
-  {
-    id: "7",
-    name: "Utilities",
-    icon: "Zap",
-    color: "bg-orange-500",
-    monthlyBudget: 250,
-    spent: 220,
-    transactions: 5,
-  },
-];
+type IconComponent = ComponentType<{ className?: string }>;
 
-const getIconComponent = (iconName: string) => {
-  const icons: { [key: string]: any } = {
+const getIconComponent = (iconName: string): IconComponent => {
+  const icons: Record<string, IconComponent> = {
     ShoppingCart,
     Home,
     Car,

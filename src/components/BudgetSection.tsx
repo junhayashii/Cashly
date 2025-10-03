@@ -13,7 +13,7 @@ interface Budget {
   category: string;
   spent: number;
   limit: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }
 
@@ -23,7 +23,7 @@ const budgets: Budget[] = [
     spent: 420,
     limit: 600,
     icon: Utensils,
-    color: "text-accent",
+    color: "text-primary",
   },
   {
     category: "Shopping",
@@ -37,28 +37,28 @@ const budgets: Budget[] = [
     spent: 1200,
     limit: 1200,
     icon: Home,
-    color: "text-success",
+    color: "text-primary",
   },
   {
     category: "Transport",
     spent: 180,
     limit: 300,
     icon: Car,
-    color: "text-warning",
+    color: "text-primary",
   },
   {
     category: "Entertainment",
     spent: 95,
     limit: 200,
     icon: Sparkles,
-    color: "text-accent",
+    color: "text-primary",
   },
   {
     category: "Healthcare",
     spent: 50,
     limit: 150,
     icon: Heart,
-    color: "text-destructive",
+    color: "text-primary",
   },
 ];
 

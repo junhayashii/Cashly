@@ -8,7 +8,7 @@ interface Goal {
   title: string;
   target: number;
   current: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   deadline: string;
 }
@@ -29,7 +29,7 @@ const goals: Goal[] = [
     target: 10000,
     current: 7200,
     icon: Home,
-    color: "text-success",
+    color: "text-primary",
     deadline: "Dec 2026",
   },
   {
@@ -38,7 +38,7 @@ const goals: Goal[] = [
     target: 25000,
     current: 8500,
     icon: Car,
-    color: "text-accent",
+    color: "text-primary",
     deadline: "Dec 2027",
   },
   {
@@ -47,7 +47,7 @@ const goals: Goal[] = [
     target: 15000,
     current: 4200,
     icon: GraduationCap,
-    color: "text-warning",
+    color: "text-primary",
     deadline: "Sep 2026",
   },
 ];

@@ -80,8 +80,7 @@ const BudgetsGoals = () => {
                   Adjust as Needed
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  Life changes - don't be afraid to modify your budgets and
-                  goals
+                  Life changes - dont be afraid to modify your budgets and goals
                 </p>
               </div>
             </div>

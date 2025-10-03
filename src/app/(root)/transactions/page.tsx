@@ -6,81 +6,8 @@ import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
 import { Download, Upload } from "lucide-react";
 
-interface Transaction {
-  id: string;
-  title: string;
-  category: string;
-  amount: number;
-  date: string;
-  type: "income" | "expense";
-}
-
-const initialTransactions: Transaction[] = [
-  {
-    id: "1",
-    title: "Salary Deposit",
-    category: "Salary",
-    amount: 5420.0,
-    date: "Dec 1, 2025",
-    type: "income",
-  },
-  {
-    id: "2",
-    title: "Grocery Shopping",
-    category: "Food",
-    amount: -142.5,
-    date: "Nov 30, 2025",
-    type: "expense",
-  },
-  {
-    id: "3",
-    title: "Rent Payment",
-    category: "Housing",
-    amount: -1200.0,
-    date: "Nov 30, 2025",
-    type: "expense",
-  },
-  {
-    id: "4",
-    title: "Restaurant",
-    category: "Dining",
-    amount: -85.3,
-    date: "Nov 29, 2025",
-    type: "expense",
-  },
-  {
-    id: "5",
-    title: "Fuel",
-    category: "Transport",
-    amount: -65.0,
-    date: "Nov 28, 2025",
-    type: "expense",
-  },
-  {
-    id: "6",
-    title: "Freelance Project",
-    category: "Freelance",
-    amount: 850.0,
-    date: "Nov 27, 2025",
-    type: "income",
-  },
-  {
-    id: "7",
-    title: "Netflix Subscription",
-    category: "Entertainment",
-    amount: -15.99,
-    date: "Nov 26, 2025",
-    type: "expense",
-  },
-  {
-    id: "8",
-    title: "Coffee Shop",
-    category: "Dining",
-    amount: -12.5,
-    date: "Nov 25, 2025",
-    type: "expense",
-  },
-];
+import { Transaction } from "@/types";
+import { initialTransactions } from "@/data/transactions";
 
 const TransactionPage = () => {
   const [transactions, setTransactions] =
@@ -137,7 +64,7 @@ const TransactionPage = () => {
           </p>
         </div>
         <div className="p-6 rounded-xl bg-card border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Net Flow</p>
+          <p className="text-sm text-muted-foreground mb-2">Balance</p>
           <p
             className={`text-2xl font-bold ${
               netFlow >= 0 ? "text-success" : "text-destructive"

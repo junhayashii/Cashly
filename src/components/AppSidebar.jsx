@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  LayoutDashboard,
-  Receipt,
-  BarChart3,
-  Wallet,
-  Tag,
-  Settings,
-  PiggyBank,
-  Menu,
-} from "lucide-react";
+import { Wallet, Settings, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -28,14 +19,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-const mainMenuItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Transactions", url: "/transactions", icon: Receipt },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Accounts", url: "/accounts", icon: Wallet },
-  { title: "Budgets & Goals", url: "/budgets", icon: PiggyBank },
-  { title: "Categories", url: "/categories", icon: Tag },
-];
+import { mainMenuItems } from "@/constants";
 
 const settingsItem = { title: "Settings", url: "/settings", icon: Settings };
 
@@ -61,12 +45,10 @@ const AppSidebar = () => {
           <div className="flex flex-col h-full py-4">
             <SidebarHeader className="border-b border-sidebar-border pb-4">
               <div className="flex items-center gap-3 px-4">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent">
-                  <Wallet className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-xl bg-primary">
+                  <Wallet className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  FinanceHub
-                </h1>
+                <h1 className="text-xl font-bold text-primary">FinanceHub</h1>
               </div>
             </SidebarHeader>
 
@@ -132,14 +114,18 @@ const AppSidebar = () => {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarHeader className="border-b border-sidebar-border pb-4">
-          <div className="flex items-center gap-3 px-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent">
-              <Wallet className="h-5 w-5 text-white" />
+        <SidebarHeader className="border-sidebar-border py-4">
+          <div
+            className={`flex items-center px-4 ${
+              isCollapsed ? "justify-center gap-0" : "gap-3"
+            }`}
+          >
+            <div className={`p-2 rounded-xl bg-primary`}>
+              <Wallet className={`h-5 w-5 text-primary-foreground`} />
             </div>
             {!isCollapsed && (
               <h1 className="text-xl font-bold text-sidebar-foreground">
-                FinanceHub
+                Cashly
               </h1>
             )}
           </div>
