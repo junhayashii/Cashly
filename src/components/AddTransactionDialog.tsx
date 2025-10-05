@@ -19,14 +19,7 @@ import {
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Transaction {
-  id: string;
-  title: string;
-  amount: number;
-  category: string;
-  date: string;
-  type: "income" | "expense";
-}
+import { Transaction } from "@/types";
 
 interface AddTransactionDialogProps {
   onAddTransaction: (transaction: Transaction) => void;

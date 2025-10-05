@@ -1,56 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Plane, Home, GraduationCap, Car, Plus } from "lucide-react";
-
-interface Goal {
-  id: string;
-  title: string;
-  target: number;
-  current: number;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  deadline: string;
-}
-
-const goals: Goal[] = [
-  {
-    id: "1",
-    title: "Vacation Fund",
-    target: 5000,
-    current: 3420,
-    icon: Plane,
-    color: "text-primary",
-    deadline: "Jun 2026",
-  },
-  {
-    id: "2",
-    title: "Emergency Fund",
-    target: 10000,
-    current: 7200,
-    icon: Home,
-    color: "text-primary",
-    deadline: "Dec 2026",
-  },
-  {
-    id: "3",
-    title: "New Car",
-    target: 25000,
-    current: 8500,
-    icon: Car,
-    color: "text-primary",
-    deadline: "Dec 2027",
-  },
-  {
-    id: "4",
-    title: "Education",
-    target: 15000,
-    current: 4200,
-    icon: GraduationCap,
-    color: "text-primary",
-    deadline: "Sep 2026",
-  },
-];
+import { Plus } from "lucide-react";
+import { goals } from "@/data/goals";
 
 export function GoalsSection() {
   return (
