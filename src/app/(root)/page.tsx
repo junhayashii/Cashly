@@ -19,6 +19,8 @@ import {
 import { Transaction } from "@/types";
 import { initialTransactions } from "@/data/transactions";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 const Home = () => {
   const [transactions, setTransactions] =
     useState<Transaction[]>(initialTransactions);
@@ -36,75 +38,77 @@ const Home = () => {
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Welcome back, Jun
-          </h2>
-          <p className="text-muted-foreground">
-            Your financial overview for December 2025
-          </p>
+    <ProtectedRoute>
+      <div className="space-y-8">
+        {/* Welcome Section */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground mb-2">
+              Welcome back, Jun
+            </h2>
+            <p className="text-muted-foreground">
+              Your financial overview for December 2025
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <AddTransactionDialog onAddTransaction={handleAddTransaction} />
-        </div>
-      </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Balance"
-          value={`$${totalBalance.toFixed(2)}`}
-          change="+12.5% from last month"
-          changeType="positive"
-          icon={Wallet}
-          iconColor="bg-primary/10 text-primary"
-        />
-        <MetricCard
-          title="Monthly Income"
-          value={`$${monthlyIncome.toFixed(2)}`}
-          change="+8.2% from last month"
-          changeType="positive"
-          icon={TrendingUp}
-          iconColor="bg-primary/10 text-primary"
-        />
-        <MetricCard
-          title="Monthly Expenses"
-          value={`$${monthlyExpenses.toFixed(2)}`}
-          change="-5.4% from last month"
-          changeType="negative"
-          icon={TrendingDown}
-          iconColor="bg-primary/10 text-primary"
-        />
-        <MetricCard
-          title="Total Savings"
-          value="$18,420.00"
-          change="+15.8% from last month"
-          changeType="positive"
-          icon={PiggyBank}
-          iconColor="bg-primary/10 text-primary"
-        />
-      </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard
+            title="Total Balance"
+            value={`$${totalBalance.toFixed(2)}`}
+            change="+12.5% from last month"
+            changeType="positive"
+            icon={Wallet}
+            iconColor="bg-primary/10 text-primary"
+          />
+          <MetricCard
+            title="Monthly Income"
+            value={`$${monthlyIncome.toFixed(2)}`}
+            change="+8.2% from last month"
+            changeType="positive"
+            icon={TrendingUp}
+            iconColor="bg-primary/10 text-primary"
+          />
+          <MetricCard
+            title="Monthly Expenses"
+            value={`$${monthlyExpenses.toFixed(2)}`}
+            change="-5.4% from last month"
+            changeType="negative"
+            icon={TrendingDown}
+            iconColor="bg-primary/10 text-primary"
+          />
+          <MetricCard
+            title="Total Savings"
+            value="$18,420.00"
+            change="+15.8% from last month"
+            changeType="positive"
+            icon={PiggyBank}
+            iconColor="bg-primary/10 text-primary"
+          />
+        </div>
 
-      {/* Overview Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <SpendingChart />
-          <TransactionList transactions={transactions} />
-        </div>
-        <div className="lg:col-span-1 space-y-6">
-          <BudgetSection />
-          <RecurringBills />
-          <GoalsSection />
+        {/* Overview Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <SpendingChart />
+            <TransactionList transactions={transactions} />
+          </div>
+          <div className="lg:col-span-1 space-y-6">
+            <BudgetSection />
+            <RecurringBills />
+            <GoalsSection />
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 

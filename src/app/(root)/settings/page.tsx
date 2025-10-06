@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -12,6 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { User, Bell, Shield, Wallet, Globe } from "lucide-react";
+
+import { supabase } from "@/lib/supabaseClient";
 
 const Settings = () => {
   return (
@@ -182,6 +186,15 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = "/login";
+          }}
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg"
+        >
+          ログアウト
+        </button>
       </div>
     </div>
   );
