@@ -3,20 +3,22 @@ import { LucideIcon } from "lucide-react";
 export interface Transaction {
   id: string;
   title: string;
-  category: string;
+  category_id: string;
   amount: number;
   date: string;
   type: "income" | "expense";
+  user_id: string;
+  category?: Category; // JOINで取得する場合
 }
 
 export interface Category {
   id: string;
   name: string;
-  icon: string;
-  color: string;
-  monthlyBudget: number;
-  spent: number;
-  transactions: number;
+  type: "income" | "expense";
+  icon?: string;
+  color?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Account {

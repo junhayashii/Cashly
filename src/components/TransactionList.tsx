@@ -49,16 +49,23 @@ export function TransactionList({ transactions }: TransactionListProps) {
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
   const filteredTransactions = transactions.filter((transaction) => {
+    const categoryName = transaction.category?.name || "";
     const matchesSearch =
       transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+      categoryName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === "all" || transaction.type === filterType;
     const matchesCategory =
-      filterCategory === "all" || transaction.category === filterCategory;
+      filterCategory === "all" || categoryName === filterCategory;
     return matchesSearch && matchesType && matchesCategory;
   });
 
-  const categories = [...new Set(transactions.map((t) => t.category))];
+  const categories = [
+    ...new Set(
+      transactions
+        .map((t) => t.category?.name)
+        .filter((name): name is string => Boolean(name))
+    ),
+  ];
 
   return (
     <Card className="p-6 bg-card border-border">
@@ -119,7 +126,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
           </div>
         ) : (
           filteredTransactions.map((transaction) => {
-            const Icon = categoryIcons[transaction.category] || ShoppingBag;
+            const categoryName = transaction.category?.name || "Other";
+            const Icon = categoryIcons[categoryName] || ShoppingBag;
             const isPositive = transaction.type === "income";
 
             return (
@@ -140,7 +148,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
                       {transaction.title}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {transaction.category} •{" "}
+                      {categoryName} •{" "}
                       {new Date(transaction.date).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "short",

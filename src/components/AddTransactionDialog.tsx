@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { Transaction } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
+import { useCategories } from "@/hooks/useCategories";
 
 interface AddTransactionDialogProps {
   onAddTransaction: (transaction: Transaction) => void;
@@ -32,40 +33,27 @@ export function AddTransactionDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { getCategoriesByType } = useCategories();
   const [formData, setFormData] = useState<{
     title: string;
     amount: string;
-    category: string;
+    category_id: string;
     type: "income" | "expense";
     date: string;
   }>({
     title: "",
     amount: "",
-    category: "",
+    category_id: "",
     type: "expense",
     date: new Date().toISOString().split("T")[0],
   });
-
-  const categories = {
-    expense: [
-      "Food",
-      "Housing",
-      "Transport",
-      "Entertainment",
-      "Shopping",
-      "Healthcare",
-      "Utilities",
-      "Other",
-    ],
-    income: ["Salary", "Freelance", "Investment", "Bonus", "Gift", "Other"],
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setLoading(true);
 
-    if (!formData.title || !formData.amount || !formData.category) {
+    if (!formData.title || !formData.amount || !formData.category_id) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields",
@@ -93,7 +81,7 @@ export function AddTransactionDialog({
       title: formData.title,
       amount:
         parseFloat(formData.amount) * (formData.type === "expense" ? -1 : 1),
-      category: formData.category,
+      category_id: formData.category_id,
       date: formData.date,
       type: formData.type,
       user_id: user.id,
@@ -130,7 +118,7 @@ export function AddTransactionDialog({
     setFormData({
       title: "",
       amount: "",
-      category: "",
+      category_id: "",
       type: "expense",
       date: new Date().toISOString().split("T")[0],
     });
@@ -161,7 +149,7 @@ export function AddTransactionDialog({
                 setFormData({
                   ...formData,
                   type: value as "income" | "expense",
-                  category: "",
+                  category_id: "",
                 })
               }
             >
@@ -221,9 +209,9 @@ export function AddTransactionDialog({
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <Select
-              value={formData.category}
+              value={formData.category_id}
               onValueChange={(value) =>
-                setFormData({ ...formData, category: value })
+                setFormData({ ...formData, category_id: value })
               }
             >
               <SelectTrigger
@@ -233,13 +221,11 @@ export function AddTransactionDialog({
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border z-50">
-                {categories[formData.type as keyof typeof categories].map(
-                  (cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  )
-                )}
+                {getCategoriesByType(formData.type).map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
