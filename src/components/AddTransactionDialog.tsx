@@ -20,6 +20,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { Transaction } from "@/types";
+import { supabase } from "@/lib/supabaseClient";
 
 interface AddTransactionDialogProps {
   onAddTransaction: (transaction: Transaction) => void;
@@ -29,6 +30,7 @@ export function AddTransactionDialog({
   onAddTransaction,
 }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState<{
     title: string;
@@ -58,8 +60,10 @@ export function AddTransactionDialog({
     income: ["Salary", "Freelance", "Investment", "Bonus", "Gift", "Other"],
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
 
     if (!formData.title || !formData.amount || !formData.category) {
       toast({
@@ -67,25 +71,55 @@ export function AddTransactionDialog({
         description: "Please fill in all required fields",
         variant: "destructive",
       });
+      setLoading(false);
+      return;
+    }
+
+    const { data, error: userError } = await supabase.auth.getUser();
+    const user = data?.user;
+
+    if (userError || !user) {
+      toast({
+        title: "Error",
+        description: "Could not get user info",
+        variant: "destructive",
+      });
+      setLoading(false);
       return;
     }
 
     const transaction = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: formData.title,
       amount:
         parseFloat(formData.amount) * (formData.type === "expense" ? -1 : 1),
       category: formData.category,
-      date: new Date(formData.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
+      date: formData.date,
       type: formData.type,
+      user_id: user.id,
     };
 
-    onAddTransaction(transaction);
+    console.log("Attempting to insert transaction:", transaction);
 
+    const { data: insertedData, error } = await supabase
+      .from("Transactions")
+      .insert([transaction])
+      .select();
+
+    if (error) {
+      console.error("Failed to insert transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save transaction",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    console.log("Inserted transaction data:", insertedData[0]);
+
+    onAddTransaction(insertedData[0]);
     toast({
       title: "Transaction added",
       description: `${formData.type === "expense" ? "Expense" : "Income"} of $${
@@ -101,6 +135,7 @@ export function AddTransactionDialog({
       date: new Date().toISOString().split("T")[0],
     });
     setOpen(false);
+    setLoading(false);
   };
 
   return (
@@ -215,6 +250,7 @@ export function AddTransactionDialog({
               variant="outline"
               onClick={() => setOpen(false)}
               className="flex-1"
+              disabled={loading}
             >
               Cancel
             </Button>

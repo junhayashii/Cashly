@@ -1,19 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { TransactionList } from "@/components/TransactionList";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
 import { Download, Upload } from "lucide-react";
 
 import { Transaction } from "@/types";
-import { initialTransactions } from "@/data/transactions";
+import { useTransaction } from "@/hooks/useTransactions";
 
 const TransactionPage = () => {
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(initialTransactions);
+  const { transactions, loading, setTransactions } = useTransaction();
 
-  const handleAddTransaction = (newTransaction: Transaction) => {
+  const handleAddTransaction = async (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
   };
 
@@ -76,7 +74,11 @@ const TransactionPage = () => {
       </div>
 
       {/* Transaction List */}
-      <TransactionList transactions={transactions} />
+      {loading ? (
+        <div>Loading transactions...</div>
+      ) : (
+        <TransactionList transactions={transactions} />
+      )}
     </div>
   );
 };

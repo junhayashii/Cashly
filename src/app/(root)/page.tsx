@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { TransactionList } from "@/components/TransactionList";
 import { SpendingChart } from "@/components/SpendingChart";
@@ -17,15 +16,14 @@ import {
 } from "lucide-react";
 
 import { Transaction } from "@/types";
-import { initialTransactions } from "@/data/transactions";
+import { useTransaction } from "@/hooks/useTransactions";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Home = () => {
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(initialTransactions);
+  const { transactions, setTransactions } = useTransaction();
 
-  const handleAddTransaction = (newTransaction: Transaction) => {
+  const handleAddTransaction = async (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
   };
 

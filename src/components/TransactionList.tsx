@@ -140,7 +140,12 @@ export function TransactionList({ transactions }: TransactionListProps) {
                       {transaction.title}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {transaction.category} • {transaction.date}
+                      {transaction.category} •{" "}
+                      {new Date(transaction.date).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </p>
                   </div>
                 </div>
