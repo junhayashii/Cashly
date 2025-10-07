@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { Transaction } from "@/types";
+import { useAccounts } from "@/hooks/useAccounts";
 
 const categoryIcons: Record<
   string,
@@ -58,6 +59,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
       filterCategory === "all" || categoryName === filterCategory;
     return matchesSearch && matchesType && matchesCategory;
   });
+
+  const { getAccountById } = useAccounts();
 
   const categories = [
     ...new Set(
@@ -129,6 +132,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
             const categoryName = transaction.category?.name || "Other";
             const Icon = categoryIcons[categoryName] || ShoppingBag;
             const isPositive = transaction.type === "income";
+            const account = getAccountById(transaction.account_id);
 
             return (
               <div
@@ -148,6 +152,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
                       {transaction.title}
                     </p>
                     <p className="text-sm text-muted-foreground">
+                      {account ? `${account.name} • ` : ""}
                       {categoryName} •{" "}
                       {new Date(transaction.date).toLocaleDateString("en-US", {
                         year: "numeric",

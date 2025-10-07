@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Transaction } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useCategories } from "@/hooks/useCategories";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface AddTransactionDialogProps {
   onAddTransaction: (transaction: Transaction) => void;
@@ -34,16 +35,19 @@ export function AddTransactionDialog({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { getCategoriesByType } = useCategories();
+  const { accounts, getAccountById } = useAccounts();
   const [formData, setFormData] = useState<{
     title: string;
     amount: string;
     category_id: string;
+    account_id: string;
     type: "income" | "expense";
     date: string;
   }>({
     title: "",
     amount: "",
     category_id: "",
+    account_id: "",
     type: "expense",
     date: new Date().toISOString().split("T")[0],
   });
@@ -82,6 +86,7 @@ export function AddTransactionDialog({
       amount:
         parseFloat(formData.amount) * (formData.type === "expense" ? -1 : 1),
       category_id: formData.category_id,
+      account_id: formData.account_id,
       date: formData.date,
       type: formData.type,
       user_id: user.id,
@@ -119,6 +124,7 @@ export function AddTransactionDialog({
       title: "",
       amount: "",
       category_id: "",
+      account_id: "",
       type: "expense",
       date: new Date().toISOString().split("T")[0],
     });
@@ -205,29 +211,53 @@ export function AddTransactionDialog({
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select
-              value={formData.category_id}
-              onValueChange={(value) =>
-                setFormData({ ...formData, category_id: value })
-              }
-            >
-              <SelectTrigger
-                id="category"
-                className="bg-background border-border"
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, category_id: value })
+                }
               >
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border z-50">
-                {getCategoriesByType(formData.type).map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  id="category"
+                  className="bg-background border-border"
+                >
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {getCategoriesByType(formData.type).map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="account">Account</Label>
+              <Select
+                value={formData.account_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, account_id: value })
+                }
+              >
+                <SelectTrigger
+                  id="account"
+                  className="bg-background border-border"
+                >
+                  <SelectValue placeholder="Select an account" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

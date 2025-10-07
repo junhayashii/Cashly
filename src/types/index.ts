@@ -4,6 +4,7 @@ export interface Transaction {
   id: string;
   title: string;
   category_id: string;
+  account_id: string;
   amount: number;
   date: string;
   type: "income" | "expense";
