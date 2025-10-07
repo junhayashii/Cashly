@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Account } from "@/types";
 import { useAccounts } from "@/hooks/useAccounts";
 import { AddAccountDialog } from "@/components/AddAccountsDialog";
+import { EditAccountDialog } from "@/components/EditAccountDialog";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -177,13 +178,13 @@ const Accounts = () => {
           })}
         </div>
       )}
-      {/* 
+
       <EditAccountDialog
         account={editingAccount}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onAccountUpdated={handleAccountUpdated}
-      /> */}
+      />
     </div>
   );
 };
