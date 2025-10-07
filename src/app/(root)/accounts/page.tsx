@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import {
   Card,
   CardContent,
@@ -9,164 +9,181 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, CreditCard, Building2, Wallet, TrendingUp } from "lucide-react";
+import {
+  CreditCard,
+  Wallet,
+  Banknote,
+  Coins,
+  Smartphone,
+  PiggyBank,
+  Edit,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 import { Account } from "@/types";
-import { initialAccounts } from "@/data/account";
+import { useAccounts } from "@/hooks/useAccounts";
+import { AddAccountDialog } from "@/components/AddAccountsDialog";
 
-const getAccountIcon = (type: string) => {
-  switch (type) {
-    case "checking":
-      return Wallet;
-    case "savings":
-      return Building2;
-    case "credit":
-      return CreditCard;
-    case "investment":
-      return TrendingUp;
-    default:
-      return Wallet;
-  }
-};
+type IconComponent = ComponentType<{ className?: string }>;
 
-const getAccountColor = (type: string) => {
-  switch (type) {
-    case "checking":
-      return "bg-primary/10 text-primary";
-    case "savings":
-      return "bg-success/10 text-success";
-    case "credit":
-      return "bg-accent/10 text-accent";
-    case "investment":
-      return "bg-warning/10 text-warning";
-    default:
-      return "bg-muted";
-  }
+const getIconComponent = (iconName: string): IconComponent => {
+  const icons: Record<string, IconComponent> = {
+    CreditCard,
+    Wallet,
+    Banknote,
+    Coins,
+    Smartphone,
+    PiggyBank,
+  };
+  return icons[iconName] || Wallet;
 };
 
 const Accounts = () => {
-  const [accounts] = useState<Account[]>(initialAccounts);
+  const { accounts, loading: accountsLoading, addAccount } = useAccounts();
 
-  const totalAssets = accounts
-    .filter((a) => a.balance > 0)
-    .reduce((sum, a) => sum + a.balance, 0);
+  const { toast } = useToast();
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const totalLiabilities = accounts
-    .filter((a) => a.balance < 0)
-    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
+  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
-  const netWorth = totalAssets - totalLiabilities;
+  const handleAddAccount = (newAccount: Account) => {
+    addAccount(newAccount);
+    toast({
+      title: "Account added",
+      description: `${newAccount.name} has been created successfully`,
+    });
+  };
+
+  const handleEditAccount = (account: Account) => {
+    setEditingAccount(account);
+    setEditDialogOpen(true);
+  };
+
+  const handleAccountUpdated = (updatedAccount: Account) => {
+    // TODO: 更新処理をフックに移動してもOK
+    setEditingAccount(null);
+  };
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-foreground mb-2">Accounts</h2>
           <p className="text-muted-foreground">
-            Manage all your financial accounts
+            Manage your bank accounts, cards, and wallets
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Account
-        </Button>
+        <AddAccountDialog onAddAccount={handleAddAccount} />
       </div>
 
-      {/* Net Worth Summary */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Assets
+              Total Accounts
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">
-              ${totalAssets.toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">{accounts.length}</div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Liabilities
+              Total Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              ${totalLiabilities.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Net Worth
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              ${netWorth.toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">${totalBalance.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Accounts List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {accounts.map((account) => {
-          const Icon = getAccountIcon(account.type);
-          const colorClass = getAccountColor(account.type);
+      {accountsLoading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Loading accounts...
+        </div>
+      ) : accounts.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground">
+          No accounts yet. Add your first one!
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {accounts.map((account) => {
+            const Icon = getIconComponent("Wallet");
+            const typeLabels: Record<string, string> = {
+              bank: "Bank Account",
+              credit_card: "Credit Card",
+              cash: "Cash",
+              digital_wallet: "Digital Wallet",
+            };
 
-          return (
-            <Card
-              key={account.id}
-              className="hover:shadow-lg transition-shadow"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg ${colorClass}`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{account.name}</CardTitle>
-                      <CardDescription className="text-sm">
-                        {account.institution} •••• {account.lastFour}
-                      </CardDescription>
+            return (
+              <Card
+                key={account.id}
+                className="hover:shadow-lg transition-shadow"
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg">
+                        <Icon className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">
+                          {account.name}
+                        </CardTitle>
+                        <CardDescription className="text-sm">
+                          {typeLabels[account.type] || account.type}
+                        </CardDescription>
+                        <Badge variant="secondary" className="mt-1 text-xs">
+                          {account.type}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="outline" className="capitalize">
-                    {account.type}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Balance
-                    </p>
-                    <p
-                      className={`text-2xl font-bold ${
-                        account.balance >= 0
-                          ? "text-foreground"
-                          : "text-destructive"
-                      }`}
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Balance</span>
+                      <span className="font-medium text-foreground">
+                        ${account.balance.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleEditAccount(account)}
                     >
-                      ${Math.abs(account.balance).toFixed(2)}
-                    </p>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+      {/* 
+      <EditAccountDialog
+        account={editingAccount}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onAccountUpdated={handleAccountUpdated}
+      /> */}
     </div>
   );
 };

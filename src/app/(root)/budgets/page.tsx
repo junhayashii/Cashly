@@ -28,65 +28,15 @@ const BudgetsGoals = () => {
         </div>
       </div>
 
-      {/* Budgets Section */}
+      {/* Budgets & Goals Section */}
       <div>
-        <h3 className="text-xl font-bold text-foreground mb-4">
-          Monthly Budgets
-        </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <BudgetSection />
-          <SpendingChart />
+          <GoalsSection />
         </div>
       </div>
 
-      {/* Goals Section */}
-      <div>
-        <h3 className="text-xl font-bold text-foreground mb-4">
-          Savings Goals
-        </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GoalsSection />
-          <div className="p-6 rounded-xl bg-card border border-border">
-            <h3 className="text-xl font-bold text-foreground mb-4">
-              Tips for Success
-            </h3>
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                <h4 className="font-semibold text-foreground mb-2">
-                  Automate Your Savings
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Set up automatic transfers to your savings goals each month
-                </p>
-              </div>
-              <div className="p-4 rounded-lg bg-success/5 border border-success/20">
-                <h4 className="font-semibold text-foreground mb-2">
-                  Track Your Progress
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Review your goals weekly to stay motivated and on track
-                </p>
-              </div>
-              <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
-                <h4 className="font-semibold text-foreground mb-2">
-                  Celebrate Milestones
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Reward yourself when you reach 25%, 50%, and 75% of your goal
-                </p>
-              </div>
-              <div className="p-4 rounded-lg bg-warning/5 border border-warning/20">
-                <h4 className="font-semibold text-foreground mb-2">
-                  Adjust as Needed
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Life changes - dont be afraid to modify your budgets and goals
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SpendingChart />
     </div>
   );
 };

@@ -17,17 +17,20 @@ export interface Category {
   type: "income" | "expense";
   icon?: string;
   color?: string;
+  monthly_budget?: number;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface Account {
   id: string;
+  user_id: string;
   name: string;
-  type: "checking" | "savings" | "credit" | "investment";
+  type: "bank" | "credit_card" | "cash" | "e_wallet" | "investment";
   balance: number;
   institution: string;
-  lastFour: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface MetricCardProps {

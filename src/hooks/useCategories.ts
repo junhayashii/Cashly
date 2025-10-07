@@ -33,6 +33,10 @@ export function useCategories() {
     return categories.find((category) => category.id === id);
   };
 
+  const addCategory = (newCategory: Category) => {
+    setCategories((prev) => [...prev, newCategory]);
+  };
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -43,5 +47,6 @@ export function useCategories() {
     refresh: fetchCategories,
     getCategoriesByType,
     getCategoryById,
+    addCategory,
   };
 }
