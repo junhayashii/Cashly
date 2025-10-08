@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -141,6 +142,9 @@ export function AddCategoryDialog({ onAddCategory }: AddCategoryDialogProps) {
           <DialogTitle className="text-2xl font-bold text-foreground">
             Add Category
           </DialogTitle>
+          <DialogDescription>
+            Add the details of your category here.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">

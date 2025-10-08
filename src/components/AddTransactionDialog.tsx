@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -145,6 +146,9 @@ export function AddTransactionDialog({
           <DialogTitle className="text-2xl font-bold text-foreground">
             Add Transaction
           </DialogTitle>
+          <DialogDescription>
+            Add the details of your transaction here.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -135,6 +136,9 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
           <DialogTitle className="text-2xl font-bold text-foreground">
             Add Account
           </DialogTitle>
+          <DialogDescription>
+            Add the details of your account here.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">

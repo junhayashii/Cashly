@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -153,6 +154,9 @@ export function EditAccountDialog({
           <DialogTitle className="text-2xl font-bold text-foreground">
             Edit Account
           </DialogTitle>
+          <DialogDescription>
+            Update the details of your account here.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">

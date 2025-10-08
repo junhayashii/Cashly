@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,10 +18,13 @@ import {
   Car,
   Search,
   Filter,
+  Pencil,
 } from "lucide-react";
 
 import { Transaction } from "@/types";
 import { useAccounts } from "@/hooks/useAccounts";
+
+import { EditTransactionDialog } from "@/components/EditTransactionsDialog";
 
 const categoryIcons: Record<
   string,
@@ -61,6 +65,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
   });
 
   const { getAccountById } = useAccounts();
+
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
 
   const categories = [
     ...new Set(
@@ -176,12 +183,33 @@ export function TransactionList({ transactions }: TransactionListProps) {
                   ) : (
                     <ArrowDownRight className="h-5 w-5 text-muted-foreground" />
                   )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedTransaction(transaction)}
+                  >
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </div>
               </div>
             );
           })
         )}
       </div>
+      {/* ✅ 編集ダイアログを最後に追加 */}
+      {selectedTransaction && (
+        <EditTransactionDialog
+          transaction={selectedTransaction}
+          open={!!selectedTransaction}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTransaction(null);
+          }}
+          onTransactionUpdated={(updatedTransaction) => {
+            // ここで transactions を更新するなど
+          }}
+        />
+      )}
     </Card>
   );
 }
