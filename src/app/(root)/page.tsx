@@ -102,7 +102,6 @@ const Home = () => {
           <div className="lg:col-span-1 space-y-6">
             <BudgetSection />
             <RecurringBills />
-            <GoalsSection />
           </div>
         </div>
       </div>
