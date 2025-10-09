@@ -87,7 +87,7 @@ export function EditTransactionDialog({
     };
 
     const { data, error } = await supabase
-      .from("Transactions")
+      .from("transactions")
       .update(updatedData)
       .eq("id", transaction.id)
       .select()

@@ -142,42 +142,6 @@ export function EditCategoryDialog({
     setLoading(false);
   };
 
-  const handleDelete = async () => {
-    if (!category) return;
-
-    const confirmDelete = confirm(
-      `Are you sure you want to delete "${category.name}"? This action cannot be undone.`
-    );
-
-    if (!confirmDelete) return;
-
-    setLoading(true);
-
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", category.id);
-
-    if (error) {
-      console.error("Failed to delete category:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete category",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
-    toast({
-      title: "Category deleted",
-      description: `${category.name} has been deleted`,
-    });
-
-    onOpenChange(false);
-    setLoading(false);
-  };
-
   if (!category) return null;
 
   return (
@@ -305,14 +269,6 @@ export function EditCategoryDialog({
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={loading}
-            >
-              Delete
-            </Button>
             <Button
               type="button"
               variant="outline"

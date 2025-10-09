@@ -15,6 +15,7 @@ import {
   useSidebar,
   SidebarFooter,
   SidebarHeader,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -117,17 +118,20 @@ const AppSidebar = () => {
         <SidebarHeader className="border-sidebar-border py-4">
           <div
             className={`flex items-center px-4 ${
-              isCollapsed ? "justify-center gap-0" : "gap-3"
+              isCollapsed ? "justify-center gap-0" : "justify-between"
             }`}
           >
-            <div className={`p-2 rounded-xl bg-primary`}>
-              <Wallet className={`h-5 w-5 text-primary-foreground`} />
-            </div>
             {!isCollapsed && (
-              <h1 className="text-xl font-bold text-sidebar-foreground">
-                Cashly
-              </h1>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl bg-primary`}>
+                  <Wallet className={`h-5 w-5 text-primary-foreground`} />
+                </div>
+                <h1 className="text-xl font-bold text-sidebar-foreground">
+                  Cashly
+                </h1>
+              </div>
             )}
+            <SidebarTrigger />
           </div>
         </SidebarHeader>
 

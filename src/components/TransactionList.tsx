@@ -12,6 +12,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ArrowUpRight,
   ArrowDownRight,
   ShoppingBag,
@@ -19,6 +27,8 @@ import {
   Utensils,
   Car,
   Pencil,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 import { Transaction } from "@/types";
@@ -57,6 +67,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
 
+  // ソート状態
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   const categories = [
     ...new Set(
       transactions
@@ -82,6 +95,25 @@ export function TransactionList({ transactions }: TransactionListProps) {
     return matchesSearch && matchesType && matchesCategory && matchesAccount;
   });
 
+  // ソート処理
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    const dateA = new Date(a.date || "").getTime();
+    const dateB = new Date(b.date || "").getTime();
+
+    return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+  });
+
+  // 日付フォーマット関数
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <Card className="p-6 bg-card border-border">
       <div className="flex items-center justify-between mb-6">
@@ -89,7 +121,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
           Recent Transactions
         </h2>
         <span className="text-sm text-muted-foreground">
-          {filteredTransactions.length} transactions
+          {sortedTransactions.length} transactions
         </span>
       </div>
 
@@ -142,72 +174,97 @@ export function TransactionList({ transactions }: TransactionListProps) {
         </Select>
       </div>
 
-      {/* Transactions */}
-      <div className="space-y-4">
-        {filteredTransactions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No transactions found
-          </div>
-        ) : (
-          filteredTransactions.map((transaction) => {
-            const categoryName = transaction.category?.name || "Other";
-            const Icon = categoryIcons[categoryName] || ShoppingBag;
-            const isPositive = transaction.type === "income";
-            const account = getAccountById(transaction.account_id);
+      {/* Table */}
+      {sortedTransactions.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No transactions found
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[40px]"></TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Account</TableHead>
+              <TableHead>Category</TableHead>
 
-            return (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary/50 transition-colors"
+              {/* Date Column with sort */}
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
               >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`p-2 rounded-lg ${
-                      isPositive ? "bg-primary/10" : "bg-muted"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {transaction.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {account ? `${account.name} • ` : ""}
-                      {categoryName}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-1">
+                  Date
+                  {sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-lg font-semibold ${
+              </TableHead>
+
+              <TableHead className="text-center">Amount</TableHead>
+              <TableHead className="text-center">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {sortedTransactions.map((transaction) => {
+              const categoryName = transaction.category?.name || "Other";
+              const Icon = categoryIcons[categoryName] || ShoppingBag;
+              const isPositive = transaction.type === "income";
+              const account = getAccountById(transaction.account_id);
+
+              return (
+                <TableRow key={transaction.id}>
+                  <TableCell>
+                    <div
+                      className={`p-2 rounded-lg ${
+                        isPositive ? "bg-primary/10" : "bg-muted"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium text-foreground">
+                    {transaction.title}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {account?.name || "-"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {categoryName}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(transaction.date)}
+                  </TableCell>
+                  <TableCell
+                    className={`text-center font-semibold ${
                       isPositive ? "text-success" : "text-foreground"
                     }`}
                   >
-                    {isPositive ? "+" : ""}$
+                    {isPositive ? "+" : "-"}$
                     {Math.abs(transaction.amount).toFixed(2)}
-                  </span>
-                  {isPositive ? (
-                    <ArrowUpRight className="h-5 w-5 text-green-600" />
-                  ) : (
-                    <ArrowDownRight className="h-5 w-5 text-muted-foreground" />
-                  )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedTransaction(transaction)}
+                    >
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSelectedTransaction(transaction)}
-                  >
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Edit Transaction Dialog */}
+      {/* Edit Dialog */}
       {selectedTransaction && (
         <EditTransactionDialog
           transaction={selectedTransaction}
@@ -216,7 +273,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
             if (!open) setSelectedTransaction(null);
           }}
           onTransactionUpdated={(updatedTransaction) => {
-            // transactions を更新する処理
+            // handle update logic
           }}
         />
       )}

@@ -47,32 +47,6 @@ const TransactionPage = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-xl bg-card border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Total Income</p>
-          <p className="text-2xl font-bold text-success">
-            ${totalIncome.toFixed(2)}
-          </p>
-        </div>
-        <div className="p-6 rounded-xl bg-card border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Total Expenses</p>
-          <p className="text-2xl font-bold text-destructive">
-            ${totalExpenses.toFixed(2)}
-          </p>
-        </div>
-        <div className="p-6 rounded-xl bg-card border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Balance</p>
-          <p
-            className={`text-2xl font-bold ${
-              netFlow >= 0 ? "text-success" : "text-destructive"
-            }`}
-          >
-            ${netFlow.toFixed(2)}
-          </p>
-        </div>
-      </div>
-
       {/* Transaction List */}
       {loading ? (
         <div>Loading transactions...</div>

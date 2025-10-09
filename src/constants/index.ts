@@ -10,7 +10,7 @@ import {
 export const mainMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Transactions", url: "/transactions", icon: Receipt },
-  { title: "Budgets", url: "/budgets", icon: Tag },
+  { title: "Categories", url: "/categories", icon: Tag },
   { title: "Accounts", url: "/accounts", icon: Wallet },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Goals & Savings", url: "/goals", icon: Goal },
