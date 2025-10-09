@@ -29,6 +29,7 @@ import { EditAccountDialog } from "@/components/EditAccountDialog";
 
 import { useTransaction } from "@/hooks/useTransactions";
 import { TransactionList } from "@/components/TransactionList";
+import { RecurringBills } from "@/components/RecurringBills";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -287,7 +288,15 @@ const Accounts = () => {
         onOpenChange={setEditDialogOpen}
         onAccountUpdated={handleAccountUpdated}
       />
-      <TransactionList transactions={transactions} />
+
+      <div className="grid grid-col-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <TransactionList transactions={transactions} />
+        </div>
+        <div className="lg:col-span-1 space-y-6">
+          <RecurringBills />
+        </div>
+      </div>
     </div>
   );
 };

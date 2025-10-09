@@ -13,5 +13,5 @@ export const mainMenuItems = [
   { title: "Categories", url: "/categories", icon: Tag },
   { title: "Accounts", url: "/accounts", icon: Wallet },
   { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Goals & Savings", url: "/goals", icon: Goal },
+  // { title: "Goals & Savings", url: "/goals", icon: Goal },
 ];
