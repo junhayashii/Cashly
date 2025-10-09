@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,14 +18,11 @@ import {
   Home,
   Utensils,
   Car,
-  Search,
-  Filter,
   Pencil,
 } from "lucide-react";
 
 import { Transaction } from "@/types";
 import { useAccounts } from "@/hooks/useAccounts";
-
 import { EditTransactionDialog } from "@/components/EditTransactionsDialog";
 
 const categoryIcons: Record<
@@ -52,20 +51,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterAccount, setFilterAccount] = useState<string>("all");
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const categoryName = transaction.category?.name || "";
-    const matchesSearch =
-      transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      categoryName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === "all" || transaction.type === filterType;
-    const matchesCategory =
-      filterCategory === "all" || categoryName === filterCategory;
-    return matchesSearch && matchesType && matchesCategory;
-  });
-
-  const { getAccountById } = useAccounts();
-
+  const { getAccountById, accounts } = useAccounts();
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
 
@@ -76,6 +64,23 @@ export function TransactionList({ transactions }: TransactionListProps) {
         .filter((name): name is string => Boolean(name))
     ),
   ];
+
+  const filteredTransactions = transactions.filter((transaction) => {
+    const categoryName = transaction.category?.name || "Other";
+    const accountName = getAccountById(transaction.account_id)?.name || "";
+
+    const matchesSearch =
+      transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      categoryName.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesType = filterType === "all" || transaction.type === filterType;
+    const matchesCategory =
+      filterCategory === "all" || categoryName === filterCategory;
+    const matchesAccount =
+      filterAccount === "all" || accountName === filterAccount;
+
+    return matchesSearch && matchesType && matchesCategory && matchesAccount;
+  });
 
   return (
     <Card className="p-6 bg-card border-border">
@@ -90,42 +95,51 @@ export function TransactionList({ transactions }: TransactionListProps) {
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row items-center gap-3 mb-6">
-        <div className="flex-1 relative w-full md:-auto">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search transactions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background border-border"
-          />
-        </div>
-        <div className="flex gap-3">
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="bg-background border-border">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border z-50">
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expenses</SelectItem>
-            </SelectContent>
-          </Select>
+        <Input
+          placeholder="Search transactions..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 bg-background border-border"
+        />
 
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="bg-background border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border z-50">
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="bg-background border-border">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="income">Income</SelectItem>
+            <SelectItem value="expense">Expense</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="bg-background border-border">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterAccount} onValueChange={setFilterAccount}>
+          <SelectTrigger className="bg-background border-border">
+            <SelectValue placeholder="All Accounts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Accounts</SelectItem>
+            {accounts.map((a) => (
+              <SelectItem key={a.id} value={a.name}>
+                {a.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Transactions */}
@@ -160,12 +174,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {account ? `${account.name} • ` : ""}
-                      {categoryName} •{" "}
-                      {new Date(transaction.date).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {categoryName}
                     </p>
                   </div>
                 </div>
@@ -197,7 +206,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
           })
         )}
       </div>
-      {/* ✅ 編集ダイアログを最後に追加 */}
+
+      {/* Edit Transaction Dialog */}
       {selectedTransaction && (
         <EditTransactionDialog
           transaction={selectedTransaction}
@@ -206,7 +216,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
             if (!open) setSelectedTransaction(null);
           }}
           onTransactionUpdated={(updatedTransaction) => {
-            // ここで transactions を更新するなど
+            // transactions を更新する処理
           }}
         />
       )}
