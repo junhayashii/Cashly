@@ -12,7 +12,7 @@ export function useTransaction() {
     setLoading(true);
 
     const { data, error } = await supabase
-      .from("Transactions")
+      .from("transactions")
       .select(
         `
         *,

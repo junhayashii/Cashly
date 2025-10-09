@@ -96,7 +96,7 @@ export function AddTransactionDialog({
     console.log("Attempting to insert transaction:", transaction);
 
     const { data: insertedData, error } = await supabase
-      .from("Transactions")
+      .from("transactions")
       .insert([transaction])
       .select();
 
