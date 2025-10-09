@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { TransactionList } from "@/components/TransactionList";
 import { SpendingChart } from "@/components/SpendingChart";
@@ -15,6 +16,8 @@ import {
   Download,
 } from "lucide-react";
 
+import { supabase } from "@/lib/supabaseClient";
+
 import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
 
@@ -22,6 +25,26 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Home = () => {
   const { transactions, setTransactions } = useTransaction();
+  const [firstName, setFirstName] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+
+      if (user) {
+        setFirstName(user.user_metadata?.first_name || "User");
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleAddTransaction = async (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
@@ -42,7 +65,7 @@ const Home = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold text-foreground mb-2">
-              Welcome back, Jun
+              Welcome back, {firstName}
             </h2>
             <p className="text-muted-foreground">
               Your financial overview for December 2025

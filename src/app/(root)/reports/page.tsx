@@ -1,3 +1,4 @@
+import { BudgetSection } from "@/components/BudgetSection";
 import { SpendingChart } from "@/components/SpendingChart";
 import {
   Card,
@@ -97,63 +98,7 @@ const ReportsPage = () => {
         <TabsContent value="spending" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <SpendingChart />
-            <Card>
-              <CardHeader>
-                <CardTitle>Category Breakdown</CardTitle>
-                <CardDescription>
-                  Your spending by category this month
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  {
-                    category: "Housing",
-                    amount: 1200,
-                    percentage: 42,
-                    color: "bg-primary",
-                  },
-                  {
-                    category: "Food & Dining",
-                    amount: 420,
-                    percentage: 15,
-                    color: "bg-accent",
-                  },
-                  {
-                    category: "Transport",
-                    amount: 280,
-                    percentage: 10,
-                    color: "bg-success",
-                  },
-                  {
-                    category: "Entertainment",
-                    amount: 150,
-                    percentage: 5,
-                    color: "bg-warning",
-                  },
-                  {
-                    category: "Other",
-                    amount: 800,
-                    percentage: 28,
-                    color: "bg-muted",
-                  },
-                ].map((item) => (
-                  <div key={item.category} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.category}</span>
-                      <span className="text-muted-foreground">
-                        ${item.amount} ({item.percentage}%)
-                      </span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${item.color}`}
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <BudgetSection />
           </div>
         </TabsContent>
 
