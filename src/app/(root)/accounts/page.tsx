@@ -27,6 +27,9 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { AddAccountDialog } from "@/components/AddAccountsDialog";
 import { EditAccountDialog } from "@/components/EditAccountDialog";
 
+import { useTransaction } from "@/hooks/useTransactions";
+import { TransactionList } from "@/components/TransactionList";
+
 type IconComponent = ComponentType<{ className?: string }>;
 
 const getIconComponent = (iconName: string): IconComponent => {
@@ -58,6 +61,7 @@ const getAccountGradient = (type: string) => {
 
 const Accounts = () => {
   const { accounts, loading: accountsLoading, addAccount } = useAccounts();
+  const { transactions, setTransactions } = useTransaction();
 
   const { toast } = useToast();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -96,7 +100,7 @@ const Accounts = () => {
         <AddAccountDialog onAddAccount={handleAddAccount} />
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-3">
@@ -119,7 +123,7 @@ const Accounts = () => {
             <div className="text-2xl font-bold">${totalBalance.toFixed(2)}</div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Accounts List */}
       {accountsLoading ? (
@@ -283,6 +287,7 @@ const Accounts = () => {
         onOpenChange={setEditDialogOpen}
         onAccountUpdated={handleAccountUpdated}
       />
+      <TransactionList transactions={transactions} />
     </div>
   );
 };
