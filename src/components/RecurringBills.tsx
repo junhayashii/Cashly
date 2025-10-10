@@ -1,10 +1,11 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Clock, Pencil } from "lucide-react";
+import { Check, Clock, Pencil, Plus } from "lucide-react";
 
 import { AddRecurringBillDialog } from "./AddRecurringBillsDialog";
 import EditRecurringBillsDialog from "./EditRecurringBillsDialog";
@@ -42,56 +43,39 @@ export function RecurringBills() {
     if (error) {
       console.error("Error fetching bills:", error);
       toast({ title: "Error fetching bills", variant: "destructive" });
-    } else {
-      const updated = data.map((b) => ({ ...b, is_paid: b.is_paid ?? true }));
-      setBills(updated);
+      return;
     }
+
+    setBills(data.map((b) => ({ ...b, is_paid: b.is_paid ?? true })));
   };
 
   const markAsPaid = async (bill: RecurringBill) => {
-    console.log("Mark as Paid clicked for:", bill);
-
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       if (!userId) throw new Error("User not found");
 
-      const transactionCategoryId = bill.category_id ?? DEFAULT_CATEGORY_ID;
+      const categoryId = bill.category_id ?? DEFAULT_CATEGORY_ID;
 
-      // 1. Transaction作成
-      const { data: transactionData, error: transactionError } = await supabase
-        .from("transactions")
-        .insert([
-          {
-            title: `${bill.title} - ${new Date().toLocaleString("en-US", {
-              month: "long",
-            })}`,
-            amount: -bill.amount,
-            date: new Date().toISOString().split("T")[0],
-            account_id: bill.account_id,
-            category_id: transactionCategoryId,
-            user_id: userId,
-          },
-        ])
-        .select();
+      await supabase.from("transactions").insert([
+        {
+          title: `${bill.title}`,
+          amount: -bill.amount,
+          date: new Date().toISOString().split("T")[0],
+          account_id: bill.account_id,
+          category_id: categoryId,
+          user_id: userId,
+        },
+      ]);
 
-      if (transactionError) throw transactionError;
-
-      // 2. next_due_date更新
       const nextDue = new Date(bill.next_due_date);
-      switch (bill.frequency) {
-        case "monthly":
-          nextDue.setMonth(nextDue.getMonth() + 1);
-          break;
-        case "weekly":
-          nextDue.setDate(nextDue.getDate() + 7);
-          break;
-        case "yearly":
-          nextDue.setFullYear(nextDue.getFullYear() + 1);
-          break;
-      }
+      if (bill.frequency === "monthly")
+        nextDue.setMonth(nextDue.getMonth() + 1);
+      if (bill.frequency === "weekly") nextDue.setDate(nextDue.getDate() + 7);
+      if (bill.frequency === "yearly")
+        nextDue.setFullYear(nextDue.getFullYear() + 1);
 
-      const { error: updateError } = await supabase
+      await supabase
         .from("recurring_bills")
         .update({
           is_paid: true,
@@ -99,106 +83,101 @@ export function RecurringBills() {
         })
         .eq("id", bill.id);
 
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Paid!",
-        description: "Transaction recorded successfully.",
-      });
-
+      toast({ title: "Marked as Paid!" });
       fetchBills();
-    } catch (error) {
-      console.error("Error in markAsPaid:", error);
+    } catch (err) {
+      console.error(err);
       toast({
-        title: "Error",
-        description: String(error),
+        title: "Error marking as paid",
+        description: String(err),
         variant: "destructive",
       });
     }
   };
 
-  const handleEdit = (bill: RecurringBill) => {
-    setSelectedBill(bill);
-    setIsEditOpen(true);
-  };
-
   const totalPending = bills
-    .filter((bill) => !bill.is_paid)
-    .reduce((sum, bill) => sum + bill.amount, 0);
+    .filter((b) => !b.is_paid)
+    .reduce((sum, b) => sum + b.amount, 0);
 
   return (
     <Card className="p-6 bg-card border-border">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-18">
           <h2 className="text-xl font-bold text-foreground">Recurring Bills</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            ${totalPending.toFixed(2)} pending this month
+            ${totalPending.toFixed(2)} pending
           </p>
         </div>
-        <div>
-          <AddRecurringBillDialog onAdded={fetchBills} />
-        </div>
       </div>
 
-      <div className="space-y-3">
-        {bills.map((bill) => {
-          const status = bill.is_paid ? "paid" : "pending";
-          const statusColors = {
-            paid: "bg-success/10 text-success border-success/20",
-            pending: "bg-warning/10 text-warning border-warning/20",
-          };
+      {/* Bill List */}
+      <div className="flex flex-col gap-3">
+        {bills.length === 0 && (
+          <p className="text-center text-muted-foreground py-6">
+            No recurring bills yet
+          </p>
+        )}
 
-          return (
-            <div
-              key={bill.id}
-              className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-muted">
-                  {bill.is_paid ? (
-                    <Check className="h-4 w-4 text-success" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-warning" />
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">{bill.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Due {bill.next_due_date}
-                  </p>
-                </div>
+        {bills.slice(0, 3).map((bill) => (
+          <div
+            key={bill.id}
+            className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4 hover:bg-muted/50 transition-all"
+          >
+            {/* Left: icon + info */}
+            <div className="flex items-center gap-3">
+              <div
+                className={`p-2 rounded-lg ${
+                  bill.is_paid ? "bg-success/10" : "bg-warning/10"
+                }`}
+              >
+                {bill.is_paid ? (
+                  <Check className="h-4 w-4 text-success" />
+                ) : (
+                  <Clock className="h-4 w-4 text-warning" />
+                )}
               </div>
-
-              <div className="flex items-center gap-3">
-                <span className="font-semibold text-foreground">
-                  ${bill.amount.toFixed(2)}
-                </span>
-
-                <Badge
-                  variant="outline"
-                  className={statusColors[status]}
-                  onClick={() => !bill.is_paid && markAsPaid(bill)}
-                  style={{ cursor: !bill.is_paid ? "pointer" : "default" }}
-                >
-                  {bill.is_paid ? "Paid" : "Mark as Paid"}
-                </Badge>
-
-                {/* ✏️ 編集ボタン追加 */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleEdit(bill)}
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+              <div>
+                <p className="font-medium text-foreground">{bill.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  Due {bill.next_due_date}
+                </p>
               </div>
             </div>
-          );
-        })}
+
+            {/* Right: amount + actions */}
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">
+                ${bill.amount.toFixed(2)}
+              </span>
+              {/* 
+              {!bill.is_paid && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="text-xs"
+                  onClick={() => markAsPaid(bill)}
+                >
+                  Mark Paid
+                </Button>
+              )} */}
+
+              {/* <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedBill(bill);
+                  setIsEditOpen(true);
+                }}
+              >
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+              </Button> */}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* 編集ダイアログ */}
+      {/* Edit dialog */}
       {selectedBill && (
         <EditRecurringBillsDialog
           open={isEditOpen}

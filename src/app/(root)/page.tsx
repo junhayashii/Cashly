@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { TransactionList } from "@/components/TransactionList";
+import { TransactionListSimple } from "@/components/TransactionListSimple";
 import { SpendingChart } from "@/components/SpendingChart";
 import { BudgetSection } from "@/components/BudgetSection";
 import { GoalsSection } from "@/components/GoalsSection";
@@ -22,6 +23,8 @@ import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ExpenseBreakdownChart } from "@/components/ExpenseBreakdownChart";
+import { BudgetSectionSimple } from "@/components/BudgetSectionSimple";
 
 const Home = () => {
   const { transactions, setTransactions } = useTransaction();
@@ -117,14 +120,29 @@ const Home = () => {
         </div>
 
         {/* Overview Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* 上段 */}
+          <div className="lg:col-span-2">
             <SpendingChart />
-            <TransactionList transactions={transactions} />
           </div>
-          <div className="lg:col-span-1 space-y-6">
-            <BudgetSection />
+
+          <div className="lg:col-span-2">
+            <ExpenseBreakdownChart />
+          </div>
+
+          {/* <div className="lg:col-span-1 lg:row-span-2">
+            <BudgetSectionSimple />
+          </div> */}
+
+          {/* 下段 */}
+          <div className="lg:col-span-2">
+            <TransactionListSimple transactions={transactions} />
+          </div>
+          <div className="lg:col-span-1">
             <RecurringBills />
+          </div>
+          <div className="lg:col-span-1">
+            <GoalsSection />
           </div>
         </div>
       </div>

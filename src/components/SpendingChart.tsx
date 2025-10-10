@@ -14,78 +14,106 @@ import {
 const data = [
   { name: "Jan", spending: 2400, income: 4000 },
   { name: "Feb", spending: 1398, income: 3000 },
-  { name: "Mar", spending: 2800, income: 4500 },
+  { name: "Mar", spending: 3800, income: 4500 },
   { name: "Apr", spending: 3908, income: 4200 },
-  { name: "May", spending: 2600, income: 5000 },
-  { name: "Jun", spending: 3200, income: 4800 },
-  { name: "Jul", spending: 2900, income: 5200 },
+  { name: "May", spending: 2800, income: 3800 },
+  { name: "Jun", spending: 3200, income: 4300 },
+  { name: "Jul", spending: 3500, income: 4600 },
+  { name: "Aug", spending: 3500, income: 4600 },
+  { name: "Sep", spending: 3500, income: 4600 },
+  { name: "Oct", spending: 3500, income: 4600 },
 ];
 
-export function SpendingChart() {
+export const SpendingChart = () => {
   return (
-    <Card className="p-6 bg-card border-border">
-      <h2 className="text-xl font-bold text-foreground mb-6">
-        Spending Overview
-      </h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="5%"
-                stopColor="hsl(217 91% 60%)"
-                stopOpacity={0.3}
-              />
-              <stop offset="95%" stopColor="hsl(217 91% 60%)" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="colorSpending" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="5%"
-                stopColor="hsl(262 83% 58%)"
-                stopOpacity={0.3}
-              />
-              <stop offset="95%" stopColor="hsl(262 83% 58%)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 6% 20%)" />
-          <XAxis dataKey="name" stroke="hsl(240 5% 65%)" />
-          <YAxis stroke="hsl(240 5% 65%)" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "hsl(240 10% 7%)",
-              border: "1px solid hsl(240 6% 20%)",
-              borderRadius: "0.75rem",
-              color: "hsl(0 0% 98%)",
-            }}
-          />
-          <Area
-            type="monotone"
-            dataKey="income"
-            stroke="hsl(217 91% 60%)"
-            fillOpacity={1}
-            fill="url(#colorIncome)"
-            strokeWidth={2}
-          />
-          <Area
-            type="monotone"
-            dataKey="spending"
-            stroke="hsl(262 83% 58%)"
-            fillOpacity={1}
-            fill="url(#colorSpending)"
-            strokeWidth={2}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-      <div className="flex items-center justify-center gap-8 mt-6">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-primary"></div>
-          <span className="text-sm text-muted-foreground">Income</span>
+    <Card className="p-6 bg-card border-border animate-fade-in h-full flex flex-col">
+      {/* Header + Legend */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">
+            Spending Overview
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Monthly income vs expenses
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-accent"></div>
-          <span className="text-sm text-muted-foreground">Spending</span>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: "#4dabf7" }}
+            />
+            <span className="text-sm text-muted-foreground">Income</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: "#fa5252" }}
+            />
+            <span className="text-sm text-muted-foreground">Spending</span>
+          </div>
         </div>
+      </div>
+
+      {/* Chart */}
+      <div className="flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={data}
+            margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4dabf7" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#4dabf7" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorSpending" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#fa5252" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#fa5252" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+            <XAxis
+              dataKey="name"
+              stroke="#888888"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="#888888"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `$${value}`}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#1f1f1f",
+                border: "1px solid #333",
+                borderRadius: "8px",
+                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+              }}
+              labelStyle={{ color: "#fff", fontWeight: 600 }}
+              formatter={(value: number) => `$${value.toLocaleString()}`}
+            />
+            <Area
+              type="monotone"
+              dataKey="income"
+              stroke="#4dabf7"
+              strokeWidth={2}
+              fill="url(#colorIncome)"
+            />
+            <Area
+              type="monotone"
+              dataKey="spending"
+              stroke="#fa5252"
+              strokeWidth={2}
+              fill="url(#colorSpending)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </Card>
   );
-}
+};

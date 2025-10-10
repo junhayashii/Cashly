@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 
 import { type ComponentType } from "react";
+import { Pie } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import Link from "next/link";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -38,12 +43,11 @@ const getIconComponent = (iconName: string): IconComponent => {
   return icons[iconName] || ShoppingCart;
 };
 
-export function BudgetSection() {
+export function BudgetSectionSimple() {
   const { categories } = useCategories();
   const { transactions } = useTransaction();
 
   const getCategoryStats = () => {
-    // 🔹 Expenseカテゴリのみを対象にする
     const expenseCategories = categories.filter(
       (category) => category.type === "expense"
     );
@@ -56,19 +60,16 @@ export function BudgetSection() {
         (sum, t) => sum + Math.abs(t.amount),
         0
       );
-      const transactionCount = categoryTransactions.length;
 
       return {
         ...category,
         spent,
-        transactions: transactionCount,
         monthlyBudget: category.monthly_budget || 0,
       };
     });
 
     return {
       totalCategories: expenseCategories.length,
-      totalBudget: categoryStats.reduce((sum, c) => sum + c.monthlyBudget, 0),
       totalSpent: categoryStats.reduce((sum, c) => sum + c.spent, 0),
       categoryStats,
     };
@@ -76,15 +77,59 @@ export function BudgetSection() {
 
   const stats = getCategoryStats();
 
+  const pieData = {
+    labels: stats.categoryStats.map((c) => c.name),
+    datasets: [
+      {
+        data: stats.categoryStats.map((c) => c.spent),
+        backgroundColor: stats.categoryStats.map((c) => c.color || "#888"),
+      },
+    ],
+  };
+
+  const pieOptions = {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            const category = stats.categoryStats[context.dataIndex];
+            const percentage = (
+              (category.spent / stats.totalSpent) *
+              100
+            ).toFixed(0);
+            return `${category.name}: ${percentage}%`;
+          },
+        },
+      },
+    },
+  };
+
+  const topCategories = stats.categoryStats.slice(0, 3);
+
   return (
     <Card className="p-6 bg-card border-border">
-      <div className="flex items-center justify-between mb-6">
+      {/* タイトル + See All */}
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
-        <span className="text-sm text-muted-foreground">December 2025</span>
+        {stats.totalCategories > 3 && (
+          <Link
+            href="/categories"
+            className="text-sm text-blue-500 hover:underline"
+          >
+            See All
+          </Link>
+        )}
       </div>
 
+      {/* 円グラフ */}
+      <div className="mb-4 w-full max-w-xs mx-auto">
+        <Pie data={pieData} options={pieOptions} />
+      </div>
+
+      {/* カテゴリ一覧（上位3件） */}
       <div className="space-y-6">
-        {stats.categoryStats.map((category) => {
+        {topCategories.map((category) => {
           const percentage =
             category.monthlyBudget > 0
               ? (category.spent / category.monthlyBudget) * 100

@@ -22,7 +22,7 @@ export function MetricCard({
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm text-muted-foreground mb-2">{title}</p>
-          <h3 className="text-3xl font-bold text-foreground mb-2">{value}</h3>
+          <h3 className="text-2xl font-bold text-foreground mb-2">{value}</h3>
           <p className={`text-sm font-medium ${changeColor}`}>{change}</p>
         </div>
         <div className={`p-3 rounded-xl ${iconColor}`}>

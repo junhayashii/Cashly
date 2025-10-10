@@ -7,12 +7,8 @@ import { goals } from "@/data/goals";
 export function GoalsSection() {
   return (
     <Card className="p-6 bg-card border-border">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-foreground">Savings Goals</h2>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Goal
-        </Button>
       </div>
       <div className="space-y-6">
         {goals.map((goal) => {

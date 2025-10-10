@@ -20,22 +20,4 @@ export const goals: Goal[] = [
     color: "text-primary",
     deadline: "Dec 2026",
   },
-  {
-    id: "3",
-    title: "New Car",
-    target: 25000,
-    current: 8500,
-    icon: Car,
-    color: "text-primary",
-    deadline: "Dec 2027",
-  },
-  {
-    id: "4",
-    title: "Education",
-    target: 15000,
-    current: 4200,
-    icon: GraduationCap,
-    color: "text-primary",
-    deadline: "Sep 2026",
-  },
 ];
