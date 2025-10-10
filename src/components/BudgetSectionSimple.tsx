@@ -16,12 +16,14 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
+  ArrowRight,
 } from "lucide-react";
 
 import { type ComponentType } from "react";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -108,18 +110,19 @@ export function BudgetSectionSimple() {
   const topCategories = stats.categoryStats.slice(0, 3);
 
   return (
-    <Card className="p-6 bg-card border-border">
-      {/* タイトル + See All */}
+    <Card className="p-6 bg-card border-border h-80 flex flex-col">
+      {/* タイトル */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
-        {stats.totalCategories > 3 && (
-          <Link
-            href="/categories"
-            className="text-sm text-blue-500 hover:underline"
-          >
-            See All
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
+          <span className="text-sm text-muted-foreground">Top 3</span>
+        </div>
+        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+          <Link href="/categories">
+            <span className="text-xs">See All</span>
+            <ArrowRight className="h-3 w-3 ml-1" />
           </Link>
-        )}
+        </Button>
       </div>
 
       {/* 円グラフ */}
@@ -128,7 +131,7 @@ export function BudgetSectionSimple() {
       </div>
 
       {/* カテゴリ一覧（上位3件） */}
-      <div className="space-y-6">
+      <div className="space-y-4 flex-1 overflow-y-auto">
         {topCategories.map((category) => {
           const percentage =
             category.monthlyBudget > 0

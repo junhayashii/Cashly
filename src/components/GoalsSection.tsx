@@ -1,33 +1,52 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, CheckCircle, ArrowRight } from "lucide-react";
 import { goals } from "@/data/goals";
+import Link from "next/link";
 
 export function GoalsSection() {
+  const completedGoals = goals.filter(goal => goal.current >= goal.target);
+  const activeGoals = goals.filter(goal => goal.current < goal.target);
+  
+  // Show only first 2 active goals
+  const displayedGoals = activeGoals.slice(0, 2);
+
   return (
-    <Card className="p-6 bg-card border-border">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-foreground">Savings Goals</h2>
+    <Card className="p-4 bg-card border-border h-80 flex flex-col relative">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Savings Goals</h2>
+          <div className="text-sm text-muted-foreground">
+            {activeGoals.length} active, {completedGoals.length} completed
+          </div>
+        </div>
+        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+          <Link href="/goals">
+            <span className="text-xs">See All</span>
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Link>
+        </Button>
       </div>
-      <div className="space-y-6">
-        {goals.map((goal) => {
+      <div className="space-y-3 flex-1 overflow-y-auto">
+        {/* Active Goals - Show only first 2 */}
+        {displayedGoals.map((goal) => {
           const percentage = (goal.current / goal.target) * 100;
           const Icon = goal.icon;
           const remaining = goal.target - goal.current;
 
           return (
-            <div key={goal.id} className="space-y-3">
+            <div key={goal.id} className="space-y-2">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-muted">
-                    <Icon className={`h-5 w-5 ${goal.color}`} />
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Icon className={`h-4 w-4 ${goal.color}`} />
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">
+                    <p className="font-semibold text-foreground text-sm">
                       {goal.title}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {goal.deadline}
                     </p>
                   </div>
@@ -41,8 +60,8 @@ export function GoalsSection() {
                   </p>
                 </div>
               </div>
-              <Progress value={percentage} className="h-2" />
-              <div className="flex items-center justify-between text-sm">
+              <Progress value={percentage} className="h-1.5" />
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">
                   {percentage.toFixed(0)}% Complete
                 </span>
@@ -53,6 +72,7 @@ export function GoalsSection() {
             </div>
           );
         })}
+
       </div>
     </Card>
   );

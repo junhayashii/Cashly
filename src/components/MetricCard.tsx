@@ -18,14 +18,16 @@ export function MetricCard({
       : "text-muted-foreground";
 
   return (
-    <Card className="p-6 bg-card border-border hover:shadow-[var(--shadow-glow)] transition-all duration-300">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm text-muted-foreground mb-2">{title}</p>
-          <h3 className="text-2xl font-bold text-foreground mb-2">{value}</h3>
+    <Card className="p-6 bg-card border-border hover:shadow-[var(--shadow-glow)] transition-all duration-300 h-32">
+      <div className="flex items-start justify-between h-full">
+        <div className="flex-1 flex flex-col justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">{title}</p>
+            <h3 className="text-2xl font-bold text-foreground mb-2">{value}</h3>
+          </div>
           <p className={`text-sm font-medium ${changeColor}`}>{change}</p>
         </div>
-        <div className={`p-3 rounded-xl ${iconColor}`}>
+        <div className={`p-3 rounded-xl ${iconColor} flex-shrink-0`}>
           <Icon className="h-6 w-6" />
         </div>
       </div>

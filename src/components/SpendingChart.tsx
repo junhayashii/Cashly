@@ -24,11 +24,15 @@ const data = [
   { name: "Oct", spending: 3500, income: 4600 },
 ];
 
-export const SpendingChart = () => {
+interface SpendingChartProps {
+  selectedPeriod?: string;
+}
+
+export const SpendingChart = ({ selectedPeriod = "current-month" }: SpendingChartProps) => {
   return (
-    <Card className="p-6 bg-card border-border animate-fade-in h-full flex flex-col">
+    <Card className="p-6 bg-card border-border animate-fade-in h-[24rem] flex flex-col">
       {/* Header + Legend */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">
             Spending Overview
@@ -56,7 +60,7 @@ export const SpendingChart = () => {
       </div>
 
       {/* Chart */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}

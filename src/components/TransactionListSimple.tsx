@@ -10,7 +10,9 @@ import {
   Car,
   ArrowDownRight,
   Pencil,
+  ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Transaction } from "@/types";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -63,21 +65,29 @@ export function TransactionListSimple({
   };
 
   return (
-    <Card className="p-6 bg-card border-border">
+    <Card className="p-6 bg-card border-border h-80 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-foreground">
-          Recent Transactions
-        </h2>
-        <span className="text-sm text-muted-foreground">Last 3</span>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">
+            Recent Transactions
+          </h2>
+          <span className="text-sm text-muted-foreground">Last 3</span>
+        </div>
+        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+          <Link href="/transactions">
+            <span className="text-xs">See All</span>
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Link>
+        </Button>
       </div>
 
       {topThree.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground">
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
           No transactions found
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
           {topThree.map((transaction) => {
             const categoryName = transaction.category?.name || "Other";
             const Icon = categoryIcons[categoryName] || ShoppingBag;
@@ -87,20 +97,16 @@ export function TransactionListSimple({
             return (
               <div
                 key={transaction.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-all p-3"
+                className="flex items-center justify-between py-2 px-1 hover:bg-muted/30 transition-colors rounded"
               >
                 {/* 左：アイコン */}
-                <div
-                  className={`p-2 rounded-lg flex-shrink-0 ${
-                    isPositive ? "bg-primary/10" : "bg-muted"
-                  }`}
-                >
-                  <Icon className="h-5 w-5 text-muted-foreground" />
+                <div className="flex-shrink-0 mr-3">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
 
                 {/* 中央：タイトル・日付・アカウント */}
-                <div className="flex flex-col flex-1 mx-4 overflow-hidden">
-                  <span className="font-medium text-foreground truncate">
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <span className="font-medium text-foreground truncate text-sm">
                     {transaction.title}
                   </span>
                   <div className="flex text-xs text-muted-foreground gap-2">
@@ -113,7 +119,7 @@ export function TransactionListSimple({
                 {/* 右：金額 + 編集 */}
                 <div className="flex items-center gap-2">
                   <span
-                    className={`font-semibold ${
+                    className={`font-semibold text-sm ${
                       isPositive ? "text-success" : "text-destructive"
                     }`}
                   >
@@ -122,10 +128,11 @@ export function TransactionListSimple({
                   </span>
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
+                    className="h-6 w-6 p-0"
                     onClick={() => setSelectedTransaction(transaction)}
                   >
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                    <Pencil className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               </div>

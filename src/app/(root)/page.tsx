@@ -10,11 +10,19 @@ import { RecurringBills } from "@/components/RecurringBills";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Wallet,
   TrendingUp,
   TrendingDown,
   PiggyBank,
   Download,
+  Calendar,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -29,6 +37,7 @@ import { BudgetSectionSimple } from "@/components/BudgetSectionSimple";
 const Home = () => {
   const { transactions, setTransactions } = useTransaction();
   const [firstName, setFirstName] = useState<string>("");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("current-month");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -49,21 +58,76 @@ const Home = () => {
     fetchUser();
   }, []);
 
+  // 期間に基づいてトランザクションをフィルタリング
+  const getFilteredTransactions = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    switch (selectedPeriod) {
+      case "current-month":
+        return transactions.filter((transaction) => {
+          const transactionDate = new Date(transaction.date || "");
+          return (
+            transactionDate.getMonth() === currentMonth &&
+            transactionDate.getFullYear() === currentYear
+          );
+        });
+      case "last-month":
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        return transactions.filter((transaction) => {
+          const transactionDate = new Date(transaction.date || "");
+          return (
+            transactionDate.getMonth() === lastMonth &&
+            transactionDate.getFullYear() === lastMonthYear
+          );
+        });
+      case "last-3-months":
+        const threeMonthsAgo = new Date(now);
+        threeMonthsAgo.setMonth(currentMonth - 3);
+        return transactions.filter((transaction) => {
+          const transactionDate = new Date(transaction.date || "");
+          return transactionDate >= threeMonthsAgo;
+        });
+      case "last-6-months":
+        const sixMonthsAgo = new Date(now);
+        sixMonthsAgo.setMonth(currentMonth - 6);
+        return transactions.filter((transaction) => {
+          const transactionDate = new Date(transaction.date || "");
+          return transactionDate >= sixMonthsAgo;
+        });
+      case "last-year":
+        const lastYear = new Date(now);
+        lastYear.setFullYear(currentYear - 1);
+        return transactions.filter((transaction) => {
+          const transactionDate = new Date(transaction.date || "");
+          return (
+            transactionDate.getFullYear() === currentYear - 1
+          );
+        });
+      default:
+        return transactions;
+    }
+  };
+
+  const filteredTransactions = getFilteredTransactions();
+
   const handleAddTransaction = async (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
   };
 
-  const totalBalance = transactions.reduce((sum, t) => sum + t.amount, 24568.9);
-  const monthlyIncome = transactions
+  const totalBalance = filteredTransactions.reduce((sum, t) => sum + t.amount, 24568.9);
+  const monthlyIncome = filteredTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  const monthlyExpenses = transactions
+  const monthlyExpenses = filteredTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   return (
     <ProtectedRoute>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between">
           <div>
@@ -71,10 +135,25 @@ const Home = () => {
               Welcome back, {firstName}
             </h2>
             <p className="text-muted-foreground">
-              Your financial overview for December 2025
+              Your financial overview
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current-month">This Month</SelectItem>
+                  <SelectItem value="last-month">Last Month</SelectItem>
+                  <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                  <SelectItem value="last-6-months">Last 6 Months</SelectItem>
+                  <SelectItem value="last-year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="h-4 w-4" />
               Export
@@ -123,20 +202,16 @@ const Home = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 上段 */}
           <div className="lg:col-span-2">
-            <SpendingChart />
+            <SpendingChart selectedPeriod={selectedPeriod} />
           </div>
 
           <div className="lg:col-span-2">
-            <ExpenseBreakdownChart />
+            <ExpenseBreakdownChart selectedPeriod={selectedPeriod} />
           </div>
-
-          {/* <div className="lg:col-span-1 lg:row-span-2">
-            <BudgetSectionSimple />
-          </div> */}
 
           {/* 下段 */}
           <div className="lg:col-span-2">
-            <TransactionListSimple transactions={transactions} />
+            <TransactionListSimple transactions={filteredTransactions} />
           </div>
           <div className="lg:col-span-1">
             <RecurringBills />

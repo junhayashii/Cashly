@@ -18,6 +18,7 @@ import {
   PiggyBank,
   Edit,
   ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,12 @@ import { EditAccountDialog } from "@/components/EditAccountDialog";
 import { useTransaction } from "@/hooks/useTransactions";
 import { TransactionList } from "@/components/TransactionList";
 import { RecurringBills } from "@/components/RecurringBills";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -67,6 +74,7 @@ const Accounts = () => {
   const { toast } = useToast();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
@@ -78,6 +86,10 @@ const Accounts = () => {
     });
   };
 
+  const handleAccountSelect = (account: Account) => {
+    setSelectedAccount(account);
+  };
+
   const handleEditAccount = (account: Account) => {
     setEditingAccount(account);
     setEditDialogOpen(true);
@@ -87,6 +99,11 @@ const Accounts = () => {
     // TODO: 更新処理をフックに移動してもOK
     setEditingAccount(null);
   };
+
+  // 選択されたアカウントのトランザクションをフィルタリング
+  const selectedAccountTransactions = selectedAccount
+    ? transactions.filter((transaction) => transaction.account_id === selectedAccount.id)
+    : transactions;
 
   return (
     <div className="space-y-8">
@@ -126,161 +143,158 @@ const Accounts = () => {
         </Card>
       </div> */}
 
-      {/* Accounts List */}
-      {accountsLoading ? (
-        <div className="text-center py-8 text-muted-foreground">
-          Loading accounts...
-        </div>
-      ) : accounts.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">
-          No accounts yet. Add your first one!
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {accounts.map((account) => {
-            const Icon = getIconComponent("Wallet");
-            const gradientClass = getAccountGradient(account.type);
-            const typeLabels: Record<string, string> = {
-              bank: "Bank Account",
-              credit_card: "Credit Card",
-              cash: "Cash",
-              digital_wallet: "Digital Wallet",
-            };
+      {/* Main Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Sidebar - Accounts List */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Your Accounts</h3>
+            {accountsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading accounts...
+              </div>
+            ) : accounts.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                No accounts yet. Add your first one!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {accounts.map((account) => {
+                  const Icon = getIconComponent("Wallet");
+                  const gradientClass = getAccountGradient(account.type);
+                  const isSelected = selectedAccount?.id === account.id;
 
-            return (
-              // <Card
-              //   key={account.id}
-              //   className="hover:shadow-lg transition-shadow"
-              // >
-              //   <CardHeader>
-              //     <div className="flex items-start justify-between">
-              //       <div className="flex items-center gap-3">
-              //         <div className="p-3 rounded-lg">
-              //           <Icon className="h-5 w-5 text-white" />
-              //         </div>
-              //         <div>
-              //           <CardTitle className="text-lg">
-              //             {account.name}
-              //           </CardTitle>
-              //           <CardDescription className="text-sm">
-              //             {typeLabels[account.type] || account.type}
-              //           </CardDescription>
-              //           <Badge variant="secondary" className="mt-1 text-xs">
-              //             {account.type}
-              //           </Badge>
-              //         </div>
-              //       </div>
-              //     </div>
-              //   </CardHeader>
-
-              //   <CardContent className="space-y-4">
-              //     <div className="space-y-1">
-              //       <div className="flex items-center justify-between text-sm">
-              //         <span className="text-muted-foreground">Balance</span>
-              //         <span className="font-medium text-foreground">
-              //           ${account.balance.toFixed(2)}
-              //         </span>
-              //       </div>
-              //     </div>
-
-              //     <div className="flex gap-2">
-              //       <Button
-              //         variant="outline"
-              //         size="sm"
-              //         className="flex-1"
-              //         onClick={() => handleEditAccount(account)}
-              //       >
-              //         <Edit className="h-4 w-4 mr-2" />
-              //         Edit
-              //       </Button>
-              //     </div>
-              //   </CardContent>
-              // </Card>
-              <div
-                key={account.id}
-                onClick={() => handleEditAccount(account)}
-                className="group cursor-pointer"
-              >
-                {/* Bank Card */}
-                <div
-                  className={`relative overflow-hidden rounded-2xl ${gradientClass} p-6 h-56 flex flex-col justify-between text-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105`}
-                >
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm opacity-90 mb-1">
-                        {account.institution}
-                      </p>
-                      <Badge
-                        variant="secondary"
-                        className="capitalize bg-white/20 text-white border-0 backdrop-blur-sm"
+                  return (
+                    <div
+                      key={account.id}
+                      onClick={() => handleAccountSelect(account)}
+                      className={`group cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
+                        isSelected 
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg' 
+                          : 'hover:shadow-md'
+                      }`}
+                    >
+                      {/* Compact Account Card */}
+                      <div
+                        className={`relative overflow-hidden rounded-xl ${gradientClass} p-4 h-32 flex flex-col justify-between text-white transition-all duration-300 ${
+                          isSelected ? 'scale-105' : 'hover:scale-102'
+                        }`}
                       >
-                        {account.type}
-                      </Badge>
-                    </div>
-                    <Icon className="h-8 w-8 opacity-80" />
-                  </div>
+                        {/* Card Header */}
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-xs opacity-90 mb-1">
+                              {account.institution}
+                            </p>
+                            <Badge
+                              variant="secondary"
+                              className="capitalize bg-white/20 text-white border-0 backdrop-blur-sm text-xs"
+                            >
+                              {account.type}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-5 w-5 opacity-80" />
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditAccount(account)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
 
-                  {/* Card Number */}
-                  <div>
-                    <p className="text-lg tracking-wider font-medium mb-2">
-                      •••• •••• •••• ••••
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs opacity-70 mb-1">Balance</p>
-                        <p className="text-2xl font-bold">
-                          $
-                          {Math.abs(account.balance).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                      </div>
-                      {/* {account.expiryDate && (
-                        <div className="text-right">
-                          <p className="text-xs opacity-70 mb-1">Expires</p>
-                          <p className="text-sm font-medium">
-                            {account.expiryDate}
+                        {/* Balance */}
+                        <div>
+                          <p className="text-xs opacity-70 mb-1">Balance</p>
+                          <p className="text-lg font-bold">
+                            $
+                            {Math.abs(account.balance).toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
-                      )} */}
+
+                        {/* Decorative Pattern */}
+                        <div className="absolute -right-4 -top-4 opacity-10">
+                          <CreditCard className="h-20 w-20" />
+                        </div>
+                      </div>
+
+                      {/* Account Name Below Card */}
+                      <div className="mt-2 px-1">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {account.name}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
-                  {/* Card Footer */}
-                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center gap-1 text-xs font-medium bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                      View Details
-                      <ChevronRight className="h-3 w-3" />
-                    </div>
-                  </div>
-
-                  {/* Decorative Pattern */}
-                  <div className="absolute -right-8 -top-8 opacity-10">
-                    <CreditCard className="h-40 w-40" />
-                  </div>
-                </div>
-
-                {/* Additional Info Below Card */}
-                <div className="mt-3 px-2">
-                  <p className="text-sm font-medium text-foreground">
-                    {account.name}
+        {/* Right Content Area */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Selected Account Info */}
+          {selectedAccount ? (
+            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl p-6 border border-primary/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground">
+                    {selectedAccount.name}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {selectedAccount.institution} • {selectedAccount.type}
                   </p>
-                  {/* {account.creditLimit && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-xs text-muted-foreground">
-                        Available: ${(account.availableCredit || 0).toFixed(2)}{" "}
-                        of ${account.creditLimit.toFixed(2)}
-                      </p>
-                    </div>
-                  )} */}
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-foreground">
+                    ${selectedAccount.balance.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Current Balance</p>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            <div className="bg-muted/50 rounded-xl p-6 text-center">
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                Select an Account
+              </h3>
+              <p className="text-muted-foreground">
+                Choose an account from the sidebar to view its details and transactions
+              </p>
+            </div>
+          )}
+
+          {/* Transactions and Bills */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <TransactionList 
+                transactions={selectedAccountTransactions} 
+                title={selectedAccount ? `${selectedAccount.name} Transactions` : "All Transactions"}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              <RecurringBills />
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
       <EditAccountDialog
         account={editingAccount}
@@ -288,15 +302,6 @@ const Accounts = () => {
         onOpenChange={setEditDialogOpen}
         onAccountUpdated={handleAccountUpdated}
       />
-
-      <div className="grid grid-col-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <TransactionList transactions={transactions} />
-        </div>
-        <div className="lg:col-span-1 space-y-6">
-          <RecurringBills />
-        </div>
-      </div>
     </div>
   );
 };

@@ -1,5 +1,14 @@
 import { Goal } from "@/types";
-import { Plane, Home, GraduationCap, Car } from "lucide-react";
+import { 
+  Plane, 
+  Home, 
+  GraduationCap, 
+  Car, 
+  Heart,
+  Gamepad2,
+  Camera,
+  Laptop
+} from "lucide-react";
 
 export const goals: Goal[] = [
   {
@@ -8,7 +17,7 @@ export const goals: Goal[] = [
     target: 5000,
     current: 3420,
     icon: Plane,
-    color: "text-primary",
+    color: "text-blue-600",
     deadline: "Jun 2026",
   },
   {
@@ -17,7 +26,61 @@ export const goals: Goal[] = [
     target: 10000,
     current: 7200,
     icon: Home,
-    color: "text-primary",
+    color: "text-green-600",
     deadline: "Dec 2026",
+  },
+  {
+    id: "3",
+    title: "New Car",
+    target: 25000,
+    current: 18500,
+    icon: Car,
+    color: "text-red-600",
+    deadline: "Mar 2025",
+  },
+  {
+    id: "4",
+    title: "Wedding Fund",
+    target: 15000,
+    current: 8900,
+    icon: Heart,
+    color: "text-pink-600",
+    deadline: "Aug 2025",
+  },
+  {
+    id: "5",
+    title: "Gaming Setup",
+    target: 3000,
+    current: 2100,
+    icon: Gamepad2,
+    color: "text-purple-600",
+    deadline: "Dec 2024",
+  },
+  {
+    id: "6",
+    title: "Camera Equipment",
+    target: 4000,
+    current: 1200,
+    icon: Camera,
+    color: "text-orange-600",
+    deadline: "May 2025",
+  },
+  {
+    id: "7",
+    title: "New Laptop",
+    target: 2000,
+    current: 2000,
+    icon: Laptop,
+    color: "text-indigo-600",
+    deadline: "Completed",
+  },
+  {
+    id: "8",
+    title: "Education Fund",
+    target: 8000,
+    current: 3200,
+    icon: GraduationCap,
+    color: "text-teal-600",
+    deadline: "Sep 2025",
   },
 ];
