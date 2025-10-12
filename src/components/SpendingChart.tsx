@@ -10,25 +10,53 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useTransaction } from "@/hooks/useTransactions";
+import { useMemo } from "react";
+import dayjs from "dayjs";
 
-const data = [
-  { name: "Jan", spending: 2400, income: 4000 },
-  { name: "Feb", spending: 1398, income: 3000 },
-  { name: "Mar", spending: 3800, income: 4500 },
-  { name: "Apr", spending: 3908, income: 4200 },
-  { name: "May", spending: 2800, income: 3800 },
-  { name: "Jun", spending: 3200, income: 4300 },
-  { name: "Jul", spending: 3500, income: 4600 },
-  { name: "Aug", spending: 3500, income: 4600 },
-  { name: "Sep", spending: 3500, income: 4600 },
-  { name: "Oct", spending: 3500, income: 4600 },
-];
+export const SpendingChart = () => {
+  const { transactions } = useTransaction();
 
-interface SpendingChartProps {
-  selectedPeriod?: string;
-}
+  // 過去12ヶ月の集計データを生成
+  const data = useMemo(() => {
+    if (!transactions) return [];
 
-export const SpendingChart = ({ selectedPeriod = "current-month" }: SpendingChartProps) => {
+    // 過去12ヶ月の初期データを作成
+    const monthlyData = Array.from({ length: 12 }, (_, i) => {
+      const date = dayjs().subtract(11 - i, "month");
+      return {
+        name: date.format("MMM"), // Jan, Feb, Mar...
+        year: date.year(),
+        month: date.month(),
+        fullDate: date.format("YYYY-MM"),
+        income: 0,
+        spending: 0,
+      };
+    });
+
+    // トランザクションを月単位で集計（年も考慮）
+    transactions.forEach((t) => {
+      const transactionDate = dayjs(t.date);
+      const transactionYear = transactionDate.year();
+      const transactionMonth = transactionDate.month();
+
+      // 該当する月のデータを見つける
+      const monthData = monthlyData.find(
+        (m) => m.year === transactionYear && m.month === transactionMonth
+      );
+
+      if (monthData) {
+        if (t.type === "income") {
+          monthData.income += t.amount;
+        } else if (t.type === "expense") {
+          monthData.spending += t.amount;
+        }
+      }
+    });
+
+    return monthlyData;
+  }, [transactions]);
+
   return (
     <Card className="p-6 bg-card border-border animate-fade-in h-[24rem] flex flex-col">
       {/* Header + Legend */}
@@ -83,6 +111,13 @@ export const SpendingChart = ({ selectedPeriod = "current-month" }: SpendingChar
               fontSize={12}
               tickLine={false}
               axisLine={false}
+              tickFormatter={(value, index) => {
+                const dataPoint = data[index];
+                if (dataPoint && dataPoint.year !== dayjs().year()) {
+                  return `${value} '${dataPoint.year.toString().slice(-2)}`;
+                }
+                return value;
+              }}
             />
             <YAxis
               stroke="#888888"
@@ -90,6 +125,8 @@ export const SpendingChart = ({ selectedPeriod = "current-month" }: SpendingChar
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => `$${value}`}
+              domain={[0, "auto"]}
+              reversed={true}
             />
             <Tooltip
               contentStyle={{
@@ -99,6 +136,13 @@ export const SpendingChart = ({ selectedPeriod = "current-month" }: SpendingChar
                 boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
               }}
               labelStyle={{ color: "#fff", fontWeight: 600 }}
+              labelFormatter={(label, payload) => {
+                if (payload && payload[0] && payload[0].payload) {
+                  const data = payload[0].payload;
+                  return `${data.name} ${data.year}`;
+                }
+                return label;
+              }}
               formatter={(value: number) => `$${value.toLocaleString()}`}
             />
             <Area
