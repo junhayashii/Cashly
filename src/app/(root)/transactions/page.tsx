@@ -24,35 +24,42 @@ const TransactionPage = () => {
   const netFlow = totalIncome - totalExpenses;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Transactions
-          </h2>
-          <p className="text-muted-foreground">
-            View and manage all your transactions
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Upload className="h-4 w-4" />
-            Import CSV
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+    <div className="h-screen flex flex-col">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 pb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground mb-2">
+              Transactions
+            </h2>
+            <p className="text-muted-foreground">
+              View and manage all your transactions
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Import CSV
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+          </div>
         </div>
       </div>
 
-      {/* Transaction List */}
-      {loading ? (
-        <div>Loading transactions...</div>
-      ) : (
-        <TransactionList transactions={transactions} />
-      )}
+      {/* Scrollable Transaction List */}
+      <div className="flex-1 min-h-0">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div>Loading transactions...</div>
+          </div>
+        ) : (
+          <TransactionList transactions={transactions} />
+        )}
+      </div>
     </div>
   );
 };

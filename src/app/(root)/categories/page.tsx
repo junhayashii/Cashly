@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ShoppingCart,
   Home,
   Car,
@@ -17,11 +24,11 @@ import {
   Plane,
   Heart,
   Zap,
-  Edit,
   DollarSign,
   TrendingUp,
   TrendingDown,
   MoreHorizontal,
+  Calendar,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import dayjs from "dayjs";
 
 import { Category } from "@/types";
 import { useCategories } from "@/hooks/useCategories";
@@ -68,14 +76,21 @@ const Categories = () => {
   const { toast } = useToast();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().format("YYYY-MM"));
 
   // ---- Stats Calculation ----
   const getCategoryStats = () => {
     const categoryStats = categories.map((category) => {
-      const categoryTransactions = transactions.filter(
-        (t) => t.category_id === category.id && t.type === category.type
-      );
+      // 選択された月のトランザクションのみをフィルター
+      const categoryTransactions = transactions.filter((t) => {
+        const transactionDate = dayjs(t.date);
+        const transactionMonth = transactionDate.format("YYYY-MM");
+        return (
+          t.category_id === category.id &&
+          t.type === category.type &&
+          transactionMonth === selectedMonth
+        );
+      });
       const spent = categoryTransactions.reduce(
         (sum, t) => sum + Math.abs(t.amount),
         0
@@ -126,7 +141,7 @@ const Categories = () => {
     setEditDialogOpen(true);
   };
 
-  const handleCategoryUpdated = (updatedCategory: Category) => {
+  const handleCategoryUpdated = () => {
     setEditingCategory(null);
   };
 
@@ -138,8 +153,6 @@ const Categories = () => {
     );
 
     if (!confirmDelete) return;
-
-    setLoading(true);
 
     const { error } = await supabase
       .from("categories")
@@ -153,7 +166,6 @@ const Categories = () => {
         description: "Failed to delete category",
         variant: "destructive",
       });
-      setLoading(false);
       return;
     }
 
@@ -161,8 +173,6 @@ const Categories = () => {
       title: "Category deleted",
       description: `${category.name} has been deleted`,
     });
-
-    setLoading(false);
   };
 
   return (
@@ -180,6 +190,31 @@ const Categories = () => {
         <AddCategoryDialog onAddCategory={handleAddCategory} />
       </div>
 
+      {/* Month Selector */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Viewing:</span>
+        </div>
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 12 }, (_, i) => {
+              const month = dayjs().subtract(i, "month");
+              const monthValue = month.format("YYYY-MM");
+              const monthLabel = month.format("MMMM YYYY");
+              return (
+                <SelectItem key={monthValue} value={monthValue}>
+                  {monthLabel}
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
       {categoriesLoading ? (
         <div className="text-center py-8 text-muted-foreground">
           Loading categories...
@@ -193,7 +228,7 @@ const Categories = () => {
               Income
             </h3>
             <p className="text-muted-foreground mb-4">
-              Total income:{" "}
+              Total income for {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
               <span className="font-semibold text-green-600">
                 ${totalIncome.toFixed(2)}
               </span>
@@ -249,7 +284,7 @@ const Categories = () => {
                       <CardContent className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            Total Income
+                            Income ({dayjs(selectedMonth).format("MMM YYYY")})
                           </span>
                           <span className="font-medium text-green-600">
                             ${category.spent.toFixed(2)}
@@ -276,7 +311,7 @@ const Categories = () => {
             <p className="text-muted-foreground mb-4">
               Total budget:{" "}
               <span className="font-semibold">${totalBudget.toFixed(2)}</span> |
-              Total spent:{" "}
+              Total spent in {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
               <span className="font-semibold text-red-600">
                 ${totalExpense.toFixed(2)}
               </span>
@@ -340,13 +375,17 @@ const Categories = () => {
 
                       <CardContent className="space-y-3">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Budget</span>
+                          <span className="text-muted-foreground">
+                            Monthly Budget
+                          </span>
                           <span className="font-medium">
                             ${category.monthlyBudget}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Spent</span>
+                          <span className="text-muted-foreground">
+                            Spent ({dayjs(selectedMonth).format("MMM YYYY")})
+                          </span>
                           <span
                             className={`font-medium ${
                               isOverBudget ? "text-destructive" : ""

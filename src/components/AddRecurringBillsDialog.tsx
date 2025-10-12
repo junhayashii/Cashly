@@ -23,8 +23,19 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/lib/supabaseClient";
 
-export function AddRecurringBillDialog({ onAdded }: { onAdded: () => void }) {
-  const [open, setOpen] = useState(false);
+export function AddRecurringBillDialog({
+  onAdded,
+  open,
+  onOpenChange,
+}: {
+  onAdded: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const setIsOpen = isControlled ? onOpenChange! : setInternalOpen;
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { accounts } = useAccounts();
@@ -88,7 +99,7 @@ export function AddRecurringBillDialog({ onAdded }: { onAdded: () => void }) {
         description: `${formData.title} was added successfully.`,
       });
 
-      setOpen(false);
+      setIsOpen(false);
       onAdded();
     } catch (error: any) {
       console.error("💥 Unexpected error:", error);
@@ -103,12 +114,14 @@ export function AddRecurringBillDialog({ onAdded }: { onAdded: () => void }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" /> Add Recurring Bill
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button size="sm" className="gap-2">
+            <Plus className="h-4 w-4" /> Add Recurring Bill
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
@@ -243,7 +256,7 @@ export function AddRecurringBillDialog({ onAdded }: { onAdded: () => void }) {
             <Button
               variant="outline"
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => setIsOpen(false)}
             >
               Cancel
             </Button>
