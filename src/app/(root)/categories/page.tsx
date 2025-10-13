@@ -187,32 +187,32 @@ const Categories = () => {
             Organize and manage your spending categories & budgets
           </p>
         </div>
-        <AddCategoryDialog onAddCategory={handleAddCategory} />
-      </div>
-
-      {/* Month Selector */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Viewing:</span>
+        <div className="flex items-center gap-6">
+          {/* Month Selector */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => {
+                  const month = dayjs().subtract(i, "month");
+                  const monthValue = month.format("YYYY-MM");
+                  const monthLabel = month.format("MMMM YYYY");
+                  return (
+                    <SelectItem key={monthValue} value={monthValue}>
+                      {monthLabel}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <AddCategoryDialog onAddCategory={handleAddCategory} />
         </div>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 12 }, (_, i) => {
-              const month = dayjs().subtract(i, "month");
-              const monthValue = month.format("YYYY-MM");
-              const monthLabel = month.format("MMMM YYYY");
-              return (
-                <SelectItem key={monthValue} value={monthValue}>
-                  {monthLabel}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
       </div>
 
       {categoriesLoading ? (
@@ -220,7 +220,7 @@ const Categories = () => {
           Loading categories...
         </div>
       ) : (
-        <>
+        <div className="flex flex-col gap-10">
           {/* ----- Income Section ----- */}
           <section>
             <h3 className="text-2xl font-semibold mb-2 flex items-center gap-2">
@@ -234,7 +234,7 @@ const Categories = () => {
               </span>
             </p>
             {incomeCategories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {incomeCategories.map((category) => {
                   const Icon = getIconComponent(category.icon || "DollarSign");
                   return (
@@ -318,7 +318,7 @@ const Categories = () => {
             </p>
 
             {expenseCategories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {expenseCategories.map((category) => {
                   const Icon = getIconComponent(
                     category.icon || "ShoppingCart"
@@ -428,7 +428,7 @@ const Categories = () => {
             onOpenChange={setEditDialogOpen}
             onCategoryUpdated={handleCategoryUpdated}
           />
-        </>
+        </div>
       )}
     </div>
   );
