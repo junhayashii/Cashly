@@ -57,7 +57,17 @@ const TransactionPage = () => {
             <div>Loading transactions...</div>
           </div>
         ) : (
-          <TransactionList transactions={transactions} />
+          <TransactionList
+            transactions={transactions}
+            onTransactionUpdated={(updated) =>
+              setTransactions((prev) =>
+                prev.map((t) => (t.id === updated.id ? updated : t))
+              )
+            }
+            onTransactionDeleted={(deletedId) =>
+              setTransactions((prev) => prev.filter((t) => t.id !== deletedId))
+            }
+          />
         )}
       </div>
     </div>

@@ -55,9 +55,15 @@ const categoryIcons: Record<
 
 interface TransactionListProps {
   transactions: Transaction[];
+  onTransactionUpdated?: (updated: Transaction) => void;
+  onTransactionDeleted?: (id: string) => void;
 }
 
-export function TransactionList({ transactions }: TransactionListProps) {
+export function TransactionList({
+  transactions,
+  onTransactionUpdated,
+  onTransactionDeleted,
+}: TransactionListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -281,9 +287,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
           onOpenChange={(open) => {
             if (!open) setSelectedTransaction(null);
           }}
-          onTransactionUpdated={(updatedTransaction) => {
-            // handle update logic
-          }}
+          onTransactionUpdated={onTransactionUpdated}
+          onTransactionDeleted={onTransactionDeleted}
         />
       )}
     </Card>

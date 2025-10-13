@@ -26,7 +26,8 @@ interface EditTransactionDialogProps {
   transaction: Transaction | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTransactionUpdated: (updated: Transaction) => void;
+  onTransactionUpdated?: (updated: Transaction) => void;
+  onTransactionDeleted?: (id: string) => void;
 }
 
 export function EditTransactionDialog({
@@ -34,6 +35,7 @@ export function EditTransactionDialog({
   open,
   onOpenChange,
   onTransactionUpdated,
+  onTransactionDeleted,
 }: EditTransactionDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -109,7 +111,7 @@ export function EditTransactionDialog({
       description: `"${formData.title}" has been updated successfully`,
     });
 
-    onTransactionUpdated(data);
+    onTransactionUpdated?.(data);
     onOpenChange(false);
     setLoading(false);
   };
@@ -145,6 +147,7 @@ export function EditTransactionDialog({
       description: `"${transaction.title}" has been deleted`,
     });
 
+    onTransactionDeleted?.(transaction.id);
     onOpenChange(false);
     setLoading(false);
   };
