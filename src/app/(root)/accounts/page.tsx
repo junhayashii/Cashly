@@ -30,7 +30,7 @@ import { EditAccountDialog } from "@/components/EditAccountDialog";
 
 import { useTransaction } from "@/hooks/useTransactions";
 import { TransactionList } from "@/components/TransactionList";
-import { RecurringBills } from "@/components/RecurringBills";
+import { RecurringBills } from "@/components/RecurringBillsSimple";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,7 +102,9 @@ const Accounts = () => {
 
   // 選択されたアカウントのトランザクションをフィルタリング
   const selectedAccountTransactions = selectedAccount
-    ? transactions.filter((transaction) => transaction.account_id === selectedAccount.id)
+    ? transactions.filter(
+        (transaction) => transaction.account_id === selectedAccount.id
+      )
     : transactions;
 
   return (
@@ -148,7 +150,9 @@ const Accounts = () => {
         {/* Left Sidebar - Accounts List */}
         <div className="lg:col-span-1">
           <div className="sticky top-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Your Accounts</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Your Accounts
+            </h3>
             {accountsLoading ? (
               <div className="text-center py-8 text-muted-foreground">
                 Loading accounts...
@@ -169,15 +173,15 @@ const Accounts = () => {
                       key={account.id}
                       onClick={() => handleAccountSelect(account)}
                       className={`group cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
-                        isSelected 
-                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg' 
-                          : 'hover:shadow-md'
+                        isSelected
+                          ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
+                          : "hover:shadow-md"
                       }`}
                     >
                       {/* Compact Account Card */}
                       <div
                         className={`relative overflow-hidden rounded-xl ${gradientClass} p-4 h-32 flex flex-col justify-between text-white transition-all duration-300 ${
-                          isSelected ? 'scale-105' : 'hover:scale-102'
+                          isSelected ? "scale-105" : "hover:scale-102"
                         }`}
                       >
                         {/* Card Header */}
@@ -207,7 +211,9 @@ const Accounts = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditAccount(account)}>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditAccount(account)}
+                                >
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit Account
                                 </DropdownMenuItem>
@@ -266,7 +272,9 @@ const Accounts = () => {
                   <p className="text-3xl font-bold text-foreground">
                     ${selectedAccount.balance.toFixed(2)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Current Balance</p>
+                  <p className="text-sm text-muted-foreground">
+                    Current Balance
+                  </p>
                 </div>
               </div>
             </div>
@@ -276,7 +284,8 @@ const Accounts = () => {
                 Select an Account
               </h3>
               <p className="text-muted-foreground">
-                Choose an account from the sidebar to view its details and transactions
+                Choose an account from the sidebar to view its details and
+                transactions
               </p>
             </div>
           )}
@@ -284,9 +293,13 @@ const Accounts = () => {
           {/* Transactions and Bills */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <TransactionList 
-                transactions={selectedAccountTransactions} 
-                title={selectedAccount ? `${selectedAccount.name} Transactions` : "All Transactions"}
+              <TransactionList
+                transactions={selectedAccountTransactions}
+                title={
+                  selectedAccount
+                    ? `${selectedAccount.name} Transactions`
+                    : "All Transactions"
+                }
               />
             </div>
             <div className="lg:col-span-1">

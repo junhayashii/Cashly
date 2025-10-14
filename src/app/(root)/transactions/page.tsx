@@ -7,6 +7,7 @@ import { Download, Upload } from "lucide-react";
 
 import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
+import RecurringBills from "@/components/RecurringBills";
 
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
@@ -50,25 +51,31 @@ const TransactionPage = () => {
         </div>
       </div>
 
-      {/* Scrollable Transaction List */}
-      <div className="flex-1 min-h-0">
+      <div className="flex min-h-0 gap-4">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full flex-[3]">
             <div>Loading transactions...</div>
           </div>
         ) : (
-          <TransactionList
-            transactions={transactions}
-            onTransactionUpdated={(updated) =>
-              setTransactions((prev) =>
-                prev.map((t) => (t.id === updated.id ? updated : t))
-              )
-            }
-            onTransactionDeleted={(deletedId) =>
-              setTransactions((prev) => prev.filter((t) => t.id !== deletedId))
-            }
-          />
+          <div className="flex-[3]">
+            <TransactionList
+              transactions={transactions}
+              onTransactionUpdated={(updated) =>
+                setTransactions((prev) =>
+                  prev.map((t) => (t.id === updated.id ? updated : t))
+                )
+              }
+              onTransactionDeleted={(deletedId) =>
+                setTransactions((prev) =>
+                  prev.filter((t) => t.id !== deletedId)
+                )
+              }
+            />
+          </div>
         )}
+        <div className="flex-[2]">
+          <RecurringBills />
+        </div>
       </div>
     </div>
   );

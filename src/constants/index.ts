@@ -13,7 +13,6 @@ export const mainMenuItems = [
   { title: "Transactions", url: "/transactions", icon: Receipt },
   { title: "Categories", url: "/categories", icon: Tag },
   { title: "Accounts", url: "/accounts", icon: Wallet },
-  { title: "Bills & Payments", url: "/bills", icon: CreditCard },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Goals & Savings", url: "/goals", icon: Goal },
 ];

@@ -6,7 +6,7 @@ import { TransactionListSimple } from "@/components/TransactionListSimple";
 import { SpendingChart } from "@/components/SpendingChart";
 import { BudgetSection } from "@/components/BudgetSection";
 import { GoalsSection } from "@/components/GoalsSection";
-import { RecurringBills } from "@/components/RecurringBills";
+import { RecurringBills } from "@/components/RecurringBillsSimple";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,7 +75,8 @@ const Home = () => {
         });
       case "last-month":
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        const lastMonthYear =
+          currentMonth === 0 ? currentYear - 1 : currentYear;
         return transactions.filter((transaction) => {
           const transactionDate = new Date(transaction.date || "");
           return (
@@ -102,9 +103,7 @@ const Home = () => {
         lastYear.setFullYear(currentYear - 1);
         return transactions.filter((transaction) => {
           const transactionDate = new Date(transaction.date || "");
-          return (
-            transactionDate.getFullYear() === currentYear - 1
-          );
+          return transactionDate.getFullYear() === currentYear - 1;
         });
       default:
         return transactions;
@@ -117,7 +116,10 @@ const Home = () => {
     setTransactions([newTransaction, ...transactions]);
   };
 
-  const totalBalance = filteredTransactions.reduce((sum, t) => sum + t.amount, 24568.9);
+  const totalBalance = filteredTransactions.reduce(
+    (sum, t) => sum + t.amount,
+    24568.9
+  );
   const monthlyIncome = filteredTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -134,9 +136,7 @@ const Home = () => {
             <h2 className="text-3xl font-bold text-foreground mb-2">
               Welcome back, {firstName}
             </h2>
-            <p className="text-muted-foreground">
-              Your financial overview
-            </p>
+            <p className="text-muted-foreground">Your financial overview</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
