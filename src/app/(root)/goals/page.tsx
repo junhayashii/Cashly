@@ -6,32 +6,62 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MetricCard } from "@/components/MetricCard";
 import { AddGoalDialog } from "@/components/AddGoalDialog";
-import { 
-  Plus, 
-  PiggyBank, 
-  Target, 
-  TrendingUp, 
+import {
+  Plus,
+  PiggyBank,
+  Target,
+  TrendingUp,
   Calendar,
   DollarSign,
-  Clock
+  Clock,
 } from "lucide-react";
-import { goals } from "@/data/goals";
+import { useGoals } from "@/hooks/useGoals";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Goals = () => {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+  const {
+    goals,
+    loading,
+    getTotalTarget,
+    getTotalCurrent,
+    getTotalProgress,
+    getAverageProgress,
+    getActiveGoals,
+    getCompletedGoals,
+  } = useGoals();
 
-  // Calculate total savings metrics
-  const totalTarget = goals.reduce((sum, goal) => sum + goal.target, 0);
-  const totalCurrent = goals.reduce((sum, goal) => sum + goal.current, 0);
-  const totalProgress = (totalCurrent / totalTarget) * 100;
-  const completedGoals = goals.filter(goal => goal.current >= goal.target).length;
-  const activeGoals = goals.length - completedGoals;
+  // Calculate metrics using the hook
+  const totalTarget = getTotalTarget();
+  const totalCurrent = getTotalCurrent();
+  const totalProgress = getTotalProgress();
+  const averageProgress = getAverageProgress();
+  const activeGoals = getActiveGoals();
+  const completedGoals = getCompletedGoals();
 
-  // Calculate average progress
-  const averageProgress = goals.reduce((sum, goal) => {
-    return sum + (goal.current / goal.target) * 100;
-  }, 0) / goals.length;
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground mb-2">
+                Savings & Goals
+              </h2>
+              <p className="text-muted-foreground">
+                Loading your financial goals...
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -46,10 +76,7 @@ const Goals = () => {
               Track your financial goals and savings progress
             </p>
           </div>
-          <Button 
-            onClick={() => setIsAddGoalOpen(true)}
-            className="gap-2"
-          >
+          <Button onClick={() => setIsAddGoalOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             New Goal
           </Button>
@@ -68,7 +95,7 @@ const Goals = () => {
           <MetricCard
             title="Target Amount"
             value={`$${totalTarget.toLocaleString()}`}
-            change={`${activeGoals} active goals`}
+            change={`${activeGoals.length} active goals`}
             changeType="neutral"
             icon={Target}
             iconColor="bg-blue-500/10 text-blue-600"
@@ -76,7 +103,7 @@ const Goals = () => {
           <MetricCard
             title="Average Progress"
             value={`${averageProgress.toFixed(1)}%`}
-            change={`${completedGoals} completed`}
+            change={`${completedGoals.length} completed`}
             changeType="positive"
             icon={TrendingUp}
             iconColor="bg-purple-500/10 text-purple-600"
@@ -95,7 +122,9 @@ const Goals = () => {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xl font-bold text-foreground">Overall Progress</h3>
+              <h3 className="text-xl font-bold text-foreground">
+                Overall Progress
+              </h3>
               <p className="text-muted-foreground">
                 Progress across all your savings goals
               </p>
@@ -105,7 +134,8 @@ const Goals = () => {
                 {totalProgress.toFixed(1)}%
               </p>
               <p className="text-sm text-muted-foreground">
-                ${totalCurrent.toLocaleString()} of ${totalTarget.toLocaleString()}
+                ${totalCurrent.toLocaleString()} of $
+                {totalTarget.toLocaleString()}
               </p>
             </div>
           </div>
@@ -115,10 +145,12 @@ const Goals = () => {
         {/* Goals Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <GoalsSection />
-          
+
           {/* Quick Stats Card */}
           <Card className="p-6">
-            <h3 className="text-xl font-bold text-foreground mb-4">Quick Stats</h3>
+            <h3 className="text-xl font-bold text-foreground mb-4">
+              Quick Stats
+            </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -129,7 +161,7 @@ const Goals = () => {
                 </div>
                 <span className="font-bold">{goals.length}</span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-blue-500/10">
@@ -137,9 +169,9 @@ const Goals = () => {
                   </div>
                   <span className="text-sm font-medium">Active Goals</span>
                 </div>
-                <span className="font-bold">{activeGoals}</span>
+                <span className="font-bold">{activeGoals.length}</span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-purple-500/10">
@@ -147,9 +179,9 @@ const Goals = () => {
                   </div>
                   <span className="text-sm font-medium">Completed</span>
                 </div>
-                <span className="font-bold">{completedGoals}</span>
+                <span className="font-bold">{completedGoals.length}</span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-orange-500/10">
@@ -158,7 +190,12 @@ const Goals = () => {
                   <span className="text-sm font-medium">Nearest Deadline</span>
                 </div>
                 <span className="font-bold text-sm">
-                  {goals.length > 0 ? goals[0].deadline : "N/A"}
+                  {goals.length > 0 && goals[0].target_date
+                    ? new Date(goals[0].target_date).toLocaleDateString(
+                        "en-US",
+                        { month: "short", year: "numeric" }
+                      )
+                    : "N/A"}
                 </span>
               </div>
             </div>
@@ -166,9 +203,9 @@ const Goals = () => {
         </div>
 
         {/* Add Goal Dialog */}
-        <AddGoalDialog 
-          isOpen={isAddGoalOpen} 
-          onClose={() => setIsAddGoalOpen(false)} 
+        <AddGoalDialog
+          isOpen={isAddGoalOpen}
+          onClose={() => setIsAddGoalOpen(false)}
         />
       </div>
     </ProtectedRoute>

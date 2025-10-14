@@ -54,12 +54,17 @@ export interface Bill {
 
 export interface Goal {
   id: string;
-  title: string;
-  target: number;
-  current: number;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  deadline: string;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date?: string;
+  created_at: string;
+  updated_at: string;
+  status: "active" | "completed" | "paused";
+  // UI properties (not in database)
+  icon?: React.ComponentType<{ className?: string }>;
+  color?: string;
 }
 
 export interface Budget {

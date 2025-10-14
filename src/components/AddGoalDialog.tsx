@@ -16,17 +16,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Plane, 
-  Home, 
-  GraduationCap, 
-  Car, 
+import { useGoals } from "@/hooks/useGoals";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Plane,
+  Home,
+  GraduationCap,
+  Car,
   Heart,
   Gamepad2,
   Camera,
   Laptop,
   Smartphone,
-  Briefcase
+  Briefcase,
 } from "lucide-react";
 
 interface AddGoalDialogProps {
@@ -60,38 +62,66 @@ const goalColors = [
 
 export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
   const [formData, setFormData] = useState({
-    title: "",
-    target: "",
-    current: "",
-    deadline: "",
+    name: "",
+    target_amount: "",
+    current_amount: "",
+    target_date: "",
     icon: "plane",
-    color: "text-blue-600",
+    color: "blue",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { createGoal } = useGoals();
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically save the goal to your database
-    console.log("New goal:", formData);
-    onClose();
-    // Reset form
-    setFormData({
-      title: "",
-      target: "",
-      current: "",
-      deadline: "",
-      icon: "plane",
-      color: "text-blue-600",
-    });
+    setIsSubmitting(true);
+
+    try {
+      await createGoal({
+        name: formData.name,
+        target_amount: parseFloat(formData.target_amount),
+        current_amount: parseFloat(formData.current_amount) || 0,
+        target_date: formData.target_date || undefined,
+        status: "active",
+      });
+
+      toast({
+        title: "Goal created successfully!",
+        description: "Your new savings goal has been added.",
+      });
+
+      onClose();
+      // Reset form
+      setFormData({
+        name: "",
+        target_amount: "",
+        current_amount: "",
+        target_date: "",
+        icon: "plane",
+        color: "blue",
+      });
+    } catch (error) {
+      console.error("Error creating goal:", error);
+      toast({
+        title: "Error creating goal",
+        description: "There was an error creating your goal. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const selectedIcon = goalIcons.find(icon => icon.value === formData.icon);
+  const selectedIcon = goalIcons.find((icon) => icon.value === formData.icon);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -99,58 +129,63 @@ export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
         <DialogHeader>
           <DialogTitle>Create New Savings Goal</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="title">Goal Title</Label>
+            <Label htmlFor="name">Goal Name</Label>
             <Input
-              id="title"
+              id="name"
               placeholder="e.g., Vacation to Japan"
-              value={formData.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="target">Target Amount</Label>
+              <Label htmlFor="target_amount">Target Amount</Label>
               <Input
-                id="target"
+                id="target_amount"
                 type="number"
                 placeholder="5000"
-                value={formData.target}
-                onChange={(e) => handleInputChange("target", e.target.value)}
+                value={formData.target_amount}
+                onChange={(e) =>
+                  handleInputChange("target_amount", e.target.value)
+                }
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="current">Current Amount</Label>
+              <Label htmlFor="current_amount">Current Amount</Label>
               <Input
-                id="current"
+                id="current_amount"
                 type="number"
                 placeholder="0"
-                value={formData.current}
-                onChange={(e) => handleInputChange("current", e.target.value)}
-                required
+                value={formData.current_amount}
+                onChange={(e) =>
+                  handleInputChange("current_amount", e.target.value)
+                }
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="deadline">Target Date</Label>
+            <Label htmlFor="target_date">Target Date (Optional)</Label>
             <Input
-              id="deadline"
+              id="target_date"
               type="date"
-              value={formData.deadline}
-              onChange={(e) => handleInputChange("deadline", e.target.value)}
-              required
+              value={formData.target_date}
+              onChange={(e) => handleInputChange("target_date", e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Icon</Label>
-            <Select value={formData.icon} onValueChange={(value) => handleInputChange("icon", value)}>
+            <Select
+              value={formData.icon}
+              onValueChange={(value) => handleInputChange("icon", value)}
+            >
               <SelectTrigger>
                 <SelectValue>
                   {selectedIcon && (
@@ -176,34 +211,55 @@ export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
 
           <div className="space-y-2">
             <Label>Color Theme</Label>
-            <Select value={formData.color} onValueChange={(value) => handleInputChange("color", value)}>
+            <Select
+              value={formData.color}
+              onValueChange={(value) => handleInputChange("color", value)}
+            >
               <SelectTrigger>
                 <SelectValue>
                   <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full ${formData.color.replace('text-', 'bg-')}`} />
-                    {goalColors.find(c => c.value === formData.color)?.label}
+                    <div
+                      className={`w-4 h-4 rounded-full bg-${formData.color}-600`}
+                    />
+                    {
+                      goalColors.find(
+                        (c) => c.value === `text-${formData.color}-600`
+                      )?.label
+                    }
                   </div>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {goalColors.map((color) => (
-                  <SelectItem key={color.value} value={color.value}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full ${color.value.replace('text-', 'bg-')}`} />
-                      {color.label}
-                    </div>
-                  </SelectItem>
-                ))}
+                {goalColors.map((color) => {
+                  const colorKey = color.value
+                    .replace("text-", "")
+                    .replace("-600", "");
+                  return (
+                    <SelectItem key={color.value} value={colorKey}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-4 h-4 rounded-full bg-${colorKey}-600`}
+                        />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit">
-              Create Goal
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Goal"}
             </Button>
           </div>
         </form>

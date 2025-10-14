@@ -1,86 +1,144 @@
+import { supabase } from "@/lib/supabaseClient";
 import { Goal } from "@/types";
-import { 
-  Plane, 
-  Home, 
-  GraduationCap, 
-  Car, 
+import {
+  Plane,
+  Home,
+  GraduationCap,
+  Car,
   Heart,
   Gamepad2,
   Camera,
-  Laptop
+  Laptop,
+  Smartphone,
+  Briefcase,
 } from "lucide-react";
 
-export const goals: Goal[] = [
-  {
-    id: "1",
-    title: "Vacation Fund",
-    target: 5000,
-    current: 3420,
-    icon: Plane,
-    color: "text-blue-600",
-    deadline: "Jun 2026",
+// Icon mapping for UI display
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  plane: Plane,
+  home: Home,
+  graduation: GraduationCap,
+  car: Car,
+  heart: Heart,
+  gamepad: Gamepad2,
+  camera: Camera,
+  laptop: Laptop,
+  smartphone: Smartphone,
+  briefcase: Briefcase,
+};
+
+// Color mapping for UI display
+const colorMap: Record<string, string> = {
+  blue: "text-blue-600",
+  green: "text-green-600",
+  purple: "text-purple-600",
+  red: "text-red-600",
+  orange: "text-orange-600",
+  pink: "text-pink-600",
+  indigo: "text-indigo-600",
+  teal: "text-teal-600",
+};
+
+// Helper function to add UI properties to database goals
+export const addUIProperties = (
+  goal: Goal,
+  iconKey?: string,
+  colorKey?: string
+): Goal => {
+  return {
+    ...goal,
+    icon: iconKey ? iconMap[iconKey] : iconMap.plane,
+    color: colorKey ? colorMap[colorKey] : colorMap.blue,
+  };
+};
+
+// Database operations
+export const goalsApi = {
+  // Fetch all goals for a user
+  async getGoals(userId: string): Promise<Goal[]> {
+    const { data, error } = await supabase
+      .from("goals")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching goals:", error);
+      throw error;
+    }
+
+    return data || [];
   },
-  {
-    id: "2",
-    title: "Emergency Fund",
-    target: 10000,
-    current: 7200,
-    icon: Home,
-    color: "text-green-600",
-    deadline: "Dec 2026",
+
+  // Create a new goal
+  async createGoal(
+    goal: Omit<Goal, "id" | "created_at" | "updated_at">
+  ): Promise<Goal> {
+    const { data, error } = await supabase
+      .from("goals")
+      .insert([goal])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating goal:", error);
+      throw error;
+    }
+
+    return data;
   },
-  {
-    id: "3",
-    title: "New Car",
-    target: 25000,
-    current: 18500,
-    icon: Car,
-    color: "text-red-600",
-    deadline: "Mar 2025",
+
+  // Update a goal
+  async updateGoal(id: string, updates: Partial<Goal>): Promise<Goal> {
+    const { data, error } = await supabase
+      .from("goals")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating goal:", error);
+      throw error;
+    }
+
+    return data;
   },
-  {
-    id: "4",
-    title: "Wedding Fund",
-    target: 15000,
-    current: 8900,
-    icon: Heart,
-    color: "text-pink-600",
-    deadline: "Aug 2025",
+
+  // Delete a goal
+  async deleteGoal(id: string): Promise<void> {
+    const { error } = await supabase.from("goals").delete().eq("id", id);
+
+    if (error) {
+      console.error("Error deleting goal:", error);
+      throw error;
+    }
   },
-  {
-    id: "5",
-    title: "Gaming Setup",
-    target: 3000,
-    current: 2100,
-    icon: Gamepad2,
-    color: "text-purple-600",
-    deadline: "Dec 2024",
+
+  // Update goal progress (current_amount)
+  async updateProgress(id: string, currentAmount: number): Promise<Goal> {
+    return this.updateGoal(id, {
+      current_amount: currentAmount,
+      status:
+        currentAmount >= (await this.getGoal(id)).target_amount
+          ? "completed"
+          : "active",
+    });
   },
-  {
-    id: "6",
-    title: "Camera Equipment",
-    target: 4000,
-    current: 1200,
-    icon: Camera,
-    color: "text-orange-600",
-    deadline: "May 2025",
+
+  // Get a single goal
+  async getGoal(id: string): Promise<Goal> {
+    const { data, error } = await supabase
+      .from("goals")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching goal:", error);
+      throw error;
+    }
+
+    return data;
   },
-  {
-    id: "7",
-    title: "New Laptop",
-    target: 2000,
-    current: 2000,
-    icon: Laptop,
-    color: "text-indigo-600",
-    deadline: "Completed",
-  },
-  {
-    id: "8",
-    title: "Education Fund",
-    target: 8000,
-    current: 3200,
-    icon: GraduationCap,
-    color: "text-teal-600",
-    deadline: "Sep 2025",
-  },
-];
+};
