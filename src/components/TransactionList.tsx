@@ -248,7 +248,7 @@ export function TransactionList({
                         {account?.name || "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {categoryName}
+                        {transaction.category?.name ?? transaction.type}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(transaction.date)}

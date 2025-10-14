@@ -7,9 +7,9 @@ export interface Transaction {
   account_id: string;
   amount: number;
   date: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "savings";
   user_id: string;
-  category?: Category; // JOINで取得する場合
+  category?: Category;
 }
 
 export interface Category {

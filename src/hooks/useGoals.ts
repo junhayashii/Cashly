@@ -106,6 +106,30 @@ export function useGoals() {
     }
   };
 
+  const addSavingToGoal = async (goalId: string, amount: number) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) {
+      console.error("Goal not found for saving:", goalId);
+      return;
+    }
+
+    const newAmount = goal.current_amount + amount;
+
+    try {
+      // Supabaseにも反映
+      const updatedGoal = await goalsApi.updateGoal(goalId, {
+        current_amount: newAmount,
+      });
+
+      const goalWithUI = addUIProperties(updatedGoal);
+      setGoals((prev) => prev.map((g) => (g.id === goalId ? goalWithUI : g)));
+
+      return goalWithUI;
+    } catch (error) {
+      console.error("Error adding saving to goal:", error);
+    }
+  };
+
   const getGoalById = (id: string) => {
     return goals.find((goal) => goal.id === id);
   };
@@ -159,6 +183,7 @@ export function useGoals() {
     updateGoal,
     deleteGoal,
     updateProgress,
+    addSavingToGoal,
     getGoalById,
     getActiveGoals,
     getCompletedGoals,
