@@ -19,10 +19,14 @@ interface EditGoalsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGoalUpdated?: (updatedGoal: Goal) => void;
+  // Optional functions passed from parent to ensure same state instance is updated
+  updateGoalFn?: (id: string, updates: Partial<Goal>) => Promise<Goal>;
+  deleteGoalFn?: (id: string) => Promise<void>;
+  onSuccess?: () => void;
 }
 
-export function EditGoalsDialog({ goal, open, onOpenChange, onGoalUpdated }: EditGoalsDialogProps) {
-  const { updateGoal } = useGoals();
+export function EditGoalsDialog({ goal, open, onOpenChange, onGoalUpdated, updateGoalFn, deleteGoalFn, onSuccess }: EditGoalsDialogProps) {
+  const { updateGoal, deleteGoal } = useGoals();
   const { toast } = useToast();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,7 +60,8 @@ export function EditGoalsDialog({ goal, open, onOpenChange, onGoalUpdated }: Edi
 
     setIsSubmitting(true);
     try {
-      const updated = await updateGoal(goal.id, {
+      const updater = updateGoalFn || updateGoal;
+      const updated = await updater(goal.id, {
         name: formData.name,
         target_amount: parseFloat(formData.target_amount || "0"),
         current_amount: parseFloat(formData.current_amount || "0"),
@@ -70,12 +75,39 @@ export function EditGoalsDialog({ goal, open, onOpenChange, onGoalUpdated }: Edi
         title: "Goal updated",
         description: "Your goal changes have been saved.",
       });
+      if (onSuccess) onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating goal", error);
       toast({
         title: "Error",
         description: "Failed to update goal. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!goal) return;
+    const confirmed = typeof window !== "undefined" ? window.confirm("Delete this goal? This cannot be undone.") : true;
+    if (!confirmed) return;
+    setIsSubmitting(true);
+    try {
+      const deleter = deleteGoalFn || deleteGoal;
+      await deleter(goal.id);
+      toast({
+        title: "Goal deleted",
+        description: "The goal has been removed.",
+      });
+      if (onSuccess) onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error deleting goal", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete goal. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -153,13 +185,18 @@ export function EditGoalsDialog({ goal, open, onOpenChange, onGoalUpdated }: Edi
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-              Cancel
+          <div className="flex items-center justify-between pt-4">
+            <Button type="button" variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+              Delete Goal
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </Button>
+            <div className="flex gap-3">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

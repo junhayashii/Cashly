@@ -8,7 +8,7 @@ import { useState } from "react";
 import EditGoalsDialog from "@/components/EditGoalsDialog";
 
 export function GoalsSection() {
-  const { getActiveGoals, getCompletedGoals, loading } = useGoals();
+  const { getActiveGoals, getCompletedGoals, loading, updateGoal, deleteGoal } = useGoals();
   const [editingGoal, setEditingGoal] = useState<any | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -134,6 +134,8 @@ export function GoalsSection() {
           setIsEditOpen(open);
           if (!open) setEditingGoal(null);
         }}
+        updateGoalFn={updateGoal}
+        deleteGoalFn={deleteGoal}
       />
     </Card>
   );
