@@ -7,9 +7,12 @@ export interface Transaction {
   account_id: string;
   amount: number;
   date: string;
-  type: "income" | "expense" | "savings";
+  type: "income" | "expense" | "savings" | "transfer";
   user_id: string;
   category?: Category;
+  goal_id?: string;
+  from_account_id?: string;
+  to_account_id?: string;
 }
 
 export interface Category {

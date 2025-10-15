@@ -45,9 +45,11 @@ export function AddTransactionDialog({
     amount: string;
     category_id: string;
     account_id: string;
-    type: "income" | "expense" | "savings";
+    type: "income" | "expense" | "savings" | "transfer";
     date: string;
     goal_id: string;
+    from_account_id?: string;
+    to_account_id?: String;
   }>({
     title: "",
     amount: "",
@@ -55,7 +57,9 @@ export function AddTransactionDialog({
     account_id: "",
     type: "expense",
     date: new Date().toISOString().split("T")[0],
-    goal_id: "", // ✅ 空文字にする
+    goal_id: "",
+    from_account_id: "",
+    to_account_id: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,15 +67,17 @@ export function AddTransactionDialog({
     if (loading) return;
     setLoading(true);
 
-    // ✅ savings の場合 category_id は不要
     const isSavings = formData.type === "savings";
+    const isTransfer = formData.type === "transfer";
 
+    // 必須項目チェック
     if (
       !formData.title ||
       !formData.amount ||
-      !formData.account_id ||
-      (!isSavings && !formData.category_id) || // savings以外ならカテゴリ必須
-      (isSavings && !formData.goal_id) // savingsならgoal必須
+      (!isSavings && !isTransfer && !formData.account_id) ||
+      (!isSavings && !isTransfer && !formData.category_id) ||
+      (isSavings && !formData.goal_id) ||
+      (isTransfer && (!formData.from_account_id || !formData.to_account_id))
     ) {
       toast({
         title: "Missing fields",
@@ -82,9 +88,18 @@ export function AddTransactionDialog({
       return;
     }
 
+    if (isTransfer && formData.from_account_id === formData.to_account_id) {
+      toast({
+        title: "Invalid Transfer",
+        description: "From and To accounts cannot be the same",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     const { data, error: userError } = await supabase.auth.getUser();
     const user = data?.user;
-
     if (userError || !user) {
       toast({
         title: "Error",
@@ -95,114 +110,183 @@ export function AddTransactionDialog({
       return;
     }
 
-    const transaction = {
-      id: crypto.randomUUID(),
-      title: formData.title,
-      amount:
-        parseFloat(formData.amount) * (formData.type === "expense" ? -1 : 1),
-      category_id: isSavings ? null : formData.category_id,
-      account_id: formData.account_id,
-      goal_id: isSavings ? formData.goal_id : null,
-      date: formData.date,
-      type: formData.type,
-      user_id: user.id,
-    };
+    const amount = parseFloat(formData.amount);
 
-    console.log("Attempting to insert transaction:", transaction);
+    try {
+      let insertedData: Transaction[] = [];
 
-    const { data: insertedData, error } = await supabase
-      .from("transactions")
-      .insert([transaction])
-      .select();
+      if (isSavings) {
+        // Savings の処理
+        const transaction = {
+          id: crypto.randomUUID(),
+          title: formData.title,
+          amount: amount,
+          account_id: formData.account_id,
+          goal_id: formData.goal_id,
+          type: "savings",
+          user_id: user.id,
+          date: formData.date,
+        };
 
-    if (error) {
-      console.error("Failed to insert transaction:", error);
+        const { data: saved, error } = await supabase
+          .from("transactions")
+          .insert([transaction])
+          .select();
+
+        if (error) throw error;
+        insertedData = saved;
+
+        // Goal 更新
+        const { data: goalData } = await supabase
+          .from("goals")
+          .select("current_amount")
+          .eq("id", formData.goal_id)
+          .single();
+
+        if (goalData) {
+          await supabase
+            .from("goals")
+            .update({ current_amount: (goalData.current_amount || 0) + amount })
+            .eq("id", formData.goal_id);
+        }
+
+        // Account 残高減算
+        const { data: accountData } = await supabase
+          .from("accounts")
+          .select("balance")
+          .eq("id", formData.account_id)
+          .single();
+
+        if (accountData) {
+          await supabase
+            .from("accounts")
+            .update({ balance: (accountData.balance || 0) - amount })
+            .eq("id", formData.account_id);
+        }
+      } else if (isTransfer) {
+        // Transfer の場合
+        const transactions = [
+          {
+            id: crypto.randomUUID(),
+            title: formData.title,
+            amount: -amount,
+            account_id: formData.from_account_id,
+            type: "transfer",
+            user_id: user.id,
+            date: formData.date,
+          },
+          {
+            id: crypto.randomUUID(),
+            title: formData.title,
+            amount: amount,
+            account_id: formData.to_account_id,
+            type: "transfer",
+            user_id: user.id,
+            date: formData.date,
+          },
+        ];
+
+        const { data: saved, error } = await supabase
+          .from("transactions")
+          .insert(transactions)
+          .select();
+
+        if (error) throw error;
+        insertedData = saved;
+
+        // From アカウント残高減算
+        const { data: fromAccountData } = await supabase
+          .from("accounts")
+          .select("balance")
+          .eq("id", formData.from_account_id)
+          .single();
+        if (fromAccountData) {
+          await supabase
+            .from("accounts")
+            .update({ balance: (fromAccountData.balance || 0) - amount })
+            .eq("id", formData.from_account_id);
+        }
+
+        // To アカウント残高加算
+        const { data: toAccountData } = await supabase
+          .from("accounts")
+          .select("balance")
+          .eq("id", formData.to_account_id)
+          .single();
+        if (toAccountData) {
+          await supabase
+            .from("accounts")
+            .update({ balance: (toAccountData.balance || 0) + amount })
+            .eq("id", formData.to_account_id);
+        }
+      } else {
+        // Expense / Income
+        const transaction = {
+          id: crypto.randomUUID(),
+          title: formData.title,
+          amount: formData.type === "expense" ? -amount : amount,
+          category_id: formData.category_id,
+          account_id: formData.account_id,
+          type: formData.type,
+          user_id: user.id,
+          date: formData.date,
+        };
+
+        const { data: saved, error } = await supabase
+          .from("transactions")
+          .insert([transaction])
+          .select();
+
+        if (error) throw error;
+        insertedData = saved;
+
+        // Account 残高更新
+        const { data: accountData } = await supabase
+          .from("accounts")
+          .select("balance")
+          .eq("id", formData.account_id)
+          .single();
+        if (accountData) {
+          await supabase
+            .from("accounts")
+            .update({
+              balance:
+                (accountData.balance || 0) +
+                (formData.type === "expense" ? -amount : amount),
+            })
+            .eq("id", formData.account_id);
+        }
+      }
+
+      insertedData.forEach(onAddTransaction);
+
+      toast({
+        title: "Transaction added",
+        description: `${formData.type} of $${amount} has been recorded`,
+      });
+
+      // フォームリセット
+      setFormData({
+        title: "",
+        amount: "",
+        category_id: "",
+        account_id: "",
+        type: "expense",
+        date: new Date().toISOString().split("T")[0],
+        goal_id: "",
+        from_account_id: "",
+        to_account_id: "",
+      });
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
       toast({
         title: "Error",
         description: "Failed to save transaction",
         variant: "destructive",
       });
-      setLoading(false);
-      return;
     }
 
-    onAddTransaction(insertedData[0]);
-    toast({
-      title: "Transaction added",
-      description: `${
-        formData.type === "expense"
-          ? "Expense"
-          : formData.type === "income"
-          ? "Income"
-          : "Savings"
-      } of $${formData.amount} has been recorded`,
-    });
-
-    // ✅ Savingsの場合はGoalとAccountを更新
-    if (formData.type === "savings") {
-      const amount = parseFloat(formData.amount);
-
-      // 🎯 1. Goalのcurrent_amountを更新
-      // まず現在のGoalを取得
-      const { data: goalData, error: goalFetchError } = await supabase
-        .from("goals")
-        .select("current_amount")
-        .eq("id", formData.goal_id)
-        .single();
-
-      if (goalFetchError || !goalData) {
-        console.error("Failed to fetch goal:", goalFetchError);
-      } else {
-        const newGoalAmount = (goalData.current_amount || 0) + amount;
-
-        const { error: goalUpdateError } = await supabase
-          .from("goals")
-          .update({ current_amount: newGoalAmount })
-          .eq("id", formData.goal_id);
-
-        if (goalUpdateError) {
-          console.error("Failed to update goal:", goalUpdateError);
-        }
-      }
-
-      // 🏦 2. Accountのbalanceを減らす
-      const { data: accountData, error: accountFetchError } = await supabase
-        .from("accounts")
-        .select("balance")
-        .eq("id", formData.account_id)
-        .single();
-
-      if (accountFetchError || !accountData) {
-        console.error("Failed to fetch account:", accountFetchError);
-      } else {
-        const newBalance = (accountData.balance || 0) - amount;
-
-        const { error: accountUpdateError } = await supabase
-          .from("accounts")
-          .update({ balance: newBalance })
-          .eq("id", formData.account_id);
-
-        if (accountUpdateError) {
-          console.error(
-            "Failed to update account balance:",
-            accountUpdateError
-          );
-        }
-      }
-    }
-
-    // ✅ リセット時に goal_id も空文字でリセット
-    setFormData({
-      title: "",
-      amount: "",
-      category_id: "",
-      account_id: "",
-      type: "expense",
-      date: new Date().toISOString().split("T")[0],
-      goal_id: "",
-    });
-
-    setOpen(false); // ✅ 閉じる
     setLoading(false);
   };
 
@@ -247,6 +331,7 @@ export function AddTransactionDialog({
                 <SelectItem value="expense">Expense</SelectItem>
                 <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="savings">Savings</SelectItem>
+                <SelectItem value="transfer">Transfer</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -264,6 +349,61 @@ export function AddTransactionDialog({
               className="bg-background border-border"
             />
           </div>
+
+          {/* --- Transferの場合だけFrom/To Account表示 --- */}
+          {formData.type === "transfer" && (
+            <div className="grid grid-cols-2 gap-4">
+              {/* From Account */}
+              <div className="space-y-2">
+                <Label htmlFor="from_account">From Account</Label>
+                <Select
+                  value={formData.from_account_id}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, from_account_id: value })
+                  }
+                >
+                  <SelectTrigger
+                    id="from_account"
+                    className="bg-background border-border"
+                  >
+                    <SelectValue placeholder="Select source account" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* To Account */}
+              <div className="space-y-2">
+                <Label htmlFor="to_account">To Account</Label>
+                <Select
+                  value={formData.to_account_id?.toString()}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, to_account_id: value })
+                  }
+                >
+                  <SelectTrigger
+                    id="to_account"
+                    className="bg-background border-border"
+                  >
+                    <SelectValue placeholder="Select destination account" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           {/* --- Amount & Date --- */}
           <div className="grid grid-cols-2 gap-4">
@@ -326,29 +466,31 @@ export function AddTransactionDialog({
             )}
 
             {/* --- Account --- */}
-            <div className="space-y-2">
-              <Label htmlFor="account">Account</Label>
-              <Select
-                value={formData.account_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, account_id: value })
-                }
-              >
-                <SelectTrigger
-                  id="account"
-                  className="bg-background border-border"
+            {formData.type !== "transfer" && (
+              <div className="space-y-2">
+                <Label htmlFor="account">Account</Label>
+                <Select
+                  value={formData.account_id?.toString()}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, account_id: value })
+                  }
                 >
-                  <SelectValue placeholder="Select an account" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border z-50">
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  <SelectTrigger
+                    id="account"
+                    className="bg-background border-border"
+                  >
+                    <SelectValue placeholder="Select an account" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* --- Buttons --- */}
