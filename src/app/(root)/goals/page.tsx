@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { GoalsSectionSimple } from "@/components/GoalsSectionSimple";
 import { GoalsSection } from "@/components/GoalsSection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

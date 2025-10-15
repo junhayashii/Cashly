@@ -5,7 +5,10 @@ import { TransactionList } from "@/components/TransactionList";
 import { TransactionListSimple } from "@/components/TransactionListSimple";
 import { SpendingChart } from "@/components/SpendingChart";
 import { BudgetSection } from "@/components/BudgetSection";
-import { GoalsSection } from "@/components/GoalsSection";
+import {
+  GoalsSection,
+  GoalsSectionSimple,
+} from "@/components/GoalsSectionSimple";
 import { RecurringBills } from "@/components/RecurringBillsSimple";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
@@ -217,7 +220,7 @@ const Home = () => {
             <RecurringBills />
           </div>
           <div className="lg:col-span-1">
-            <GoalsSection />
+            <GoalsSectionSimple />
           </div>
         </div>
       </div>
