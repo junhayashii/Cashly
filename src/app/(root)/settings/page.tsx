@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,64 +11,56 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { User, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { useTheme } from "@/components/ThemeProvider";
 
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-  });
 
-  // ページロード時にSupabaseからユーザー情報を取得
+  const { theme, setTheme } = useTheme();
+
+  // ダークモード切替
+  setTheme(theme === "light" ? "dark" : "light");
+
+  // Supabase AuthからユーザーID取得
+  const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
       if (error) {
         toast({ title: "Error fetching user", variant: "destructive" });
         return;
       }
-
-      if (user) {
-        setUserData({
-          first_name: user.user_metadata?.first_name || "",
-          last_name: user.user_metadata?.last_name || "",
-          email: user.email || "",
-        });
-      }
-    };
-
-    fetchUser();
+      if (user) setUserId(user.id);
+    });
   }, [toast]);
 
-  const handleSave = async () => {
+  // Profiles hook
+  const { profile, updateProfile } = useUserProfile(userId || undefined);
+
+  // Settings hook
+  const { settings, updateSettings } = useUserSettings(userId || undefined);
+
+  useEffect(() => {
+    if (settings?.theme) {
+      setTheme(settings.theme);
+    }
+  }, [settings?.theme, setTheme]);
+
+  const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      const {
-        data: { user },
-        error: updateError,
-      } = await supabase.auth.updateUser({
-        email: userData.email,
-        data: {
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-        },
+      await updateProfile({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
       });
-
-      if (updateError) throw updateError;
-
       toast({ title: "Profile updated successfully" });
     } catch (error: any) {
-      console.error(error);
       toast({
         title: "Error updating profile",
         description: error.message,
@@ -109,9 +101,9 @@ const Settings = () => {
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
-                  value={userData.first_name}
+                  value={profile.first_name}
                   onChange={(e) =>
-                    setUserData({ ...userData, first_name: e.target.value })
+                    updateProfile({ first_name: e.target.value })
                   }
                 />
               </div>
@@ -119,28 +111,14 @@ const Settings = () => {
                 <Label htmlFor="lastName">Last Name</Label>
                 <Input
                   id="lastName"
-                  value={userData.last_name}
-                  onChange={(e) =>
-                    setUserData({ ...userData, last_name: e.target.value })
-                  }
+                  value={profile.last_name}
+                  onChange={(e) => updateProfile({ last_name: e.target.value })}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={userData.email}
-                onChange={(e) =>
-                  setUserData({ ...userData, email: e.target.value })
-                }
-              />
-            </div>
-
             <div className="flex gap-3">
-              <Button onClick={handleSave} disabled={loading}>
+              <Button onClick={handleSaveProfile} disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
               <Button variant="destructive" onClick={handleLogout}>
@@ -150,19 +128,55 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Theme Settings */}
+        {/* Settings */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              <CardTitle>Appearance</CardTitle>
+              <CardTitle>App Settings</CardTitle>
             </div>
-            <CardDescription>Customize the app theme</CardDescription>
+            <CardDescription>Customize your preferences</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Theme */}
             <div className="flex items-center justify-between">
               <Label htmlFor="theme">Dark Mode</Label>
-              <ThemeToggle />
+
+              <ThemeToggle
+                enabled={settings.theme === "dark"}
+                onToggle={() => {
+                  const newTheme = settings.theme === "dark" ? "light" : "dark";
+                  updateSettings({ theme: newTheme }); // DB保存
+                }}
+              />
+            </div>
+
+            {/* Currency */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="currency">Currency</Label>
+              <select
+                id="currency"
+                value={settings.currency}
+                onChange={(e) => updateSettings({ currency: e.target.value })}
+                className="border rounded px-2 py-1"
+              >
+                <option value="USD">USD ($)</option>
+                <option value="BRL">BRL (R$)</option>
+              </select>
+            </div>
+
+            {/* Notifications */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notifications">Notifications</Label>
+              <input
+                id="notifications"
+                type="checkbox"
+                checked={settings.notifications}
+                onChange={(e) =>
+                  updateSettings({ notifications: e.target.checked })
+                }
+                className="h-5 w-5 accent-primary"
+              />
             </div>
           </CardContent>
         </Card>
