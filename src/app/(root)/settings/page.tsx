@@ -30,13 +30,17 @@ const Settings = () => {
 
   // Supabase AuthからユーザーID取得
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user }, error }) => {
       if (error) {
         toast({ title: "Error fetching user", variant: "destructive" });
         return;
       }
-      if (user) setUserId(user.id);
+      if (user) {
+        setUserId(user.id);
+        setUserEmail(user.email);
+      }
     });
   }, [toast]);
 
@@ -115,6 +119,10 @@ const Settings = () => {
                   onChange={(e) => updateProfile({ last_name: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" value={userEmail || ""} disabled />
             </div>
 
             <div className="flex gap-3">
