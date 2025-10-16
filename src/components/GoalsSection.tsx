@@ -1,20 +1,21 @@
+"use client";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, PencilLine } from "lucide-react";
 import { useGoals } from "@/hooks/useGoals";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EditGoalsDialog from "@/components/EditGoalsDialog";
-
-
 
 type GoalsSectionProps = {
   currencySymbol: string;
 };
 
 export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
-  const { getActiveGoals, getCompletedGoals, loading, updateGoal, deleteGoal } = useGoals();
+  const { getActiveGoals, getCompletedGoals, loading, updateGoal, deleteGoal } =
+    useGoals();
+
   const [editingGoal, setEditingGoal] = useState<any | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -68,13 +69,16 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
               </p>
             </div>
           </div>
+
           <div className="text-right flex items-start gap-2">
             <div>
               <p className="text-sm font-medium text-foreground">
-                ${goal.current_amount.toLocaleString()}
+                {currencySymbol}
+                {goal.current_amount.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
-                of ${goal.target_amount.toLocaleString()}
+                of {currencySymbol}
+                {goal.target_amount.toLocaleString()}
               </p>
             </div>
             <Button
@@ -90,20 +94,21 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
             </Button>
           </div>
         </div>
+
         <Progress value={percentage} className="h-1.5" />
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">
             {percentage.toFixed(0)}% Complete
           </span>
           <span className="text-muted-foreground">
-            ${remaining.toLocaleString()} to go
+            {currencySymbol}
+            {remaining.toLocaleString()} to go
           </span>
         </div>
       </div>
     );
   };
 
-<<<<<<< HEAD
   return (
     <Card className="p-6 bg-card border-border flex flex-col relative">
       <div className="flex items-center justify-between mb-3">
@@ -111,53 +116,6 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
         <div className="text-sm text-muted-foreground">
           {activeGoals.length} active, {completedGoals.length} completed
         </div>
-=======
-          return (
-            <div key={goal.id} className="space-y-2">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Icon className={`h-4 w-4 ${goal.color}`} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground text-sm">
-                      {goal.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {goal.target_date
-                        ? new Date(goal.target_date).toLocaleDateString(
-                            "en-US",
-                            { month: "short", year: "numeric" }
-                          )
-                        : "No deadline"}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">
-                    {currencySymbol}
-                    {goal.current_amount.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    of {currencySymbol}
-                    {goal.target_amount.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <Progress value={percentage} className="h-1.5" />
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">
-                  {percentage.toFixed(0)}% Complete
-                </span>
-                <span className="text-muted-foreground">
-                  {currencySymbol}
-                  {remaining.toLocaleString()} to go
-                </span>
-              </div>
-            </div>
-          );
-        })}
->>>>>>> 4ce9c2b (Currency symbol)
       </div>
 
       <div className="space-y-4 flex-1 overflow-y-auto">
@@ -181,6 +139,7 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
           </div>
         )}
       </div>
+
       <EditGoalsDialog
         goal={editingGoal}
         open={isEditOpen}
