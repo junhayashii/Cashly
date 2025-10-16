@@ -12,6 +12,8 @@ import RecurringBills from "@/components/RecurringBills";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
 
+import { exportTransactionsCSV } from "@/components/exportTransactionsCSV";
+
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
 
@@ -67,7 +69,12 @@ const TransactionPage = () => {
               <Upload className="h-4 w-4" />
               Import CSV
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={exportTransactionsCSV(transactions, `transactions.csv`)}
+            >
               <Download className="h-4 w-4" />
               Export
             </Button>

@@ -184,10 +184,6 @@ const Home = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
             <AddTransactionDialog onAddTransaction={handleAddTransaction} />
           </div>
         </div>
