@@ -18,7 +18,8 @@ import {
   TrendingDown,
 } from "lucide-react";
 
-import { type ComponentType } from "react";
+import { type ComponentType, useMemo } from "react";
+import dayjs from "dayjs";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -40,19 +41,43 @@ const getIconComponent = (iconName: string): IconComponent => {
 
 interface BudgetSectionProps {
   currencySymbol?: string;
+  year?: number;
+  month?: number;
+  label?: string;
 }
-export function BudgetSection({ currencySymbol }: BudgetSectionProps) {
+
+export function BudgetSection({
+  currencySymbol,
+  year,
+  month,
+  label,
+}: BudgetSectionProps) {
   const { categories } = useCategories();
   const { transactions } = useTransaction();
 
+  const periodStart = useMemo(() => {
+    if (!year || !month) return null;
+    return dayjs(`${year}-${String(month).padStart(2, "0")}-01`).startOf(
+      "month"
+    );
+  }, [year, month]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+    if (!periodStart) return transactions;
+    return transactions.filter((t) => {
+      const d = dayjs(t.date);
+      return d.isSame(periodStart, "month") && d.isSame(periodStart, "year");
+    });
+  }, [transactions, periodStart]);
+
   const getCategoryStats = () => {
-    // 🔹 Expenseカテゴリのみを対象にする
     const expenseCategories = categories.filter(
       (category) => category.type === "expense"
     );
 
     const categoryStats = expenseCategories.map((category) => {
-      const categoryTransactions = transactions.filter(
+      const categoryTransactions = filteredTransactions.filter(
         (t) => t.category_id === category.id && t.type === "expense"
       );
       const spent = categoryTransactions.reduce(
@@ -69,6 +94,9 @@ export function BudgetSection({ currencySymbol }: BudgetSectionProps) {
       };
     });
 
+    // 🔹 支出の多い順に並び替え
+    categoryStats.sort((a, b) => b.spent - a.spent);
+
     return {
       totalCategories: expenseCategories.length,
       totalBudget: categoryStats.reduce((sum, c) => sum + c.monthlyBudget, 0),
@@ -83,7 +111,9 @@ export function BudgetSection({ currencySymbol }: BudgetSectionProps) {
     <Card className="p-6 bg-card border-border">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
-        <span className="text-sm text-muted-foreground">December 2025</span>
+        <span className="text-sm text-muted-foreground">
+          {label || "This period"}
+        </span>
       </div>
 
       <div className="space-y-6">
