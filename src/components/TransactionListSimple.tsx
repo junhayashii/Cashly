@@ -38,10 +38,12 @@ const categoryIcons: Record<
 
 interface TransactionListSimpleProps {
   transactions: Transaction[];
+  currencySymbol?: string;
 }
 
 export function TransactionListSimple({
   transactions,
+  currencySymbol,
 }: TransactionListSimpleProps) {
   const { getAccountById } = useAccounts();
   const [selectedTransaction, setSelectedTransaction] =
@@ -123,7 +125,8 @@ export function TransactionListSimple({
                       isPositive ? "text-success" : "text-destructive"
                     }`}
                   >
-                    {isPositive ? "+" : "-"}$
+                    {isPositive ? "+" : "-"}
+                    {currencySymbol}
                     {Math.abs(transaction.amount).toFixed(2)}
                   </span>
                   <Button

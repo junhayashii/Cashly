@@ -36,11 +36,35 @@ import { useTransaction } from "@/hooks/useTransactions";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ExpenseBreakdownChart } from "@/components/ExpenseBreakdownChart";
 import { BudgetSectionSimple } from "@/components/BudgetSectionSimple";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 const Home = () => {
   const { transactions, setTransactions } = useTransaction();
+
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  const { settings } = useUserSettings(userId || undefined);
+
   const [firstName, setFirstName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("current-month");
+
+  const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -129,6 +153,9 @@ const Home = () => {
   const monthlyExpenses = filteredTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const monthlySavings = filteredTransactions
+    .filter((t) => t.type === "savings")
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   return (
     <ProtectedRoute>
@@ -169,7 +196,7 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Total Balance"
-            value={`$${totalBalance.toFixed(2)}`}
+            value={`${currencySymbol}${totalBalance.toFixed(2)}`}
             change="+12.5% from last month"
             changeType="positive"
             icon={Wallet}
@@ -177,7 +204,7 @@ const Home = () => {
           />
           <MetricCard
             title="Monthly Income"
-            value={`$${monthlyIncome.toFixed(2)}`}
+            value={`${currencySymbol}${monthlyIncome.toFixed(2)}`}
             change="+8.2% from last month"
             changeType="positive"
             icon={TrendingUp}
@@ -185,7 +212,7 @@ const Home = () => {
           />
           <MetricCard
             title="Monthly Expenses"
-            value={`$${monthlyExpenses.toFixed(2)}`}
+            value={`${currencySymbol}${monthlyExpenses.toFixed(2)}`}
             change="-5.4% from last month"
             changeType="negative"
             icon={TrendingDown}
@@ -193,7 +220,7 @@ const Home = () => {
           />
           <MetricCard
             title="Total Savings"
-            value="$18,420.00"
+            value={`${currencySymbol}${monthlySavings.toFixed(2)}`}
             change="+15.8% from last month"
             changeType="positive"
             icon={PiggyBank}
@@ -205,19 +232,28 @@ const Home = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 上段 */}
           <div className="lg:col-span-2">
-            <SpendingChart selectedPeriod={selectedPeriod} />
+            <SpendingChart
+              selectedPeriod={selectedPeriod}
+              currencySymbol={currencySymbol}
+            />
           </div>
 
           <div className="lg:col-span-2">
-            <ExpenseBreakdownChart selectedPeriod={selectedPeriod} />
+            <ExpenseBreakdownChart
+              selectedPeriod={selectedPeriod}
+              currencySymbol={currencySymbol}
+            />
           </div>
 
           {/* 下段 */}
           <div className="lg:col-span-2">
-            <TransactionListSimple transactions={filteredTransactions} />
+            <TransactionListSimple
+              transactions={filteredTransactions}
+              currencySymbol={currencySymbol}
+            />
           </div>
           <div className="lg:col-span-1">
-            <RecurringBills />
+            <RecurringBills currencySymbol={currencySymbol} />
           </div>
           <div className="lg:col-span-1">
             <GoalsSectionSimple />

@@ -7,7 +7,11 @@ import { useBills } from "@/hooks/useBills";
 
 import { RecurringBill } from "@/hooks/useBills";
 
-const RecurringBills = () => {
+interface RecurringBillsProps {
+  currencySymbol: string;
+}
+
+const RecurringBills = ({ currencySymbol }: RecurringBillsProps) => {
   const [selectedBill, setSelectedBill] = useState<RecurringBill | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -100,7 +104,8 @@ const RecurringBills = () => {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="font-semibold text-foreground">
-                      ${bill.amount.toFixed(2)}
+                      {currencySymbol}
+                      {bill.amount.toFixed(2)}
                     </p>
                     <Badge className={`text-xs ${getStatusColor(bill)}`}>
                       {getStatusText(bill)}

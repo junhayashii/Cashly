@@ -19,8 +19,33 @@ import {
 import { useGoals } from "@/hooks/useGoals";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
+import { supabase } from "@/lib/supabaseClient";
+import { useUserSettings } from "@/hooks/useUserSettings";
+
 const Goals = () => {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  const { settings } = useUserSettings(userId || undefined);
+
+  const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
+
   const {
     goals,
     loading,
@@ -87,7 +112,7 @@ const Goals = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Total Savings"
-            value={`$${totalCurrent.toLocaleString()}`}
+            value={`${currencySymbol}${totalCurrent.toLocaleString()}`}
             change={`${totalProgress.toFixed(1)}% of target`}
             changeType="positive"
             icon={PiggyBank}
@@ -95,7 +120,7 @@ const Goals = () => {
           />
           <MetricCard
             title="Target Amount"
-            value={`$${totalTarget.toLocaleString()}`}
+            value={`${currencySymbol}${totalTarget.toLocaleString()}`}
             change={`${activeGoals.length} active goals`}
             changeType="neutral"
             icon={Target}
@@ -111,7 +136,9 @@ const Goals = () => {
           />
           <MetricCard
             title="Remaining"
-            value={`$${(totalTarget - totalCurrent).toLocaleString()}`}
+            value={`${currencySymbol}${(
+              totalTarget - totalCurrent
+            ).toLocaleString()}`}
             change="to reach all goals"
             changeType="neutral"
             icon={DollarSign}
@@ -135,7 +162,8 @@ const Goals = () => {
                 {totalProgress.toFixed(1)}%
               </p>
               <p className="text-sm text-muted-foreground">
-                ${totalCurrent.toLocaleString()} of $
+                {currencySymbol}
+                {totalCurrent.toLocaleString()} of {currencySymbol}
                 {totalTarget.toLocaleString()}
               </p>
             </div>
@@ -145,7 +173,7 @@ const Goals = () => {
 
         {/* Goals Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GoalsSection />
+          <GoalsSection currencySymbol={currencySymbol} />
 
           {/* Quick Stats Card */}
           <Card className="p-6">

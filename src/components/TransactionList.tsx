@@ -55,12 +55,14 @@ const categoryIcons: Record<
 
 interface TransactionListProps {
   transactions: Transaction[];
+  currencySymbol?: string;
   onTransactionUpdated?: (updated: Transaction) => void;
   onTransactionDeleted?: (id: string) => void;
 }
 
 export function TransactionList({
   transactions,
+  currencySymbol,
   onTransactionUpdated,
   onTransactionDeleted,
 }: TransactionListProps) {
@@ -258,7 +260,8 @@ export function TransactionList({
                           isPositive ? "text-success" : "text-foreground"
                         }`}
                       >
-                        {isPositive ? "+" : "-"}$
+                        {isPositive ? "+" : "-"}
+                        {currencySymbol}
                         {Math.abs(transaction.amount).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-center">

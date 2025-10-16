@@ -7,7 +7,14 @@ import { useCategories } from "@/hooks/useCategories";
 import { useTransaction } from "@/hooks/useTransactions";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LabelList } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  LabelList,
+} from "recharts";
 
 import {
   ShoppingCart,
@@ -41,11 +48,15 @@ const getIconComponent = (iconName: string): IconComponent => {
   return icons[iconName] || ShoppingCart;
 };
 
-interface ExpenseBreakdownChartProps {
+type ExpenseBreakdownChartProps = {
+  currencySymbol: string;
   selectedPeriod?: string;
-}
+};
 
-export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: ExpenseBreakdownChartProps) {
+export function ExpenseBreakdownChart({
+  selectedPeriod = "current-month",
+  currencySymbol,
+}: ExpenseBreakdownChartProps) {
   const { categories } = useCategories();
   const { transactions } = useTransaction();
 
@@ -70,7 +81,8 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
         });
       case "last-month":
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        const lastMonthYear =
+          currentMonth === 0 ? currentYear - 1 : currentYear;
         return transactions.filter((transaction) => {
           const transactionDate = new Date(transaction.date || "");
           return (
@@ -97,9 +109,7 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
         lastYear.setFullYear(currentYear - 1);
         return transactions.filter((transaction) => {
           const transactionDate = new Date(transaction.date || "");
-          return (
-            transactionDate.getFullYear() === currentYear - 1
-          );
+          return transactionDate.getFullYear() === currentYear - 1;
         });
       default:
         return transactions;
@@ -109,22 +119,24 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
   const filteredTransactions = getFilteredTransactions();
 
   // まず各カテゴリの支出を計算
-  const categorySpending = expenseCategories.map((category) => {
-    const spent = filteredTransactions
-      .filter((t) => t.category_id === category.id && t.type === "expense")
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    return { 
-      name: category.name, 
-      value: spent
-    };
-  }).filter((d) => d.value > 0);
+  const categorySpending = expenseCategories
+    .map((category) => {
+      const spent = filteredTransactions
+        .filter((t) => t.category_id === category.id && t.type === "expense")
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      return {
+        name: category.name,
+        value: spent,
+      };
+    })
+    .filter((d) => d.value > 0);
 
   const total = categorySpending.reduce((sum, d) => sum + d.value, 0);
 
   // PieChart用データ（totalを使用してpercentageを計算）
   const chartData = categorySpending.map((item) => ({
     ...item,
-    percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : 0
+    percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : 0,
   }));
 
   const COLORS = [
@@ -158,7 +170,9 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
     <Card className="p-6 bg-card border-border h-[24rem] flex flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Monthly Expenses</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            Monthly Expenses
+          </h2>
           <span className="text-sm text-muted-foreground">December 2025</span>
         </div>
         <Button asChild variant="ghost" size="sm" className="h-8 px-2">
@@ -206,7 +220,7 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
                     </Pie>
                     <Tooltip
                       formatter={(value: number, name: string) => [
-                        `$${value.toLocaleString()} (${(
+                        `${currencySymbol}${value.toLocaleString()} (${(
                           (value / total) *
                           100
                         ).toFixed(1)}%)`,
@@ -222,12 +236,13 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              
+
               {/* 円グラフの真ん中に合計金額 */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-12">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-foreground">
-                    ${total.toLocaleString()}
+                    {currencySymbol}
+                    {total.toLocaleString()}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Total Expenses
@@ -273,7 +288,8 @@ export function ExpenseBreakdownChart({ selectedPeriod = "current-month" }: Expe
                     style={{ backgroundColor: "#e9ecef", accentColor: color }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    ${category.spent.toLocaleString()} / $
+                    {currencySymbol}
+                    {category.spent.toLocaleString()} / {currencySymbol}
                     {category.monthlyBudget.toLocaleString()}
                   </p>
                 </div>

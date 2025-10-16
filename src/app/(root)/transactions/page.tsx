@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { TransactionList } from "@/components/TransactionList";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,33 @@ import { Download, Upload } from "lucide-react";
 import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
 import RecurringBills from "@/components/RecurringBills";
+import { supabase } from "@/lib/supabaseClient";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
+
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  const { settings } = useUserSettings(userId || undefined);
+
+  const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
 
   const handleAddTransaction = async (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
@@ -60,6 +85,7 @@ const TransactionPage = () => {
           <div className="flex-[3]">
             <TransactionList
               transactions={transactions}
+              currencySymbol={currencySymbol}
               onTransactionUpdated={(updated) =>
                 setTransactions((prev) =>
                   prev.map((t) => (t.id === updated.id ? updated : t))
@@ -74,7 +100,7 @@ const TransactionPage = () => {
           </div>
         )}
         <div className="flex-[2]">
-          <RecurringBills />
+          <RecurringBills currencySymbol={currencySymbol} />
         </div>
       </div>
     </div>

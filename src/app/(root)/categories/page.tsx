@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useState, useEffect, type ComponentType } from "react";
 import {
   Card,
   CardContent,
@@ -48,6 +48,8 @@ import { EditCategoryDialog } from "@/components/EditCategoryDialog";
 
 import { supabase } from "@/lib/supabaseClient";
 
+import { useUserSettings } from "@/hooks/useUserSettings";
+
 type IconComponent = ComponentType<{ className?: string }>;
 
 const getIconComponent = (iconName: string): IconComponent => {
@@ -77,6 +79,28 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format("YYYY-MM"));
+
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  const { settings } = useUserSettings(userId || undefined);
+
+  const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
 
   // ---- Stats Calculation ----
   const getCategoryStats = () => {
@@ -230,7 +254,8 @@ const Categories = () => {
             <p className="text-muted-foreground mb-4">
               Total income for {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
               <span className="font-semibold text-green-600">
-                ${totalIncome.toFixed(2)}
+                {currencySymbol}
+                {totalIncome.toFixed(2)}
               </span>
             </p>
             {incomeCategories.length > 0 ? (
@@ -287,7 +312,8 @@ const Categories = () => {
                             Income ({dayjs(selectedMonth).format("MMM YYYY")})
                           </span>
                           <span className="font-medium text-green-600">
-                            ${category.spent.toFixed(2)}
+                            {currencySymbol}
+                            {category.spent.toFixed(2)}
                           </span>
                         </div>
                       </CardContent>
@@ -310,10 +336,14 @@ const Categories = () => {
             </h3>
             <p className="text-muted-foreground mb-4">
               Total budget:{" "}
-              <span className="font-semibold">${totalBudget.toFixed(2)}</span> |
-              Total spent in {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
+              <span className="font-semibold">
+                {currencySymbol}
+                {totalBudget.toFixed(2)}
+              </span>{" "}
+              | Total spent in {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
               <span className="font-semibold text-red-600">
-                ${totalExpense.toFixed(2)}
+                {currencySymbol}
+                {totalExpense.toFixed(2)}
               </span>
             </p>
 
@@ -379,7 +409,8 @@ const Categories = () => {
                             Monthly Budget
                           </span>
                           <span className="font-medium">
-                            ${category.monthlyBudget}
+                            {currencySymbol}
+                            {category.monthlyBudget}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
@@ -391,7 +422,8 @@ const Categories = () => {
                               isOverBudget ? "text-destructive" : ""
                             }`}
                           >
-                            ${category.spent.toFixed(2)}
+                            {currencySymbol}
+                            {category.spent.toFixed(2)}
                           </span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">

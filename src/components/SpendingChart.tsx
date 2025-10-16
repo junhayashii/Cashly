@@ -14,7 +14,11 @@ import { useTransaction } from "@/hooks/useTransactions";
 import { useMemo } from "react";
 import dayjs from "dayjs";
 
-export const SpendingChart = () => {
+type SpendingChartProps = {
+  currencySymbol: string;
+};
+
+export const SpendingChart = ({ currencySymbol }: SpendingChartProps) => {
   const { transactions } = useTransaction();
 
   // 過去12ヶ月の集計データを生成
@@ -124,7 +128,7 @@ export const SpendingChart = () => {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => `${currencySymbol}${value}`}
               domain={[0, "auto"]}
               reversed={true}
             />
@@ -143,7 +147,9 @@ export const SpendingChart = () => {
                 }
                 return label;
               }}
-              formatter={(value: number) => `$${value.toLocaleString()}`}
+              formatter={(value: number) =>
+                `${currencySymbol}${value.toLocaleString()}`
+              }
             />
             <Area
               type="monotone"

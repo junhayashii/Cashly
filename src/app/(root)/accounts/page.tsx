@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useState, useEffect, type ComponentType } from "react";
 import {
   Card,
   CardContent,
@@ -38,6 +38,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { supabase } from "@/lib/supabaseClient";
+import { useUserSettings } from "@/hooks/useUserSettings";
+
 type IconComponent = ComponentType<{ className?: string }>;
 
 const getIconComponent = (iconName: string): IconComponent => {
@@ -70,6 +73,28 @@ const getAccountGradient = (type: string) => {
 const Accounts = () => {
   const { accounts, loading: accountsLoading, addAccount } = useAccounts();
   const { transactions, setTransactions } = useTransaction();
+
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  const { settings } = useUserSettings(userId || undefined);
+
+  const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
 
   const { toast } = useToast();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -226,7 +251,7 @@ const Accounts = () => {
                         <div>
                           <p className="text-xs opacity-70 mb-1">Balance</p>
                           <p className="text-lg font-bold">
-                            $
+                            {currencySymbol}
                             {Math.abs(account.balance).toLocaleString("en-US", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
@@ -270,7 +295,8 @@ const Accounts = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-bold text-foreground">
-                    ${selectedAccount.balance.toFixed(2)}
+                    {currencySymbol}
+                    {selectedAccount.balance.toFixed(2)}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Current Balance
@@ -299,6 +325,7 @@ const Accounts = () => {
                 ? `${selectedAccount.name} Transactions`
                 : "All Transactions"
             }
+            currencySymbol={currencySymbol}
           />
         </div>
       </div>

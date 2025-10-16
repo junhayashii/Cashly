@@ -1,3 +1,4 @@
+"use client";
 import { BudgetSection } from "@/components/BudgetSection";
 import { SpendingChart } from "@/components/SpendingChart";
 import {
@@ -10,7 +11,33 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, Calendar, PieChart } from "lucide-react";
 
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useUserSettings } from "@/hooks/useUserSettings";
+
 const ReportsPage = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  const { settings } = useUserSettings(userId || undefined);
+
+  const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
+
   return (
     <div className="space-y-8">
       <div>
@@ -31,7 +58,7 @@ const ReportsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$87.32</div>
+            <div className="text-2xl font-bold">{currencySymbol}87.32</div>
             <p className="text-xs text-success flex items-center gap-1 mt-1">
               <TrendingDown className="h-3 w-3" />
               -12% from last month
@@ -45,7 +72,7 @@ const ReportsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,200</div>
+            <div className="text-2xl font-bold">{currencySymbol}1,200</div>
             <p className="text-xs text-muted-foreground mt-1">Rent Payment</p>
           </CardContent>
         </Card>
@@ -97,8 +124,8 @@ const ReportsPage = () => {
 
         <TabsContent value="spending" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SpendingChart />
-            <BudgetSection />
+            <SpendingChart currencySymbol={currencySymbol} />
+            <BudgetSection currencySymbol={currencySymbol} />
           </div>
         </TabsContent>
 

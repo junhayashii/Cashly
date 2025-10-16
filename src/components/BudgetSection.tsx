@@ -38,7 +38,10 @@ const getIconComponent = (iconName: string): IconComponent => {
   return icons[iconName] || ShoppingCart;
 };
 
-export function BudgetSection() {
+interface BudgetSectionProps {
+  currencySymbol?: string;
+}
+export function BudgetSection({ currencySymbol }: BudgetSectionProps) {
   const { categories } = useCategories();
   const { transactions } = useTransaction();
 
@@ -104,7 +107,8 @@ export function BudgetSection() {
                       {category.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      ${category.spent.toFixed(0)} of $
+                      {currencySymbol}
+                      {category.spent.toFixed(0)} of {currencySymbol}
                       {category.monthlyBudget.toFixed(0)}
                     </p>
                   </div>

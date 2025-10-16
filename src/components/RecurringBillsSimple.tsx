@@ -23,7 +23,11 @@ interface RecurringBill {
   start_date?: string;
 }
 
-export function RecurringBills() {
+type RecurringBillsProps = {
+  currencySymbol: string;
+};
+
+export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
   const [bills, setBills] = useState<RecurringBill[]>([]);
   const [selectedBill, setSelectedBill] = useState<RecurringBill | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -107,7 +111,8 @@ export function RecurringBills() {
         <div>
           <h2 className="text-xl font-bold text-foreground">Recurring Bills</h2>
           <p className="text-sm text-muted-foreground">
-            ${totalPending.toFixed(2)} pending
+            {currencySymbol}
+            {totalPending.toFixed(2)} pending
           </p>
         </div>
         <Button asChild variant="ghost" size="sm" className="h-8 px-2">
@@ -143,7 +148,9 @@ export function RecurringBills() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-foreground text-sm truncate">{bill.title}</p>
+                <p className="font-medium text-foreground text-sm truncate">
+                  {bill.title}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Due {bill.next_due_date}
                 </p>
@@ -153,7 +160,8 @@ export function RecurringBills() {
             {/* Right: amount + actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="font-semibold text-foreground text-sm">
-                ${bill.amount.toFixed(2)}
+                {currencySymbol}
+                {bill.amount.toFixed(2)}
               </span>
               {/* 
               {!bill.is_paid && (
