@@ -9,7 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Calendar, PieChart } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  PieChart,
+  AlertCircle,
+} from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -163,6 +171,16 @@ const ReportsPage = () => {
           />
         </div>
       </div>
+
+      {/* Spending Insights */}
+      {/* <Alert className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+        <AlertCircle className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-foreground">
+          <strong>💡 Smart Insight:</strong> Your spending on Food & Dining this
+          month ($420) could buy you a new pair of wireless earphones! Consider
+          meal prepping to save $200/month.
+        </AlertDescription>
+      </Alert> */}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
