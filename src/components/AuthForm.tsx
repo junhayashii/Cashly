@@ -30,7 +30,7 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
       setError(error.message);
     } else {
       // ログイン・サインアップ成功時
-      router.push("/success");
+      router.push("/dashboard");
     }
   };
 

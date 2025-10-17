@@ -38,7 +38,7 @@ import { ExpenseBreakdownChart } from "@/components/ExpenseBreakdownChart";
 import { BudgetSectionSimple } from "@/components/BudgetSectionSimple";
 import { useUserSettings } from "@/hooks/useUserSettings";
 
-const Home = () => {
+const Dashboard = () => {
   const { transactions, setTransactions } = useTransaction();
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -260,4 +260,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Dashboard;
