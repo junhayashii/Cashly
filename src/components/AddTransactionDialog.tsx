@@ -38,8 +38,9 @@ export function AddTransactionDialog({
   const { toast } = useToast();
   const { accounts } = useAccounts();
   const { goals } = useGoals();
+  const { categories } = useCategories(); // ✅ ← 追加！
 
-  // ✅ goal_id を空文字で初期化（uncontrolled→controlled warning防止）
+  // ✅ 初期フォーム
   const [formData, setFormData] = useState<{
     title: string;
     amount: string;
@@ -49,7 +50,7 @@ export function AddTransactionDialog({
     date: string;
     goal_id: string;
     from_account_id?: string;
-    to_account_id?: String;
+    to_account_id?: string;
   }>({
     title: "",
     amount: "",
@@ -62,6 +63,7 @@ export function AddTransactionDialog({
     to_account_id: "",
   });
 
+  // ✅ Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -70,12 +72,13 @@ export function AddTransactionDialog({
     const isSavings = formData.type === "savings";
     const isTransfer = formData.type === "transfer";
 
-    // 必須項目チェック
+    // Validation
     if (
       !formData.title ||
       !formData.amount ||
       (!isSavings && !isTransfer && !formData.account_id) ||
-      (!isSavings && !isTransfer && !formData.category_id) ||
+      ((formData.type === "income" || formData.type === "expense") &&
+        !formData.category_id) ||
       (isSavings && !formData.goal_id) ||
       (isTransfer && (!formData.from_account_id || !formData.to_account_id))
     ) {
@@ -111,38 +114,34 @@ export function AddTransactionDialog({
     }
 
     const amount = parseFloat(formData.amount);
-
     try {
       let insertedData: Transaction[] = [];
 
+      // --- Savings ---
       if (isSavings) {
-        // Savings の処理
         const transaction = {
           id: crypto.randomUUID(),
           title: formData.title,
-          amount: amount,
+          amount,
           account_id: formData.account_id,
           goal_id: formData.goal_id,
           type: "savings",
           user_id: user.id,
           date: formData.date,
         };
-
         const { data: saved, error } = await supabase
           .from("transactions")
           .insert([transaction])
           .select();
-
         if (error) throw error;
         insertedData = saved;
 
-        // Goal 更新
+        // Update goal & account
         const { data: goalData } = await supabase
           .from("goals")
           .select("current_amount")
           .eq("id", formData.goal_id)
           .single();
-
         if (goalData) {
           await supabase
             .from("goals")
@@ -150,21 +149,21 @@ export function AddTransactionDialog({
             .eq("id", formData.goal_id);
         }
 
-        // Account 残高減算
         const { data: accountData } = await supabase
           .from("accounts")
           .select("balance")
           .eq("id", formData.account_id)
           .single();
-
         if (accountData) {
           await supabase
             .from("accounts")
             .update({ balance: (accountData.balance || 0) - amount })
             .eq("id", formData.account_id);
         }
-      } else if (isTransfer) {
-        // Transfer の場合
+      }
+
+      // --- Transfer ---
+      else if (isTransfer) {
         const transactions = [
           {
             id: crypto.randomUUID(),
@@ -178,49 +177,23 @@ export function AddTransactionDialog({
           {
             id: crypto.randomUUID(),
             title: formData.title,
-            amount: amount,
+            amount,
             account_id: formData.to_account_id,
             type: "transfer",
             user_id: user.id,
             date: formData.date,
           },
         ];
-
         const { data: saved, error } = await supabase
           .from("transactions")
           .insert(transactions)
           .select();
-
         if (error) throw error;
         insertedData = saved;
+      }
 
-        // From アカウント残高減算
-        const { data: fromAccountData } = await supabase
-          .from("accounts")
-          .select("balance")
-          .eq("id", formData.from_account_id)
-          .single();
-        if (fromAccountData) {
-          await supabase
-            .from("accounts")
-            .update({ balance: (fromAccountData.balance || 0) - amount })
-            .eq("id", formData.from_account_id);
-        }
-
-        // To アカウント残高加算
-        const { data: toAccountData } = await supabase
-          .from("accounts")
-          .select("balance")
-          .eq("id", formData.to_account_id)
-          .single();
-        if (toAccountData) {
-          await supabase
-            .from("accounts")
-            .update({ balance: (toAccountData.balance || 0) + amount })
-            .eq("id", formData.to_account_id);
-        }
-      } else {
-        // Expense / Income
+      // --- Income / Expense ---
+      else {
         const transaction = {
           id: crypto.randomUUID(),
           title: formData.title,
@@ -231,31 +204,12 @@ export function AddTransactionDialog({
           user_id: user.id,
           date: formData.date,
         };
-
         const { data: saved, error } = await supabase
           .from("transactions")
           .insert([transaction])
           .select();
-
         if (error) throw error;
         insertedData = saved;
-
-        // Account 残高更新
-        const { data: accountData } = await supabase
-          .from("accounts")
-          .select("balance")
-          .eq("id", formData.account_id)
-          .single();
-        if (accountData) {
-          await supabase
-            .from("accounts")
-            .update({
-              balance:
-                (accountData.balance || 0) +
-                (formData.type === "expense" ? -amount : amount),
-            })
-            .eq("id", formData.account_id);
-        }
       }
 
       insertedData.forEach(onAddTransaction);
@@ -265,7 +219,7 @@ export function AddTransactionDialog({
         description: `${formData.type} of $${amount} has been recorded`,
       });
 
-      // フォームリセット
+      // Reset
       setFormData({
         title: "",
         amount: "",
@@ -286,10 +240,10 @@ export function AddTransactionDialog({
         variant: "destructive",
       });
     }
-
     setLoading(false);
   };
 
+  // ✅ Render
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -310,7 +264,7 @@ export function AddTransactionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* --- Transaction Type --- */}
+          {/* --- Type --- */}
           <div className="space-y-2">
             <Label htmlFor="type">Transaction Type</Label>
             <Select
@@ -318,7 +272,7 @@ export function AddTransactionDialog({
               onValueChange={(value) =>
                 setFormData({
                   ...formData,
-                  type: value as "income" | "expense" | "savings",
+                  type: value as "income" | "expense" | "savings" | "transfer",
                   category_id: "",
                   goal_id: "",
                 })
@@ -350,10 +304,36 @@ export function AddTransactionDialog({
             />
           </div>
 
-          {/* --- Transferの場合だけFrom/To Account表示 --- */}
+          {/* --- Category (Income/Expenseのみ) --- */}
+          {(formData.type === "income" || formData.type === "expense") && (
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, category_id: value })
+                }
+              >
+                <SelectTrigger
+                  id="category"
+                  className="bg-background border-border"
+                >
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* --- Transfer --- */}
           {formData.type === "transfer" && (
             <div className="grid grid-cols-2 gap-4">
-              {/* From Account */}
               <div className="space-y-2">
                 <Label htmlFor="from_account">From Account</Label>
                 <Select
@@ -362,41 +342,34 @@ export function AddTransactionDialog({
                     setFormData({ ...formData, from_account_id: value })
                   }
                 >
-                  <SelectTrigger
-                    id="from_account"
-                    className="bg-background border-border"
-                  >
-                    <SelectValue placeholder="Select source account" />
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="From account" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* To Account */}
               <div className="space-y-2">
                 <Label htmlFor="to_account">To Account</Label>
                 <Select
-                  value={formData.to_account_id?.toString()}
+                  value={formData.to_account_id}
                   onValueChange={(value) =>
                     setFormData({ ...formData, to_account_id: value })
                   }
                 >
-                  <SelectTrigger
-                    id="to_account"
-                    className="bg-background border-border"
-                  >
-                    <SelectValue placeholder="Select destination account" />
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="To account" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -436,62 +409,54 @@ export function AddTransactionDialog({
             </div>
           </div>
 
-          {/* --- Savingsの場合だけGoal表示 --- */}
-          <div className="grid grid-cols-2 gap-4">
-            {formData.type === "savings" && (
-              <div className="space-y-2">
-                <Label htmlFor="goal">Goal</Label>
-                <Select
-                  value={formData.goal_id}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, goal_id: value })
-                  }
-                >
-                  <SelectTrigger
-                    id="goal"
-                    className="bg-background border-border"
-                  >
-                    <SelectValue placeholder="Select a goal" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border z-50">
-                    {goals.map((goal) => (
-                      <SelectItem key={goal.id} value={goal.id}>
-                        {goal.name} (${goal.current_amount}/$
-                        {goal.target_amount})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+          {/* --- Goal (Savingsのみ) --- */}
+          {formData.type === "savings" && (
+            <div className="space-y-2">
+              <Label htmlFor="goal">Goal</Label>
+              <Select
+                value={formData.goal_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, goal_id: value })
+                }
+              >
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Select goal" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {goals.map((goal) => (
+                    <SelectItem key={goal.id} value={goal.id}>
+                      {goal.name} (${goal.current_amount}/$
+                      {goal.target_amount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-            {/* --- Account --- */}
-            {formData.type !== "transfer" && (
-              <div className="space-y-2">
-                <Label htmlFor="account">Account</Label>
-                <Select
-                  value={formData.account_id?.toString()}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, account_id: value })
-                  }
-                >
-                  <SelectTrigger
-                    id="account"
-                    className="bg-background border-border"
-                  >
-                    <SelectValue placeholder="Select an account" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border z-50">
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          {/* --- Account (Transfer以外) --- */}
+          {formData.type !== "transfer" && (
+            <div className="space-y-2">
+              <Label htmlFor="account">Account</Label>
+              <Select
+                value={formData.account_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, account_id: value })
+                }
+              >
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* --- Buttons --- */}
           <div className="flex gap-3 pt-4">
