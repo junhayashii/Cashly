@@ -65,15 +65,17 @@ const TransactionPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="gap-2">
+            {/* <Button variant="outline" size="sm" className="gap-2">
               <Upload className="h-4 w-4" />
               Import CSV
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={() => exportTransactionsCSV(transactions, `transactions.csv`)}
+              onClick={() =>
+                exportTransactionsCSV(transactions, `transactions.csv`)
+              }
             >
               <Download className="h-4 w-4" />
               Export
