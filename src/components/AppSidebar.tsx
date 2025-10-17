@@ -20,10 +20,12 @@ import {
 } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 import { mainMenuItems } from "@/constants";
 import { useUnreadNotifications } from "@/hooks/useNotifications";
 import { supabase } from "@/lib/supabaseClient";
+import { cn } from "@/lib/utils";
 
 const settingsItem = { title: "Settings", url: "/settings", icon: Settings };
 const notificationItem = {
@@ -63,8 +65,9 @@ const AppSidebar = () => {
   const pathname = usePathname();
 
   const userId = useCurrentUserId();
-  const { notifications, unreadCount, setNotifications } =
-    useUnreadNotifications(userId);
+  const { unreadCount } = useUnreadNotifications(userId);
+  const showUnread = unreadCount > 0;
+  const displayUnread = unreadCount > 99 ? "99+" : String(unreadCount);
 
   if (isMobile) {
     return (
@@ -211,20 +214,41 @@ const AppSidebar = () => {
                 >
                   <Link
                     href={notificationItem.url}
-                    className="relative flex items-center gap-2"
+                    className="flex w-full items-center gap-2"
                   >
-                    <notificationItem.icon className="h-5 w-5" />
+                    <span className="relative flex items-center">
+                      <notificationItem.icon
+                        className={cn(
+                          "h-5 w-5 transition-colors",
+                          showUnread && !isActive
+                            ? "text-primary"
+                            : undefined
+                        )}
+                      />
+                      {showUnread && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center"
+                        >
+                          <span className="absolute h-full w-full rounded-full bg-destructive/40 blur-sm" />
+                          <span className="relative h-2 w-2 rounded-full bg-destructive" />
+                        </span>
+                      )}
+                    </span>
                     {!isCollapsed && (
-                      <span className="text-base">
-                        {notificationItem.title}
-                      </span>
-                    )}
-
-                    {/* 未読件数バッジ */}
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
-                        {unreadCount}
-                      </span>
+                      <>
+                        <span className="flex-1 text-base">
+                          {notificationItem.title}
+                        </span>
+                        {showUnread && (
+                          <Badge
+                            variant="outline"
+                            className="ml-auto shrink-0 border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive"
+                          >
+                            {displayUnread}
+                          </Badge>
+                        )}
+                      </>
                     )}
                   </Link>
                 </SidebarMenuButton>
