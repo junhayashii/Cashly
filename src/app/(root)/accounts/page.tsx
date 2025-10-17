@@ -175,9 +175,6 @@ const Accounts = () => {
         {/* Left Sidebar - Accounts List */}
         <div className="lg:col-span-1">
           <div className="sticky top-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Your Accounts
-            </h3>
             {accountsLoading ? (
               <div className="text-center py-8 text-muted-foreground">
                 Loading accounts...
