@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 export const mainMenuItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Transactions", url: "/transactions", icon: Receipt },
   { title: "Categories", url: "/categories", icon: Tag },
   { title: "Accounts", url: "/accounts", icon: Wallet },
