@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ComponentType } from "react";
+import { useState, useEffect, useRef, type ComponentType } from "react";
 import {
   Card,
   CardContent,
@@ -49,6 +49,7 @@ import { EditCategoryDialog } from "@/components/EditCategoryDialog";
 import { supabase } from "@/lib/supabaseClient";
 
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { addNotification } from "@/hooks/addNotifications";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -78,7 +79,11 @@ const Categories = () => {
   const { toast } = useToast();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().format("YYYY-MM"));
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedMonth(dayjs().format("YYYY-MM"));
+  }, []);
 
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -198,6 +203,43 @@ const Categories = () => {
       description: `${category.name} has been deleted`,
     });
   };
+
+  const executedRef = useRef(false);
+
+  useEffect(() => {
+    if (!userId || expenseCategories.length === 0) return;
+    if (executedRef.current) return; // もう実行済みならスキップ
+
+    executedRef.current = true; // 実行済みにする
+
+    const checkOverBudget = async () => {
+      for (const category of expenseCategories) {
+        const percentage =
+          category.monthlyBudget > 0
+            ? (category.spent / category.monthlyBudget) * 100
+            : 0;
+
+        if (percentage > 100) {
+          await addNotification({
+            userId,
+            type: "OVER_BUDGET",
+            relatedId: category.id,
+            message: `Your "${category.name}" category has exceeded its budget.`,
+          });
+
+          toast({
+            title: "Over Budget Alert",
+            description: `"${category.name}" exceeded its monthly budget.`,
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    checkOverBudget();
+  }, [expenseCategories, userId]);
+
+  if (!selectedMonth) return null;
 
   return (
     <div className="space-y-10">

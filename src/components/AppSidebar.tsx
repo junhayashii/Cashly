@@ -1,6 +1,7 @@
 "use client";
 
-import { Wallet, Settings, Menu } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Wallet, Settings, Menu, Bell } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -21,14 +22,49 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
 import { mainMenuItems } from "@/constants";
+import { useUnreadNotifications } from "@/hooks/useNotifications";
+import { supabase } from "@/lib/supabaseClient";
 
 const settingsItem = { title: "Settings", url: "/settings", icon: Settings };
+const notificationItem = {
+  title: "Notifications",
+  url: "/notifications",
+  icon: Bell,
+};
+
+const useCurrentUserId = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  return userId;
+};
 
 const AppSidebar = () => {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const isMobile = useIsMobile();
   const pathname = usePathname();
+
+  const userId = useCurrentUserId();
+  const { notifications, unreadCount, setNotifications } =
+    useUnreadNotifications(userId);
 
   if (isMobile) {
     return (
@@ -163,6 +199,39 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         <SidebarFooter className="mt-auto border-t border-sidebar-border pt-4">
+          <SidebarMenuItem>
+            {(() => {
+              const isActive = pathname === notificationItem.url;
+              return (
+                <SidebarMenuButton
+                  asChild
+                  tooltip={notificationItem.title}
+                  size="lg"
+                  isActive={isActive}
+                >
+                  <Link
+                    href={notificationItem.url}
+                    className="relative flex items-center gap-2"
+                  >
+                    <notificationItem.icon className="h-5 w-5" />
+                    {!isCollapsed && (
+                      <span className="text-base">
+                        {notificationItem.title}
+                      </span>
+                    )}
+
+                    {/* 未読件数バッジ */}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+              );
+            })()}
+          </SidebarMenuItem>
+
           <SidebarMenu>
             <SidebarMenuItem>
               {(() => {
