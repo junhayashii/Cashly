@@ -49,12 +49,12 @@ export const SpendingChart = ({ currencySymbol }: SpendingChartProps) => {
         (m) => m.year === transactionYear && m.month === transactionMonth
       );
 
-      if (monthData) {
-        if (t.type === "income") {
-          monthData.income += t.amount;
-        } else if (t.type === "expense") {
-          monthData.spending += t.amount;
-        }
+      if (!monthData) return;
+
+      if (t.type === "income") {
+        monthData.income += Math.abs(t.amount);
+      } else if (t.type === "expense") {
+        monthData.spending += Math.abs(t.amount);
       }
     });
 
@@ -130,7 +130,6 @@ export const SpendingChart = ({ currencySymbol }: SpendingChartProps) => {
               axisLine={false}
               tickFormatter={(value) => `${currencySymbol}${value}`}
               domain={[0, "auto"]}
-              reversed={true}
             />
             <Tooltip
               contentStyle={{
