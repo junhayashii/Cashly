@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useCategories } from "@/hooks/useCategories";
 import { useTransaction } from "@/hooks/useTransactions";
-
 import {
   ShoppingCart,
   Home,
@@ -20,6 +19,7 @@ import {
 
 import { type ComponentType, useMemo } from "react";
 import dayjs from "dayjs";
+import { ExpensePieChart } from "@/components/BudgetPieChart";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -47,7 +47,7 @@ interface BudgetSectionProps {
 }
 
 export function BudgetSection({
-  currencySymbol,
+  currencySymbol = "$",
   year,
   month,
   label,
@@ -55,6 +55,7 @@ export function BudgetSection({
   const { categories } = useCategories();
   const { transactions } = useTransaction();
 
+  // === 月の開始日 ===
   const periodStart = useMemo(() => {
     if (!year || !month) return null;
     return dayjs(`${year}-${String(month).padStart(2, "0")}-01`).startOf(
@@ -62,6 +63,7 @@ export function BudgetSection({
     );
   }, [year, month]);
 
+  // === トランザクションをその月に絞り込み ===
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
     if (!periodStart) return transactions;
@@ -71,6 +73,7 @@ export function BudgetSection({
     });
   }, [transactions, periodStart]);
 
+  // === カテゴリ統計を生成 ===
   const getCategoryStats = () => {
     const expenseCategories = categories.filter(
       (category) => category.type === "expense"
@@ -84,22 +87,18 @@ export function BudgetSection({
         (sum, t) => sum + Math.abs(t.amount),
         0
       );
-      const transactionCount = categoryTransactions.length;
 
       return {
         ...category,
         spent,
-        transactions: transactionCount,
         monthlyBudget: category.monthly_budget || 0,
       };
     });
 
-    // 🔹 支出の多い順に並び替え
+    // 支出額の降順に並び替え
     categoryStats.sort((a, b) => b.spent - a.spent);
 
     return {
-      totalCategories: expenseCategories.length,
-      totalBudget: categoryStats.reduce((sum, c) => sum + c.monthlyBudget, 0),
       totalSpent: categoryStats.reduce((sum, c) => sum + c.spent, 0),
       categoryStats,
     };
@@ -107,15 +106,32 @@ export function BudgetSection({
 
   const stats = getCategoryStats();
 
+  // === PieChart 用のデータ ===
+  const selectedMonth = useMemo(() => {
+    if (!year || !month) return dayjs().format("YYYY-MM");
+    return `${year}-${String(month).padStart(2, "0")}`;
+  }, [year, month]);
+
   return (
-    <Card className="p-6 bg-card border-border">
-      <div className="flex items-center justify-between mb-6">
+    <Card className="p-6 bg-card border-border flex flex-col gap-6">
+      <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
         <span className="text-sm text-muted-foreground">
           {label || "This period"}
         </span>
       </div>
 
+      {/* === パイチャート追加 === */}
+      <div className="w-full flex justify-center">
+        <ExpensePieChart
+          transactions={transactions}
+          categories={categories}
+          currencySymbol={currencySymbol}
+          selectedMonth={selectedMonth}
+        />
+      </div>
+
+      {/* === カテゴリ別リスト === */}
       <div className="space-y-6">
         {stats.categoryStats.map((category) => {
           const percentage =

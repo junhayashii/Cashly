@@ -26,6 +26,8 @@ import { useTransaction } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import dayjs from "dayjs";
 import { TransactionList } from "@/components/TransactionList";
+import { PeriodComparison } from "@/components/PeriodComparison";
+import { ExpensePieChart } from "@/components/BudgetPieChart";
 
 const ReportsPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
@@ -172,15 +174,17 @@ const ReportsPage = () => {
         </div>
       </div>
 
+      {/* Charts Section */}
+
       {/* Spending Insights */}
-      {/* <Alert className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+      <Alert className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
         <AlertCircle className="h-4 w-4 text-primary" />
         <AlertDescription className="text-foreground">
           <strong>💡 Smart Insight:</strong> Your spending on Food & Dining this
           month ($420) could buy you a new pair of wireless earphones! Consider
           meal prepping to save $200/month.
         </AlertDescription>
-      </Alert> */}
+      </Alert>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -243,72 +247,21 @@ const ReportsPage = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Charts Section */}
-      <Tabs defaultValue="spending" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="spending" className="gap-2">
-            <PieChart className="h-4 w-4" />
-            Spending Analysis
-          </TabsTrigger>
-          <TabsTrigger value="trends" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Trends
-          </TabsTrigger>
-          <TabsTrigger value="comparison" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            Period Comparison
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="spending" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-4">
-              <SpendingChart currencySymbol={currencySymbol} />
-              <BudgetSection
-                currencySymbol={currencySymbol}
-                year={dayjs(selectedMonth + "-01").year()}
-                month={dayjs(selectedMonth + "-01").month() + 1}
-                label={periodLabel}
-              />
-            </div>
-            <TransactionList
-              transactions={transactions}
-              currencySymbol={currencySymbol}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="trends">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Trends</CardTitle>
-              <CardDescription>
-                Track your income and expenses over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                Trends chart coming soon
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="comparison">
-          <Card>
-            <CardHeader>
-              <CardTitle>Period Comparison</CardTitle>
-              <CardDescription>Compare different time periods</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                Comparison chart coming soon
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-4">
+          <SpendingChart currencySymbol={currencySymbol} />
+          <TransactionList
+            transactions={transactions}
+            currencySymbol={currencySymbol}
+          />
+        </div>
+        <BudgetSection
+          currencySymbol={currencySymbol}
+          year={dayjs(selectedMonth + "-01").year()}
+          month={dayjs(selectedMonth + "-01").month() + 1}
+          label={periodLabel}
+        />
+      </div>
     </div>
   );
 };
