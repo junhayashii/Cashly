@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useTheme } from "@/components/ThemeProvider";
+import PluggyConnectLauncher from "@/components/PluggyConnectLauncher";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -186,6 +187,18 @@ const Settings = () => {
                 className="h-5 w-5 accent-primary"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Bank Connections</CardTitle>
+            <CardDescription>
+              Link new institutions through Pluggy Connect to import transactions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <PluggyConnectLauncher />
           </CardContent>
         </Card>
       </div>
