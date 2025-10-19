@@ -23,6 +23,7 @@ import PluggyConnectLauncher from "@/components/PluggyConnectLauncher";
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [notificationsUpdating, setNotificationsUpdating] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
@@ -79,6 +80,86 @@ const Settings = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/login";
+  };
+
+  const handleNotificationsChange = async (checked: boolean) => {
+    if (!userId) {
+      toast({
+        title: "User session required",
+        description: "Sign in again to change notification preferences.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const previousValue = settings.notifications;
+    setNotificationsUpdating(true);
+
+    try {
+      await updateSettings({ notifications: checked });
+
+      if (checked) {
+        if (!userEmail) {
+          throw new Error("User email address is not available.");
+        }
+
+        const response = await fetch("/api/notifications/email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            subject: "Cashly notifications enabled",
+            message:
+              "You turned on email notifications in Cashly. We'll keep you informed about important updates and alerts.",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null);
+          const errorMessage =
+            (errorBody && (errorBody.error || errorBody.message)) ??
+            "Failed to send the notification email.";
+          throw new Error(errorMessage);
+        }
+
+        toast({
+          title: "Email notifications enabled",
+          description: `We sent a confirmation email to ${userEmail}.`,
+        });
+      } else {
+        toast({
+          title: "Email notifications disabled",
+          description: "You will no longer receive notification alerts.",
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error(
+        "[Settings] Failed to update notification preference.",
+        error
+      );
+
+      if (previousValue !== checked) {
+        try {
+          await updateSettings({ notifications: previousValue });
+        } catch (revertError) {
+          console.error(
+            "[Settings] Failed to revert notification preference.",
+            revertError
+          );
+        }
+      }
+
+      toast({
+        title: "Failed to update notifications",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setNotificationsUpdating(false);
+    }
   };
 
   return (
@@ -176,15 +257,14 @@ const Settings = () => {
 
             {/* Notifications */}
             <div className="flex items-center justify-between">
-              <Label htmlFor="notifications">Notifications</Label>
+              <Label htmlFor="notifications"> Email Notifications</Label>
               <input
                 id="notifications"
                 type="checkbox"
                 checked={settings.notifications}
-                onChange={(e) =>
-                  updateSettings({ notifications: e.target.checked })
-                }
-                className="h-5 w-5 accent-primary"
+                onChange={(e) => handleNotificationsChange(e.target.checked)}
+                disabled={notificationsUpdating}
+                className="h-5 w-5 accent-primary disabled:opacity-60"
               />
             </div>
           </CardContent>
@@ -194,7 +274,8 @@ const Settings = () => {
           <CardHeader>
             <CardTitle>Bank Connections</CardTitle>
             <CardDescription>
-              Link new institutions through Pluggy Connect to import transactions.
+              Link new institutions through Pluggy Connect to import
+              transactions.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

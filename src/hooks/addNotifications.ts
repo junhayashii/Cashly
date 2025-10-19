@@ -12,29 +12,32 @@ export async function addNotification({
   type: string;
   relatedId?: string; // ← relatedId を UUID 文字列として扱う
   message: string;
-}) {
-  if (!userId) return;
+}): Promise<boolean> {
+  if (!userId) return false;
 
   try {
-    // 🧠 すでに同じ通知があるかチェック
-    const { data: existing, error: selectError } = await supabase
+    let query = supabase
       .from("notifications")
       .select("id")
       .eq("user_id", userId)
-      .eq("type", type)
-      .eq("related_id", relatedId || null)
-      .limit(1)
-      .maybeSingle();
+      .eq("type", type);
 
-    if (selectError) throw selectError;
-
-    if (existing) {
-      // 👀 すでに同じ通知が存在するのでスキップ
-      console.log("Notification already exists. Skipping insert.");
-      return;
+    if (relatedId) {
+      query = query.eq("related_id", relatedId);
+    } else {
+      query = query.is("related_id", null);
     }
 
-    // ✨ 新しい通知を追加
+    const { data: existing, error: selectError } = await query.maybeSingle();
+
+    if (selectError && selectError.code !== "PGRST116") {
+      throw selectError;
+    }
+
+    if (existing) {
+      return false;
+    }
+
     const { error: insertError } = await supabase.from("notifications").insert([
       {
         user_id: userId,
@@ -44,8 +47,16 @@ export async function addNotification({
       },
     ]);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      if (insertError.code === "23505") {
+        return false;
+      }
+      throw insertError;
+    }
+
+    return true;
   } catch (err) {
     console.error("Error adding notification:", err);
+    return false;
   }
 }

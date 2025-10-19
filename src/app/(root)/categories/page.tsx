@@ -50,6 +50,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { addNotification } from "@/hooks/addNotifications";
+import { sendNotificationEmail } from "@/lib/sendNotificationEmail";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -86,6 +87,7 @@ const Categories = () => {
   }, []);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -97,7 +99,10 @@ const Categories = () => {
         console.error("Error fetching user:", error);
         return;
       }
-      if (user) setUserId(user.id);
+      if (user) {
+        setUserId(user.id);
+        setUserEmail(user.email);
+      }
     };
 
     fetchUser();
@@ -204,15 +209,14 @@ const Categories = () => {
     });
   };
 
-  const executedRef = useRef(false);
+  const notifiedOverBudgetRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId || expenseCategories.length === 0) return;
-    if (executedRef.current) return; // もう実行済みならスキップ
-
-    executedRef.current = true; // 実行済みにする
 
     const checkOverBudget = async () => {
+      const notifiedSet = notifiedOverBudgetRef.current;
+
       for (const category of expenseCategories) {
         const percentage =
           category.monthlyBudget > 0
@@ -220,24 +224,52 @@ const Categories = () => {
             : 0;
 
         if (percentage > 100) {
-          await addNotification({
-            userId,
-            type: "OVER_BUDGET",
-            relatedId: category.id,
-            message: `Your "${category.name}" category has exceeded its budget.`,
-          });
+          if (!notifiedSet.has(category.id)) {
+            try {
+              const created = await addNotification({
+                userId,
+                type: "OVER_BUDGET",
+                relatedId: category.id,
+                message: `Your "${category.name}" category has exceeded its budget.`,
+              });
 
-          toast({
-            title: "Over Budget Alert",
-            description: `"${category.name}" exceeded its monthly budget.`,
-            variant: "destructive",
-          });
+              if (!created) {
+                notifiedSet.add(category.id);
+                continue;
+              }
+
+              notifiedSet.add(category.id);
+
+              toast({
+                title: "Over Budget Alert",
+                description: `"${category.name}" exceeded its monthly budget.`,
+                variant: "destructive",
+              });
+
+              void sendNotificationEmail({
+                userId,
+                email: userEmail,
+                notificationsEnabled: settings?.notifications,
+                notification: {
+                  title: "Over Budget Alert",
+                  message: `Your "${category.name}" category has exceeded its budget.`,
+                },
+              });
+            } catch (error) {
+              console.error(
+                "[Categories] Failed to add over-budget notification.",
+                error
+              );
+            }
+          }
+        } else if (notifiedSet.has(category.id)) {
+          notifiedSet.delete(category.id);
         }
       }
     };
 
-    checkOverBudget();
-  }, [expenseCategories, userId]);
+    void checkOverBudget();
+  }, [expenseCategories, settings?.notifications, toast, userEmail, userId]);
 
   if (!selectedMonth) return null;
 
