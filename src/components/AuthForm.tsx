@@ -14,25 +14,53 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     // Supabase の認証呼び出し
-    const { error } = isLogin
+    const emailRedirectTo =
+      !isLogin && typeof window !== "undefined"
+        ? `${window.location.origin}/verify-email`
+        : undefined;
+    const { data, error } = isLogin
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
+      : await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo,
+          },
+        });
 
     setLoading(false);
 
     if (error) {
       setError(error.message);
-    } else {
-      // ログイン・サインアップ成功時
-      router.push("/dashboard");
+      return;
     }
+
+    // ログイン・サインアップ成功時
+    if (isLogin) {
+      const user = data?.user;
+      if (user && !user.email_confirmed_at) {
+        setError("Please verify your email before signing in.");
+        await supabase.auth.signOut();
+        return;
+      }
+      router.push("/dashboard");
+      return;
+    }
+
+    setMessage(
+      "Verification email sent. Please check your inbox and confirm your address."
+    );
+    setPassword("");
+    await supabase.auth.signOut();
   };
 
   return (
@@ -60,6 +88,7 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
         </Button>
+        {message && <p className="text-sm text-green-600 text-center">{message}</p>}
       </form>
 
       <div className="mt-4 text-sm text-center space-y-2">
