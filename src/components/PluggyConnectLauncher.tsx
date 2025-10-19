@@ -22,6 +22,7 @@ type ConnectTokenResponse = {
 };
 
 type LinkedItem = {
+  connectionId?: string | null;
   itemId: string;
   accountMapping: Record<string, string>;
   transactionIds?: string[];
@@ -33,9 +34,24 @@ type LinkedItem = {
   institutionName?: string;
   /** Cached Pluggy account labels associated with the item. */
   accountNames?: string[];
+  /** Latest known status for the connection */
+  status?: string | null;
 };
 
-const LINKED_ITEMS_STORAGE_KEY = "cashly:pluggy-linked-items";
+type ConnectionSummary = {
+  itemId: string;
+  connectionId: string | null;
+  institutionName: string;
+  accounts: Account[];
+  accountLabels: string[];
+  displayNames: string[];
+  missingCount: number;
+  lastSyncedAt: string | null;
+  accountsNeedingLink: string[];
+};
+
+const LINKED_ITEMS_STORAGE_NAMESPACE = "cashly:pluggy-linked-items";
+const LEGACY_LINKED_ITEMS_KEY = LINKED_ITEMS_STORAGE_NAMESPACE;
 
 const PluggyConnectLauncher = () => {
   const { toast } = useToast();
@@ -48,6 +64,8 @@ const PluggyConnectLauncher = () => {
     refresh: refreshAccounts,
   } = useAccounts();
   const { refresh: refreshTransactions } = useTransaction();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
   const [connectToken, setConnectToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -66,10 +84,33 @@ const PluggyConnectLauncher = () => {
   }, [connectToken]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = loadLinkedItemsFromStorage();
-    linkedItemsRef.current = stored;
-    setLinkedItems(stored);
+    let active = true;
+
+    const resolveUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!active) return;
+        if (error || !data?.user) {
+          setUserId(null);
+        } else {
+          setUserId(data.user.id);
+        }
+      } catch {
+        if (active) {
+          setUserId(null);
+        }
+      } finally {
+        if (active) {
+          setUserLoaded(true);
+        }
+      }
+    };
+
+    void resolveUser();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -77,6 +118,44 @@ const PluggyConnectLauncher = () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!userLoaded) return;
+
+    if (!userId) {
+      linkedItemsRef.current = [];
+      setLinkedItems([]);
+      autoSyncStartedRef.current = false;
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      const [remote, local] = await Promise.all([
+        loadLinkedItemsFromSupabase(userId),
+        Promise.resolve(loadLinkedItemsFromStorage(userId)),
+      ]);
+
+      if (cancelled) return;
+
+      const merged = mergeLinkedItemSources({
+        remote,
+        local,
+      });
+
+      linkedItemsRef.current = merged;
+      setLinkedItems(merged);
+      autoSyncStartedRef.current = false;
+      saveLinkedItemsToStorage(userId, merged);
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, userLoaded]);
 
   const latestSyncAt = useMemo(() => {
     const timestamps = linkedItems
@@ -95,35 +174,84 @@ const PluggyConnectLauncher = () => {
     [latestSyncAt]
   );
 
-  const connectionSummaries = useMemo(() => {
+  const connectionSummaries: ConnectionSummary[] = useMemo(() => {
     return linkedItems.map((link) => {
       const mappedIds = Object.values(link.accountMapping ?? {});
-      const accounts = mappedIds
-        .map((accountId) => existingAccounts.find((account) => account.id === accountId) ?? null)
-        .filter((account): account is Account => Boolean(account));
-      const missingCount = Math.max(mappedIds.length - accounts.length, 0);
+      const accountsIndex = new Map(existingAccounts.map((account) => [account.id, account]));
+
+      const accountSet = new Map<string, Account>();
+
+      for (const accountId of mappedIds) {
+        const account = accountsIndex.get(accountId);
+        if (account) accountSet.set(account.id, account);
+      }
+
+      if (link.connectionId) {
+        for (const account of existingAccounts) {
+          if (account.connection_id === link.connectionId) {
+            accountSet.set(account.id, account);
+          }
+        }
+      }
+
       const institutionName =
-        accounts[0]?.institution ??
-        link.institutionName ??
-        (accounts.length ? accounts[0].name : undefined) ??
-        "Pluggy Account";
+        (accountSet.size
+          ? accountSet.values().next().value?.institution ??
+            accountSet.values().next().value?.name
+          : link.institutionName) ?? "Pluggy Account";
+
+      if (!accountSet.size) {
+        const normalizedInstitution = institutionName?.toLowerCase().trim();
+        if (normalizedInstitution) {
+          for (const account of existingAccounts) {
+            if (account.connection_id) continue;
+
+            const institutionMatch =
+              account.institution &&
+              account.institution.toLowerCase().trim() === normalizedInstitution;
+            const nameMatch =
+              account.name &&
+              account.name.toLowerCase().includes(normalizedInstitution);
+
+            if (institutionMatch || nameMatch) {
+              accountSet.set(account.id, account);
+            }
+          }
+        }
+      }
+
+      const accounts = Array.from(accountSet.values());
+      const missingCount =
+        mappedIds.length > 0 ? Math.max(mappedIds.length - accounts.length, 0) : 0;
+
       const accountLabels =
         accounts.length > 0
           ? accounts.map((account) => account.name)
           : link.accountNames ?? [];
+
       const displayNames = accountLabels.length
         ? accountLabels
             .map(formatAccountNameForDisplay)
             .filter((value) => value.length > 0)
         : [];
+
+      const accountsNeedingLink =
+        link.connectionId && accounts.length
+          ? accounts
+              .filter((account) => !account.connection_id)
+              .map((account) => account.id)
+          : [];
+
       return {
         itemId: link.itemId,
-        institutionName,
+        connectionId: link.connectionId ?? null,
+        institutionName: institutionName ?? "Pluggy Account",
         accounts,
         accountLabels,
         displayNames,
         missingCount,
         lastSyncedAt: link.lastSyncedAt ?? null,
+        accountsNeedingLink,
       };
     });
   }, [existingAccounts, linkedItems]);
@@ -137,19 +265,74 @@ const PluggyConnectLauncher = () => {
     (total, summary) => total + summary.accounts.length,
     0
   );
-  const connectionsToRender = useMemo(
-    () =>
-      [...connectionSummaries].sort((a, b) =>
-        a.institutionName.localeCompare(b.institutionName)
-      ),
-    [connectionSummaries]
-  );
+const connectionsToRender = useMemo(
+  () =>
+    [...connectionSummaries].sort((a, b) =>
+      a.institutionName.localeCompare(b.institutionName)
+    ),
+  [connectionSummaries]
+);
 
-  const persistLinkedItems = useCallback((next: LinkedItem[]) => {
-    linkedItemsRef.current = next;
-    setLinkedItems(next);
-    saveLinkedItemsToStorage(next);
-  }, []);
+  const linkingAccountsRef = useRef(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (linkingAccountsRef.current) return;
+
+    const updates = new Map<string, string[]>();
+
+    for (const summary of connectionSummaries) {
+      if (!summary.connectionId) continue;
+      if (!summary.accountsNeedingLink.length) continue;
+      updates.set(summary.connectionId, summary.accountsNeedingLink);
+    }
+
+    if (!updates.size) return;
+
+    linkingAccountsRef.current = true;
+
+    const linkAccounts = async () => {
+      try {
+        for (const [connectionId, accountIds] of updates.entries()) {
+          const { error } = await supabase
+            .from("accounts")
+            .update({
+              connection_id: connectionId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId)
+            .in("id", accountIds);
+
+          if (error && (error as { code?: string })?.code !== "42P01") {
+            console.error(
+              `[Pluggy] Failed to backfill connection for accounts ${accountIds.join(", ")}.`,
+              error
+            );
+          }
+        }
+
+        await refreshAccounts().catch((error) => {
+          console.error("[Pluggy] Failed to refresh accounts after linking.", error);
+        });
+      } finally {
+        linkingAccountsRef.current = false;
+      }
+    };
+
+    void linkAccounts();
+  }, [connectionSummaries, refreshAccounts, userId]);
+
+  const persistLinkedItems = useCallback(
+    (next: LinkedItem[]) => {
+      linkedItemsRef.current = next;
+      setLinkedItems(next);
+      if (userId) {
+        saveLinkedItemsToStorage(userId, next);
+        void syncLinkedItemsToSupabase(userId, next);
+      }
+    },
+    [userId]
+  );
 
   const setSyncingState = useCallback((value: boolean) => {
     if (isMountedRef.current) {
@@ -200,16 +383,18 @@ const PluggyConnectLauncher = () => {
 
         const accountsInPayload = extractAccounts(body);
         const transactionsInPayload = extractTransactionsByAccount(body);
-        const {
-          data: userData,
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !userData?.user) {
+        if (!userId) {
           throw new Error("Supabase user session is required to save transactions.");
         }
 
-        const userId = userData.user.id;
+        let connectionId =
+          existingLink?.connectionId ??
+          (await ensureConnectionRecord({
+            userId,
+            itemId,
+            status: existingLink?.status ?? "active",
+          }));
+
         const accountIdMapping = await ensureSupabaseAccounts({
           pluggyAccounts: accountsInPayload,
           existingAccounts,
@@ -217,6 +402,7 @@ const PluggyConnectLauncher = () => {
           initialMapping: existingLink?.accountMapping,
           userId,
           onAccountBalanceUpdated: updateAccountBalance,
+          connectionId,
         });
 
         const existingTransactionIds = new Set(existingLink?.transactionIds ?? []);
@@ -303,6 +489,7 @@ const PluggyConnectLauncher = () => {
 
         const link: LinkedItem = {
           itemId,
+          connectionId: existingLink?.connectionId ?? null,
           accountMapping: accountIdMapping,
           transactionIds: Array.from(existingTransactionIds),
           lastProcessedAt:
@@ -317,7 +504,20 @@ const PluggyConnectLauncher = () => {
             pluggyAccountNames.length > 0
               ? Array.from(new Set(pluggyAccountNames))
               : existingLink?.accountNames,
+          status: "active",
         };
+
+        if (userId) {
+          const ensuredConnectionId = await ensureConnectionRecord({
+            userId,
+            itemId,
+            institutionName: inferredInstitutionName,
+            status: link.status,
+          });
+          connectionId = ensuredConnectionId ?? connectionId ?? null;
+        }
+
+        link.connectionId = connectionId ?? null;
 
         upsertLinkedItem(link);
         return link;
@@ -332,6 +532,14 @@ const PluggyConnectLauncher = () => {
             variant: "destructive",
           });
         }
+        if (userId) {
+          await ensureConnectionRecord({
+            userId,
+            itemId,
+            institutionName: existingLink?.institutionName,
+            status: "error",
+          });
+        }
         return null;
       }
     },
@@ -342,11 +550,13 @@ const PluggyConnectLauncher = () => {
       toast,
       updateAccountBalance,
       upsertLinkedItem,
+      userId,
     ]
   );
 
   useEffect(() => {
     if (accountsLoading) return;
+    if (!userId) return;
     if (autoSyncStartedRef.current) return;
     if (!linkedItemsRef.current.length) return;
 
@@ -377,13 +587,17 @@ const PluggyConnectLauncher = () => {
       cancelled = true;
       setSyncingState(false);
     };
-  }, [accountsLoading, refreshAccounts, setSyncingState, syncPluggyItem]);
+  }, [accountsLoading, refreshAccounts, setSyncingState, syncPluggyItem, userId]);
 
   const requestConnectToken = async () => {
     setLoading(true);
     setErrorMessage(null);
 
     try {
+      if (!userId) {
+        throw new Error("You must be signed in to connect Pluggy.");
+      }
+
       const response = await fetch("/api/pluggy/connect-token", {
         method: "POST",
       });
@@ -438,6 +652,14 @@ const PluggyConnectLauncher = () => {
 
   const handleManualSync = async (itemId?: string) => {
     if (syncing) return;
+    if (!userId) {
+      toast({
+        title: "Pluggy を利用するにはサインインが必要です",
+        description: "アカウントにサインインしてから再度お試しください。",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!linkedItemsRef.current.length) {
       toast({
         title: "Pluggy アカウント未連携",
@@ -682,66 +904,391 @@ const PluggyConnectLauncher = () => {
 
 export default PluggyConnectLauncher;
 
-const loadLinkedItemsFromStorage = (): LinkedItem[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(LINKED_ITEMS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+const buildStorageKey = (userId: string) =>
+  `${LINKED_ITEMS_STORAGE_NAMESPACE}:${userId}`;
 
-    return parsed
-      .map((entry) => ({
-        itemId: typeof entry?.itemId === "string" ? entry.itemId : null,
-        accountMapping:
-          entry && typeof entry.accountMapping === "object" && entry.accountMapping
-            ? Object.fromEntries(
-                Object.entries(entry.accountMapping).filter(
-                  ([key, value]) =>
-                    typeof key === "string" && typeof value === "string"
-                )
-              )
-            : {},
-        transactionIds: Array.isArray(entry?.transactionIds)
-          ? entry.transactionIds.filter((id: unknown) => typeof id === "string")
-          : undefined,
-        lastProcessedAt:
-          entry && typeof entry.lastProcessedAt === "string"
-            ? entry.lastProcessedAt
-            : typeof entry?.lastSyncAt === "string"
-              ? entry.lastSyncAt
-              : undefined,
-        lastSyncedAt:
-          entry && typeof entry.lastSyncedAt === "string"
-            ? entry.lastSyncedAt
-            : typeof entry?.lastSyncAt === "string"
-              ? entry.lastSyncAt
-              : undefined,
-        institutionName:
-          entry && typeof entry.institutionName === "string"
-            ? entry.institutionName
+const loadLinkedItemsFromStorage = (userId: string): LinkedItem[] => {
+  if (typeof window === "undefined" || !userId) return [];
+
+  const parse = (key: string): LinkedItem[] => {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed
+        .map((entry) => ({
+          itemId: typeof entry?.itemId === "string" ? entry.itemId : null,
+          accountMapping: normalizeAccountMapping(entry?.accountMapping),
+          transactionIds: Array.isArray(entry?.transactionIds)
+            ? entry.transactionIds.filter((id: unknown): id is string => typeof id === "string")
             : undefined,
-        accountNames: Array.isArray(entry?.accountNames)
-          ? entry.accountNames.filter((value: unknown): value is string => typeof value === "string")
-          : undefined,
-      }))
-      .filter((entry): entry is LinkedItem => Boolean(entry.itemId));
-  } catch (error) {
-    console.error("[Pluggy] Failed to load linked items from storage.", error);
-    return [];
+          connectionId:
+            entry && typeof entry.connectionId === "string" ? entry.connectionId : undefined,
+          lastProcessedAt:
+            entry && typeof entry.lastProcessedAt === "string"
+              ? entry.lastProcessedAt
+              : typeof entry?.lastSyncAt === "string"
+                ? entry.lastSyncAt
+                : undefined,
+          lastSyncedAt:
+            entry && typeof entry.lastSyncedAt === "string"
+              ? entry.lastSyncedAt
+              : typeof entry?.lastSyncAt === "string"
+                ? entry.lastSyncAt
+                : undefined,
+          institutionName:
+            entry && typeof entry.institutionName === "string"
+              ? entry.institutionName
+              : undefined,
+          accountNames: Array.isArray(entry?.accountNames)
+            ? entry.accountNames.filter(
+                (value: unknown): value is string => typeof value === "string"
+              )
+            : undefined,
+          status:
+            entry && typeof entry.status === "string"
+              ? entry.status
+              : null,
+        }))
+        .filter((entry): entry is LinkedItem => Boolean(entry.itemId));
+    } catch (error) {
+      console.error("[Pluggy] Failed to load linked items from storage.", error);
+      return [];
+    }
+  };
+
+  const namespacedKey = buildStorageKey(userId);
+  const items = parse(namespacedKey);
+  if (items.length > 0) return items;
+
+  const legacyItems = parse(LEGACY_LINKED_ITEMS_KEY);
+  if (legacyItems.length > 0) {
+    saveLinkedItemsToStorage(userId, legacyItems);
+    window.localStorage.removeItem(LEGACY_LINKED_ITEMS_KEY);
   }
+  return legacyItems;
 };
 
-const saveLinkedItemsToStorage = (items: LinkedItem[]) => {
-  if (typeof window === "undefined") return;
+const saveLinkedItemsToStorage = (userId: string, items: LinkedItem[]) => {
+  if (typeof window === "undefined" || !userId) return;
   try {
-    window.localStorage.setItem(
-      LINKED_ITEMS_STORAGE_KEY,
-      JSON.stringify(items)
-    );
+    window.localStorage.setItem(buildStorageKey(userId), JSON.stringify(items));
   } catch (error) {
     console.error("[Pluggy] Failed to persist linked items.", error);
   }
+};
+
+const loadLinkedItemsFromSupabase = async (
+  userId: string
+): Promise<LinkedItem[] | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("connections")
+      .select("id, pluggy_connection_id, institution_name, status, updated_at")
+      .eq("user_id", userId);
+
+    if (error) {
+      if ((error as { code?: string })?.code === "42P01") {
+        console.warn(
+          "[Pluggy] Supabase table connections not found. Falling back to local storage."
+        );
+        return null;
+      }
+      console.error("[Pluggy] Failed to load connections from Supabase.", error);
+      return null;
+    }
+
+    if (!data) return [];
+
+    return data
+      .map((row) => {
+        if (!row || typeof row !== "object") return null;
+        const record = row as Record<string, unknown>;
+        const pluggyId =
+          typeof record.pluggy_connection_id === "string"
+            ? record.pluggy_connection_id
+            : null;
+        if (!pluggyId) return null;
+
+        const connectionId =
+          typeof record.id === "string" ? (record.id as string) : null;
+        const institutionName =
+          typeof record.institution_name === "string"
+            ? (record.institution_name as string)
+            : undefined;
+        const status =
+          typeof record.status === "string"
+            ? (record.status as string)
+            : null;
+        const lastSyncedAt =
+          typeof record.updated_at === "string"
+            ? (record.updated_at as string)
+            : undefined;
+
+        const candidate: LinkedItem = {
+          itemId: pluggyId,
+          connectionId,
+          accountMapping: {},
+          institutionName,
+          status,
+        };
+
+        if (lastSyncedAt) {
+          candidate.lastSyncedAt = lastSyncedAt;
+        }
+
+        return candidate;
+      })
+      .filter((entry): entry is LinkedItem => Boolean(entry));
+  } catch (error) {
+    console.error("[Pluggy] Unexpected error loading Supabase connections.", error);
+    return null;
+  }
+};
+
+const ensureConnectionRecord = async ({
+  userId,
+  itemId,
+  institutionName,
+  status,
+}: {
+  userId: string;
+  itemId: string;
+  institutionName?: string;
+  status?: string | null;
+}): Promise<string | null> => {
+  try {
+    const { data: existing, error: selectError } = await supabase
+      .from("connections")
+      .select("id, institution_name, status")
+      .eq("user_id", userId)
+      .eq("pluggy_connection_id", itemId)
+      .maybeSingle();
+
+    if (selectError) {
+      const code = (selectError as { code?: string })?.code;
+      if (code && code !== "PGRST116") {
+        if (code === "42P01") {
+          console.warn(
+            "[Pluggy] Supabase table connections not found. Skipping remote persistence."
+          );
+          return null;
+        }
+        throw selectError;
+      }
+    }
+
+    if (existing && typeof existing.id === "string") {
+      const updates: Record<string, unknown> = {};
+      if (
+        institutionName &&
+        institutionName.length > 0 &&
+        institutionName !== existing.institution_name
+      ) {
+        updates.institution_name = institutionName;
+      }
+      if (status && status !== existing.status) {
+        updates.status = status;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updates.updated_at = new Date().toISOString();
+        await supabase
+          .from("connections")
+          .update(updates)
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+      }
+
+      return existing.id as string;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("connections")
+      .insert([
+        {
+          pluggy_connection_id: itemId,
+          institution_name: institutionName ?? null,
+          status: status ?? "active",
+          user_id: userId,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (insertError) {
+      if ((insertError as { code?: string })?.code === "42P01") {
+        console.warn(
+          "[Pluggy] Supabase table connections not found. Skipping remote persistence."
+        );
+        return null;
+      }
+      throw insertError;
+    }
+
+    return (inserted?.id as string | undefined) ?? null;
+  } catch (error) {
+    console.error("[Pluggy] Failed to ensure connection record.", error);
+    return null;
+  }
+};
+
+const syncLinkedItemsToSupabase = async (
+  userId: string,
+  items: LinkedItem[]
+) => {
+  try {
+    const { data: existingRows, error: selectError } = await supabase
+      .from("connections")
+      .select("id, pluggy_connection_id")
+      .eq("user_id", userId);
+
+    if (selectError) {
+      if ((selectError as { code?: string })?.code === "42P01") {
+        console.warn(
+          "[Pluggy] Supabase table connections not found. Skipping remote persistence."
+        );
+        return;
+      }
+      throw selectError;
+    }
+
+    const existingMap = new Map<string, string>(
+      (existingRows ?? [])
+        .map((row) => {
+          if (!row || typeof row !== "object") return null;
+          const record = row as Record<string, unknown>;
+          const id =
+            typeof record.id === "string" ? (record.id as string) : null;
+          const pluggyId =
+            typeof record.pluggy_connection_id === "string"
+              ? (record.pluggy_connection_id as string)
+              : null;
+          return id && pluggyId ? ([pluggyId, id] as const) : null;
+        })
+        .filter((entry): entry is readonly [string, string] => Boolean(entry))
+    );
+
+    const keepIds = new Set<string>();
+
+    for (const item of items) {
+      const connectionId =
+        item.connectionId ??
+        existingMap.get(item.itemId) ??
+        (await ensureConnectionRecord({
+          userId,
+          itemId: item.itemId,
+          institutionName: item.institutionName,
+          status: item.status ?? "active",
+        }));
+
+      if (!connectionId) continue;
+      item.connectionId = connectionId;
+      keepIds.add(connectionId);
+
+      const updates: Record<string, unknown> = {};
+      if (item.institutionName) {
+        updates.institution_name = item.institutionName;
+      }
+      if (item.status) {
+        updates.status = item.status;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updates.updated_at = new Date().toISOString();
+        await supabase
+          .from("connections")
+          .update(updates)
+          .eq("id", connectionId)
+          .eq("user_id", userId);
+      }
+    }
+
+    const staleIds =
+      existingRows
+        ?.map((row) => {
+          if (!row || typeof row !== "object") return null;
+          const record = row as Record<string, unknown>;
+          const id =
+            typeof record.id === "string" ? (record.id as string) : null;
+          return id && !keepIds.has(id) ? id : null;
+        })
+        .filter((id): id is string => Boolean(id)) ?? [];
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("connections")
+        .delete()
+        .eq("user_id", userId)
+        .in("id", staleIds);
+
+      if (deleteError && (deleteError as { code?: string })?.code !== "42P01") {
+        throw deleteError;
+      }
+    }
+  } catch (error) {
+    console.error("[Pluggy] Failed to persist connections to Supabase.", error);
+  }
+};
+
+const mergeLinkedItemSources = ({
+  remote,
+  local,
+}: {
+  remote: LinkedItem[] | null;
+  local: LinkedItem[];
+}): LinkedItem[] => {
+  const merged = new Map<string, LinkedItem>();
+
+  for (const item of local) {
+    merged.set(item.itemId, {
+      ...item,
+      accountMapping: { ...item.accountMapping },
+      transactionIds: item.transactionIds ? [...item.transactionIds] : undefined,
+    });
+  }
+
+  if (remote) {
+    for (const remoteItem of remote) {
+      const existing = merged.get(remoteItem.itemId);
+      if (existing) {
+        merged.set(remoteItem.itemId, {
+          ...existing,
+          ...remoteItem,
+          accountMapping: existing.accountMapping,
+          transactionIds: existing.transactionIds,
+          lastProcessedAt:
+            existing.lastProcessedAt ?? remoteItem.lastProcessedAt,
+          lastSyncedAt: remoteItem.lastSyncedAt ?? existing.lastSyncedAt,
+          accountNames:
+            existing.accountNames && existing.accountNames.length > 0
+              ? existing.accountNames
+              : remoteItem.accountNames,
+          connectionId: remoteItem.connectionId ?? existing.connectionId ?? null,
+          institutionName: remoteItem.institutionName ?? existing.institutionName,
+          status: remoteItem.status ?? existing.status ?? null,
+        });
+      } else {
+        merged.set(remoteItem.itemId, {
+          accountMapping: {},
+          ...remoteItem,
+        });
+      }
+    }
+  }
+
+  return Array.from(merged.values());
+};
+
+const normalizeAccountMapping = (input: unknown): Record<string, string> => {
+  if (!input || typeof input !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(input as Record<string, unknown>).filter(
+      ([key, value]) => typeof key === "string" && typeof value === "string"
+    )
+  );
 };
 
 const COLOR_CLASSES = [
@@ -912,6 +1459,7 @@ const ensureSupabaseAccounts = async ({
   initialMapping,
   userId,
   onAccountBalanceUpdated,
+  connectionId,
 }: {
   pluggyAccounts: PluggyAccountSummary[];
   existingAccounts: Account[];
@@ -919,6 +1467,7 @@ const ensureSupabaseAccounts = async ({
   initialMapping?: Record<string, string> | undefined;
   userId?: string;
   onAccountBalanceUpdated?: (accountId: string, balance: number) => void;
+  connectionId?: string | null;
 }): Promise<Record<string, string>> => {
   const mapping: Record<string, string> = {
     ...(initialMapping ?? {}),
@@ -971,54 +1520,65 @@ const ensureSupabaseAccounts = async ({
       const pluggyBalance =
         typeof pluggyAccount.balance === "number" ? pluggyAccount.balance : null;
       const existingBalance = typeof existing.balance === "number" ? existing.balance : null;
-
-      if (
+      const balanceNeedsUpdate =
         pluggyBalance !== null &&
-        (existingBalance === null || Math.abs(existingBalance - pluggyBalance) > 0.009)
-      ) {
-        console.log("[Pluggy] Detected balance change", {
-          accountId: existing.id,
-          pluggyBalance,
-          existingBalance,
-        });
+        (existingBalance === null || Math.abs(existingBalance - pluggyBalance) > 0.009);
+      const needsConnectionUpdate =
+        Boolean(connectionId) && existing.connection_id !== connectionId;
 
-        let updateBuilder = supabase
-          .from("accounts")
-          .update({
-            balance: pluggyBalance,
-            institution: pluggyInstitution,
-          })
-          .eq("id", existing.id);
-
-        if (userId) {
-          updateBuilder = updateBuilder.eq("user_id", userId);
-        }
-
-        const { data: updatedAccount, error: updateError } = await updateBuilder
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error("[Pluggy] Supabase balance update failed", {
+      if (balanceNeedsUpdate || needsConnectionUpdate) {
+        if (balanceNeedsUpdate) {
+          console.log("[Pluggy] Detected balance change", {
             accountId: existing.id,
-            error: updateError,
+            pluggyBalance,
+            existingBalance,
           });
-          console.error(
-            `[Pluggy] Failed to update account ${existing.id} balance.`,
-            updateError
-          );
-        } else if (updatedAccount) {
-          console.log("[Pluggy] Supabase balance updated", {
-            accountId: updatedAccount.id,
-            newBalance: updatedAccount.balance,
-          });
-          resolvedAccounts[existingIndex] = updatedAccount as Account;
-          const updatedBalance =
-            typeof updatedAccount.balance === "number"
-              ? updatedAccount.balance
-              : pluggyBalance ?? 0;
-          onAccountBalanceUpdated?.(updatedAccount.id, updatedBalance);
         }
+
+        const updates: Record<string, unknown> = {};
+        if (balanceNeedsUpdate && pluggyBalance !== null) {
+          updates.balance = pluggyBalance;
+          updates.institution = pluggyInstitution;
+        }
+        if (needsConnectionUpdate && connectionId) {
+          updates.connection_id = connectionId;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          let updateBuilder = supabase
+            .from("accounts")
+            .update(updates)
+            .eq("id", existing.id);
+
+          if (userId) {
+            updateBuilder = updateBuilder.eq("user_id", userId);
+          }
+
+          const { data: updatedAccount, error: updateError } = await updateBuilder
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error("[Pluggy] Supabase account update failed", {
+              accountId: existing.id,
+              error: updateError,
+            });
+          } else if (updatedAccount) {
+            resolvedAccounts[existingIndex] = updatedAccount as Account;
+            if (balanceNeedsUpdate && pluggyBalance !== null) {
+              const updatedBalance =
+                typeof updatedAccount.balance === "number"
+                  ? updatedAccount.balance
+                  : pluggyBalance ?? 0;
+              onAccountBalanceUpdated?.(updatedAccount.id, updatedBalance);
+            }
+          }
+        }
+      } else if (needsConnectionUpdate && connectionId) {
+        resolvedAccounts[existingIndex] = {
+          ...existing,
+          connection_id: connectionId,
+        };
       }
 
       continue;
@@ -1029,6 +1589,7 @@ const ensureSupabaseAccounts = async ({
       type: mapAccountType(pluggyAccount),
       balance: pluggyAccount.balance ?? 0,
       institution: pluggyInstitution,
+      connection_id: connectionId ?? null,
     };
 
     const { data, error } = await supabase

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Account } from "@/types";
 
@@ -8,22 +8,36 @@ export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("accounts")
-      .select("*")
-      .order("name");
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-    if (error) {
+      const userId = userData?.user?.id;
+      if (!userId) {
+        setAccounts([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("user_id", userId)
+        .order("name");
+
+      if (error) {
+        throw error;
+      }
+
+      setAccounts(data ?? []);
+    } catch (error) {
       console.error("Error fetching accounts:", error);
-    } else if (data) {
-      setAccounts(data);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  };
+  }, []);
 
   const getAccountById = (id: string) => {
     return accounts.find((account) => account.id === id);
@@ -41,7 +55,7 @@ export function useAccounts() {
 
   useEffect(() => {
     fetchAccounts();
-  }, []);
+  }, [fetchAccounts]);
 
   return {
     accounts,

@@ -78,49 +78,61 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
       return;
     }
 
-    const account = {
-      name: formData.name,
-      type: formData.type,
-      balance: formData.balance,
-      //   icon: formData.icon,
-      //   color: formData.color,
-    };
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-    console.log("Attempting to insert account:", account);
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("User not found");
 
-    const { data: insertedData, error } = await supabase
-      .from("accounts")
-      .insert([account])
-      .select();
+      const account = {
+        name: formData.name,
+        type: formData.type,
+        balance: formData.balance,
+        user_id: userId,
+        //   icon: formData.icon,
+        //   color: formData.color,
+      };
 
-    if (error) {
+      console.log("Attempting to insert account:", account);
+
+      const { data: insertedData, error } = await supabase
+        .from("accounts")
+        .insert([account])
+        .select();
+
+      if (error || !insertedData || insertedData.length === 0) {
+        throw error || new Error("Failed to save account");
+      }
+
+      console.log("Inserted account data:", insertedData[0]);
+
+      onAddAccount(insertedData[0]);
+      toast({
+        title: "Account added",
+        description: `${formData.name} account has been created`,
+      });
+
+      setFormData({
+        name: "",
+        type: "bank",
+        balance: 0,
+        //   icon: "CreditCard",
+        //   color: "#4ECDC4",
+      });
+      setOpen(false);
+    } catch (error) {
       console.error("Failed to insert account:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to save account";
       toast({
         title: "Error",
-        description: "Failed to save account",
+        description: message,
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    console.log("Inserted account data:", insertedData[0]);
-
-    onAddAccount(insertedData[0]);
-    toast({
-      title: "Account added",
-      description: `${formData.name} account has been created`,
-    });
-
-    setFormData({
-      name: "",
-      type: "bank",
-      balance: 0,
-      //   icon: "CreditCard",
-      //   color: "#4ECDC4",
-    });
-    setOpen(false);
-    setLoading(false);
   };
 
   return (

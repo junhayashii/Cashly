@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
@@ -13,6 +13,7 @@ import EditRecurringBillsDialog from "./EditRecurringBillsDialog";
 
 interface RecurringBill {
   id: string;
+  user_id?: string;
   title: string;
   amount: number;
   is_paid: boolean;
@@ -35,14 +36,24 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
   const { toast } = useToast();
   const DEFAULT_CATEGORY_ID = "default-category-id";
 
-  useEffect(() => {
-    fetchBills();
-  }, []);
+  const fetchBills = useCallback(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Error fetching user:", userError);
+      toast({ title: "Error fetching bills", variant: "destructive" });
+      return;
+    }
 
-  const fetchBills = async () => {
+    const userId = userData?.user?.id;
+    if (!userId) {
+      setBills([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("recurring_bills")
       .select("*")
+      .eq("user_id", userId)
       .order("next_due_date", { ascending: true });
 
     if (error) {
@@ -52,11 +63,17 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
     }
 
     setBills(data.map((b) => ({ ...b, is_paid: b.is_paid ?? true })));
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchBills();
+  }, [fetchBills]);
 
   const markAsPaid = async (bill: RecurringBill) => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
       const userId = userData?.user?.id;
       if (!userId) throw new Error("User not found");
 
@@ -86,7 +103,8 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
           is_paid: true,
           next_due_date: nextDue.toISOString().split("T")[0],
         })
-        .eq("id", bill.id);
+        .eq("id", bill.id)
+        .eq("user_id", userId);
 
       toast({ title: "Marked as Paid!" });
       fetchBills();

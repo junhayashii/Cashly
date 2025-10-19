@@ -23,15 +23,7 @@ import {
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type Notification = {
-  id: string;
-  type: string;
-  message: string;
-  related_id: string | null;
-  created_at: string;
-  is_read: boolean;
-};
+import { Notification } from "@/types";
 
 const formatType = (type: string) =>
   type
@@ -45,25 +37,72 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"all" | "unread">("all");
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error("Failed to fetch user:", error);
+        setUserId(null);
+        return;
+      }
+
+      setUserId(user?.id ?? null);
+    };
+
+    fetchUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (userId === undefined) return;
+
+    if (!userId) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
     const fetchNotifications = async () => {
+      setLoading(true);
+
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
+
+      if (!isMounted) return;
 
       if (error) {
         console.error(error);
-      } else {
-        setNotifications(data || []);
+        setNotifications([]);
+      } else if (data) {
+        setNotifications(data as Notification[]);
       }
       setLoading(false);
     };
 
     fetchNotifications();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.is_read).length,
@@ -79,12 +118,13 @@ export default function NotificationsPage() {
   );
 
   const markAllAsRead = async () => {
-    if (unreadCount === 0) return;
+    if (unreadCount === 0 || !userId) return;
 
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
-      .eq("is_read", false);
+      .eq("is_read", false)
+      .eq("user_id", userId);
 
     if (error) {
       console.error("Failed to mark notifications as read:", error);
@@ -97,11 +137,14 @@ export default function NotificationsPage() {
   };
 
   const handleClick = async (notification: Notification) => {
+    if (!userId) return;
+
     if (!notification.is_read) {
       const { error } = await supabase
         .from("notifications")
         .update({ is_read: true })
-        .eq("id", notification.id);
+        .eq("id", notification.id)
+        .eq("user_id", userId);
 
       if (error) {
         console.error("Failed to mark notification as read:", error);

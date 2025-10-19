@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +14,7 @@ export interface RecurringBill {
   start_date?: string;
   created_at?: string;
   updated_at?: string;
+  user_id?: string;
 }
 
 export function useBills() {
@@ -21,12 +22,22 @@ export function useBills() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchBills = async () => {
+  const fetchBills = useCallback(async () => {
     try {
       setLoading(true);
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const userId = userData?.user?.id;
+      if (!userId) {
+        setBills([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("recurring_bills")
         .select("*")
+        .eq("user_id", userId)
         .order("next_due_date", { ascending: true });
 
       if (error) {
@@ -42,11 +53,13 @@ export function useBills() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const markAsPaid = async (bill: RecurringBill) => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
       const userId = userData?.user?.id;
       if (!userId) throw new Error("User not found");
 
@@ -79,7 +92,8 @@ export function useBills() {
           is_paid: true,
           next_due_date: nextDue.toISOString().split("T")[0],
         })
-        .eq("id", bill.id);
+        .eq("id", bill.id)
+        .eq("user_id", userId);
 
       toast({ title: "Bill marked as paid!" });
       fetchBills();
@@ -94,10 +108,17 @@ export function useBills() {
 
   const deleteBill = async (billId: string) => {
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("User not found");
+
       const { error } = await supabase
         .from("recurring_bills")
         .delete()
-        .eq("id", billId);
+        .eq("id", billId)
+        .eq("user_id", userId);
 
       if (error) {
         console.error("Error deleting bill:", error);
@@ -175,7 +196,7 @@ export function useBills() {
 
   useEffect(() => {
     fetchBills();
-  }, []);
+  }, [fetchBills]);
 
   return {
     bills,

@@ -84,49 +84,61 @@ export function AddCategoryDialog({ onAddCategory }: AddCategoryDialogProps) {
       return;
     }
 
-    const category = {
-      name: formData.name,
-      type: formData.type,
-      icon: formData.icon,
-      color: formData.color,
-      monthly_budget: formData.monthly_budget,
-    };
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-    console.log("Attempting to insert category:", category);
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("User not found");
 
-    const { data: insertedData, error } = await supabase
-      .from("categories")
-      .insert([category])
-      .select();
+      const category = {
+        name: formData.name,
+        type: formData.type,
+        icon: formData.icon,
+        color: formData.color,
+        monthly_budget: formData.monthly_budget,
+        user_id: userId,
+      };
 
-    if (error) {
+      console.log("Attempting to insert category:", category);
+
+      const { data: insertedData, error } = await supabase
+        .from("categories")
+        .insert([category])
+        .select();
+
+      if (error || !insertedData || insertedData.length === 0) {
+        throw error || new Error("Failed to save category");
+      }
+
+      console.log("Inserted category data:", insertedData[0]);
+
+      onAddCategory(insertedData[0]);
+      toast({
+        title: "Category added",
+        description: `${formData.name} category has been created`,
+      });
+
+      setFormData({
+        name: "",
+        type: "expense",
+        icon: "ShoppingCart",
+        color: "#FF6B6B",
+        monthly_budget: 0,
+      });
+      setOpen(false);
+    } catch (error) {
       console.error("Failed to insert category:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to save category";
       toast({
         title: "Error",
-        description: "Failed to save category",
+        description: message,
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    console.log("Inserted category data:", insertedData[0]);
-
-    onAddCategory(insertedData[0]);
-    toast({
-      title: "Category added",
-      description: `${formData.name} category has been created`,
-    });
-
-    setFormData({
-      name: "",
-      type: "expense",
-      icon: "ShoppingCart",
-      color: "#FF6B6B",
-      monthly_budget: 0,
-    });
-    setOpen(false);
-    setLoading(false);
   };
 
   return (

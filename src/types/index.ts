@@ -24,6 +24,18 @@ export interface Category {
   monthly_budget?: number;
   created_at?: string;
   updated_at?: string;
+  user_id?: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  message: string;
+  related_id?: string | null;
+  created_at: string;
+  updated_at?: string;
+  is_read: boolean;
 }
 
 export interface Account {
@@ -35,6 +47,7 @@ export interface Account {
   institution: string;
   created_at: string;
   updated_at: string;
+  connection_id?: string | null;
 }
 
 export interface MetricCardProps {

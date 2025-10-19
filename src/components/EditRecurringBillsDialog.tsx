@@ -18,11 +18,12 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { RecurringBill } from "@/hooks/useBills";
 
 interface EditRecurringBillsDialogProps {
   open: boolean;
   onClose: () => void;
-  recurringBill: any;
+  recurringBill: RecurringBill | null;
   onSuccess?: () => void;
 }
 
@@ -39,19 +40,49 @@ export default function EditRecurringBillsDialog({
   const [startDate, setStartDate] = useState("");
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>(
+    []
+  );
+  const [categories, setCategories] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
-      const [{ data: accountsData }, { data: categoriesData }] =
-        await Promise.all([
-          supabase.from("accounts").select("id, name"),
-          supabase.from("categories").select("id, name"),
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+
+        const userId = userData?.user?.id;
+        if (!userId) {
+          setAccounts([]);
+          setCategories([]);
+          return;
+        }
+
+        const [
+          { data: accountsData, error: accountsError },
+          { data: categoriesData, error: categoriesError },
+        ] = await Promise.all([
+          supabase
+            .from("accounts")
+            .select("id, name")
+            .eq("user_id", userId),
+          supabase
+            .from("categories")
+            .select("id, name")
+            .eq("user_id", userId),
         ]);
-      setAccounts(accountsData || []);
-      setCategories(categoriesData || []);
+
+        if (accountsError) throw accountsError;
+        if (categoriesError) throw categoriesError;
+
+        setAccounts(accountsData || []);
+        setCategories(categoriesData || []);
+      } catch (error) {
+        console.error("Error fetching dropdown data:", error);
+      }
     };
 
     fetchDropdownData();
@@ -83,6 +114,12 @@ export default function EditRecurringBillsDialog({
 
       setLoading(true);
 
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("User not found");
+
       const updatedBill = {
         title,
         amount: parseFloat(amount),
@@ -97,7 +134,8 @@ export default function EditRecurringBillsDialog({
       const { error } = await supabase
         .from("recurring_bills")
         .update(updatedBill)
-        .eq("id", recurringBill.id);
+        .eq("id", recurringBill.id)
+        .eq("user_id", userId);
 
       if (error) {
         console.error("Error updating recurring bill:", error);
