@@ -5,10 +5,7 @@ import { TransactionList } from "@/components/TransactionList";
 import { TransactionListSimple } from "@/components/TransactionListSimple";
 import { SpendingChart } from "@/components/SpendingChart";
 import { BudgetSection } from "@/components/BudgetSection";
-import {
-  GoalsSection,
-  GoalsSectionSimple,
-} from "@/components/GoalsSectionSimple";
+import { GoalsSectionSimple } from "@/components/GoalsSectionSimple";
 import { RecurringBills } from "@/components/RecurringBillsSimple";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
@@ -145,7 +142,7 @@ const Dashboard = () => {
 
   const totalBalance = filteredTransactions.reduce(
     (sum, t) => sum + t.amount,
-    24568.9
+    0
   );
   const monthlyIncome = filteredTransactions
     .filter((t) => t.type === "income")
