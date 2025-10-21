@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, type ComponentType } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type ComponentType,
+} from "react";
 import {
   Card,
   CardContent,
@@ -51,6 +57,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { addNotification } from "@/hooks/addNotifications";
 import { sendNotificationEmail } from "@/lib/sendNotificationEmail";
+import { buildEmpatheticFallbackLine } from "@/lib/empatheticFallback";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -111,6 +118,50 @@ const Categories = () => {
   const { settings } = useUserSettings(userId || undefined);
 
   const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
+
+  const fetchEmpatheticLine = useCallback(
+    async ({
+      name,
+      monthlyBudget,
+      spent,
+    }: {
+      name: string;
+      monthlyBudget: number;
+      spent: number;
+    }) => {
+      const fallbackLine = buildEmpatheticFallbackLine({
+        categoryName: name,
+        monthlyBudget,
+        spent,
+      });
+
+      try {
+        const response = await fetch("/api/notifications/empathetic-line", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categoryName: name,
+            monthlyBudget,
+            spent,
+          }),
+        });
+
+        if (!response.ok) {
+          return fallbackLine;
+        }
+
+        const data = (await response.json()) as { line?: string };
+        return (data?.line ?? "").trim() || fallbackLine;
+      } catch (error) {
+        console.warn(
+          "[Categories] Failed to fetch empathetic line for notification.",
+          error
+        );
+        return fallbackLine;
+      }
+    },
+    [buildEmpatheticFallbackLine]
+  );
 
   // ---- Stats Calculation ----
   const getCategoryStats = () => {
@@ -226,11 +277,19 @@ const Categories = () => {
         if (percentage > 100) {
           if (!notifiedSet.has(category.id)) {
             try {
+              const baseMessage = `Your "${category.name}" category has exceeded its budget.`;
+              const empathyLine = await fetchEmpatheticLine({
+                name: category.name,
+                monthlyBudget: category.monthlyBudget,
+                spent: category.spent,
+              });
+              const combinedMessage = `${baseMessage} ${empathyLine}`.trim();
+
               const created = await addNotification({
                 userId,
                 type: "OVER_BUDGET",
                 relatedId: category.id,
-                message: `Your "${category.name}" category has exceeded its budget.`,
+                message: combinedMessage,
               });
 
               if (!created) {
@@ -242,7 +301,7 @@ const Categories = () => {
 
               toast({
                 title: "Over Budget Alert",
-                description: `"${category.name}" exceeded its monthly budget.`,
+                description: combinedMessage,
                 variant: "destructive",
               });
 
@@ -252,7 +311,7 @@ const Categories = () => {
                 notificationsEnabled: settings?.notifications,
                 notification: {
                   title: "Over Budget Alert",
-                  message: `Your "${category.name}" category has exceeded its budget.`,
+                  message: combinedMessage,
                 },
               });
             } catch (error) {
@@ -269,7 +328,14 @@ const Categories = () => {
     };
 
     void checkOverBudget();
-  }, [expenseCategories, settings?.notifications, toast, userEmail, userId]);
+  }, [
+    expenseCategories,
+    fetchEmpatheticLine,
+    settings?.notifications,
+    toast,
+    userEmail,
+    userId,
+  ]);
 
   if (!selectedMonth) return null;
 
