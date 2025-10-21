@@ -4,18 +4,10 @@ import { SpendingChart } from "@/components/SpendingChart";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  PieChart,
-  AlertCircle,
-} from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -24,10 +16,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useTransaction } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
+import { buildReportsInsightFallback } from "@/lib/reportsInsightFallback";
 import dayjs from "dayjs";
 import { TransactionList } from "@/components/TransactionList";
 import { PeriodComparison } from "@/components/PeriodComparison";
-import { ExpensePieChart } from "@/components/BudgetPieChart";
+import type { Transaction } from "@/types";
 
 const ReportsPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
@@ -89,6 +82,8 @@ const ReportsPage = () => {
         topCategoryName: "-",
         topCategoryPercent: 0,
         savingsRatePercent: 0,
+        totalExpense: 0,
+        totalIncome: 0,
       };
     }
 
@@ -101,9 +96,9 @@ const ReportsPage = () => {
 
     const avgDailySpending = totalExpense / daysInMonth;
 
-    const largestExpense = expenses.reduce(
-      (max, t) => (Math.abs(t.amount) > Math.abs(max?.amount || 0) ? t : max),
-      undefined as any
+    const largestExpense = expenses.reduce<Transaction | undefined>(
+      (max, t) => (Math.abs(t.amount) > Math.abs(max?.amount ?? 0) ? t : max),
+      undefined
     );
     const largestExpenseAmount = largestExpense
       ? Math.abs(largestExpense.amount)
@@ -143,10 +138,83 @@ const ReportsPage = () => {
       topCategoryName,
       topCategoryPercent,
       savingsRatePercent,
+      totalExpense,
+      totalIncome,
     };
   }, [periodTransactions, periodEnd, categories]);
 
   const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
+
+  const insightInput = useMemo(
+    () => ({
+      periodLabel,
+      currencySymbol,
+      avgDailySpending: quickStats.avgDailySpending,
+      largestExpenseTitle: quickStats.largestExpenseTitle,
+      largestExpenseAmount: quickStats.largestExpenseAmount,
+      topCategoryName: quickStats.topCategoryName,
+      topCategoryPercent: quickStats.topCategoryPercent,
+      savingsRatePercent: quickStats.savingsRatePercent,
+      totalIncome: quickStats.totalIncome,
+      totalExpense: quickStats.totalExpense,
+    }),
+    [periodLabel, currencySymbol, quickStats]
+  );
+
+  const fallbackInsight = useMemo(
+    () => buildReportsInsightFallback(insightInput),
+    [insightInput]
+  );
+
+  const [smartInsight, setSmartInsight] = useState<string>(fallbackInsight);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setSmartInsight(fallbackInsight);
+
+    if (!periodTransactions || periodTransactions.length === 0) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const fetchInsight = async () => {
+      try {
+        const response = await fetch("/api/reports/smart-insight", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(insightInput),
+        });
+
+        if (!isMounted) return;
+
+        if (!response.ok) {
+          console.warn(
+            "[Reports] Smart insight request failed with non-OK response.",
+            response.status
+          );
+          setSmartInsight(fallbackInsight);
+          return;
+        }
+
+        const data = (await response.json()) as { line?: string };
+        const line = (data?.line ?? "").trim();
+        setSmartInsight(line || fallbackInsight);
+      } catch (error) {
+        console.warn("[Reports] Failed to fetch smart insight.", error);
+        if (isMounted) {
+          setSmartInsight(fallbackInsight);
+        }
+      }
+    };
+
+    void fetchInsight();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fallbackInsight, insightInput, periodTransactions]);
 
   return (
     <div className="space-y-8">
@@ -180,9 +248,8 @@ const ReportsPage = () => {
       <Alert className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
         <AlertCircle className="h-4 w-4 text-primary" />
         <AlertDescription className="text-foreground">
-          <strong>💡 Smart Insight:</strong> Your spending on Food & Dining this
-          month ($420) could buy you a new pair of wireless earphones! Consider
-          meal prepping to save $200/month.
+          <strong>📝 レポートまとめ:</strong>{" "}
+          {smartInsight || fallbackInsight}
         </AlertDescription>
       </Alert>
 
