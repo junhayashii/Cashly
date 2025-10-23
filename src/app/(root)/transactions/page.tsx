@@ -91,7 +91,7 @@ const TransactionPage = () => {
             <div>Loading transactions...</div>
           </div>
         ) : (
-          <div className="flex-[3]">
+          <div className="flex flex-col gap-3 flex-[3] overflow-auto">
             <TransactionList
               transactions={transactions}
               currencySymbol={currencySymbol}
@@ -106,11 +106,9 @@ const TransactionPage = () => {
                 )
               }
             />
+            <RecurringBills currencySymbol={currencySymbol} />
           </div>
         )}
-        <div className="flex-[2]">
-          <RecurringBills currencySymbol={currencySymbol} />
-        </div>
       </div>
     </div>
   );
