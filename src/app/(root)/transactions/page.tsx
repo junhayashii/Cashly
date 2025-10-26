@@ -8,14 +8,18 @@ import { Download, Upload } from "lucide-react";
 
 import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
+import { useCreditCardPayments } from "@/hooks/useCreditCardPayments";
 import RecurringBills from "@/components/RecurringBills";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
 
 import { exportTransactionsCSV } from "@/components/exportTransactionsCSV";
+import { CreditCardPaymentsList } from "@/components/CreditCardPaymentsList";
 
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
+
+  const { payments, refresh: refreshPayments } = useCreditCardPayments();
 
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -107,6 +111,11 @@ const TransactionPage = () => {
               }
             />
             <RecurringBills currencySymbol={currencySymbol} />
+            <CreditCardPaymentsList
+              payments={payments}
+              currencySymbol={currencySymbol}
+              refresh={refreshPayments}
+            />
           </div>
         )}
       </div>

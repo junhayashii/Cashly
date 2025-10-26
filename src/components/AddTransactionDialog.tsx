@@ -47,6 +47,8 @@ export function AddTransactionDialog({
     category_id: string;
     account_id: string;
     type: "income" | "expense" | "savings" | "transfer";
+    payment_method: "debito" | "credito" | "pix" | "cash";
+    total_installments: number;
     date: string;
     goal_id: string;
     from_account_id?: string;
@@ -57,6 +59,8 @@ export function AddTransactionDialog({
     category_id: "",
     account_id: "",
     type: "expense",
+    payment_method: "debito",
+    total_installments: 1,
     date: new Date().toISOString().split("T")[0],
     goal_id: "",
     from_account_id: "",
@@ -192,24 +196,68 @@ export function AddTransactionDialog({
         insertedData = saved;
       }
 
-      // --- Income / Expense ---
+      // Income / Expense / Credit Card Payment
       else {
-        const transaction = {
-          id: crypto.randomUUID(),
-          title: formData.title,
-          amount: formData.type === "expense" ? -amount : amount,
-          category_id: formData.category_id,
-          account_id: formData.account_id,
-          type: formData.type,
-          user_id: user.id,
-          date: formData.date,
-        };
-        const { data: saved, error } = await supabase
-          .from("transactions")
-          .insert([transaction])
-          .select();
-        if (error) throw error;
-        insertedData = saved;
+        if (formData.payment_method === "credito") {
+          // --- CREDIT CARD PURCHASE ---
+          const totalInstallments = formData.total_installments;
+          const baseDate = new Date(formData.date);
+          const payments = [];
+
+          for (let i = 1; i <= totalInstallments; i++) {
+            const dueDate = new Date(baseDate);
+            dueDate.setMonth(dueDate.getMonth() + (i - 1));
+
+            payments.push({
+              id: crypto.randomUUID(),
+              user_id: user.id,
+              card_id: formData.account_id,
+              title: formData.title,
+              amount: parseFloat(formData.amount) / totalInstallments,
+              installment_number: i,
+              total_installments: totalInstallments,
+              due_date: dueDate.toISOString(),
+              paid: false,
+            });
+          }
+
+          console.log("payments to insert:", payments);
+
+          const { error } = await supabase
+            .from("credit_card_payments")
+            .insert([...payments]);
+
+          if (error) throw error;
+
+          toast({
+            title: "Credit payment added",
+            description: "Added to your credit card payments list",
+          });
+        } else {
+          // --- 通常の Income / Expense ---
+          const transaction = {
+            id: crypto.randomUUID(),
+            title: formData.title,
+            amount:
+              formData.type === "expense"
+                ? -parseFloat(formData.amount)
+                : parseFloat(formData.amount),
+            category_id: formData.category_id,
+            account_id: formData.account_id,
+            payment_method: formData.payment_method,
+            type: formData.type,
+            user_id: user.id,
+            date: formData.date,
+          };
+
+          const { data: saved, error } = await supabase
+            .from("transactions")
+            .insert([transaction])
+            .select();
+
+          if (error) throw error;
+          insertedData = saved;
+        }
       }
 
       insertedData.forEach(onAddTransaction);
@@ -225,6 +273,8 @@ export function AddTransactionDialog({
         amount: "",
         category_id: "",
         account_id: "",
+        payment_method: "debito",
+        total_installments: 1,
         type: "expense",
         date: new Date().toISOString().split("T")[0],
         goal_id: "",
@@ -455,6 +505,52 @@ export function AddTransactionDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {/* --- Payment Method --- */}
+          <div className="space-y-2">
+            <Label htmlFor="payment_method">Payment Method</Label>
+            <Select
+              value={formData.payment_method}
+              onValueChange={(value) =>
+                setFormData({ ...formData, payment_method: value as any })
+              }
+            >
+              <SelectTrigger
+                id="payment_method"
+                className="bg-background border-border"
+              >
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border z-50">
+                <SelectItem value="debito">Debit</SelectItem>
+                <SelectItem value="credito">Credit</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="pix">Pix</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* --- Installments (only when Credit is selected) --- */}
+          {formData.payment_method === "credito" && (
+            <div className="space-y-2">
+              <Label htmlFor="installments">Installments</Label>
+              <Input
+                id="installments"
+                type="number"
+                min={1}
+                max={24}
+                value={formData.total_installments}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    total_installments: parseInt(e.target.value) || 1,
+                  })
+                }
+                className="bg-background border-border"
+                placeholder="e.g., 3"
+              />
             </div>
           )}
 
