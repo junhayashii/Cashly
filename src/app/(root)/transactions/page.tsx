@@ -15,6 +15,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 
 import { exportTransactionsCSV } from "@/components/exportTransactionsCSV";
 import { CreditCardPaymentsList } from "@/components/CreditCardPaymentsList";
+import { ImportTransactionsDialog } from "@/components/ImportTransactionsDialog";
 
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
@@ -84,6 +85,7 @@ const TransactionPage = () => {
               <Download className="h-4 w-4" />
               Export
             </Button>
+            <ImportTransactionsDialog />
             <AddTransactionDialog onAddTransaction={handleAddTransaction} />
           </div>
         </div>
