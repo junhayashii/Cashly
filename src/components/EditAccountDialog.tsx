@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-
 import { Account } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -40,10 +39,12 @@ export function EditAccountDialog({
     name: string;
     type: string;
     balance: number;
+    credit_limit: number; // ← 追加！
   }>({
     name: "",
     type: "bank",
     balance: 0,
+    credit_limit: 0, // ← 追加！
   });
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function EditAccountDialog({
         name: account.name,
         type: account.type || "bank",
         balance: account.balance ?? 0,
+        credit_limit: account.credit_limit ?? 0, // ← 追加！
       });
     }
   }, [account]);
@@ -82,6 +84,8 @@ export function EditAccountDialog({
       name: formData.name,
       type: formData.type,
       balance: formData.balance,
+      credit_limit:
+        formData.type === "credit_card" ? formData.credit_limit : null, // ← クレカ以外は null
     };
 
     const { data: updatedAccount, error } = await supabase
@@ -160,19 +164,19 @@ export function EditAccountDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Account Name</Label>
             <Input
               id="name"
-              placeholder="e.g., Main Bank Account"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="bg-background border-border"
             />
           </div>
 
+          {/* Type */}
           <div className="space-y-2">
             <Label htmlFor="type">Account Type</Label>
             <Select
@@ -194,13 +198,13 @@ export function EditAccountDialog({
             </Select>
           </div>
 
+          {/* Balance */}
           <div className="space-y-2">
             <Label htmlFor="balance">Balance</Label>
             <Input
               id="balance"
               type="number"
               step="0.01"
-              placeholder="0.00"
               value={formData.balance}
               onChange={(e) =>
                 setFormData({
@@ -208,10 +212,29 @@ export function EditAccountDialog({
                   balance: parseFloat(e.target.value) || 0,
                 })
               }
-              className="bg-background border-border"
             />
           </div>
 
+          {/* Credit Limit (only for credit card) */}
+          {formData.type === "credit_card" && (
+            <div className="space-y-2">
+              <Label htmlFor="credit_limit">Credit Limit</Label>
+              <Input
+                id="credit_limit"
+                type="number"
+                step="0.01"
+                value={formData.credit_limit}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    credit_limit: parseFloat(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+          )}
+
+          {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
               type="button"

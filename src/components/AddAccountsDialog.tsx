@@ -35,12 +35,14 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
     name: string;
     type: "bank" | "credit_card" | "cash" | "digital_wallet";
     balance: number;
+    credit_limit: number;
     // icon: string;
     // color: string;
   }>({
     name: "",
     type: "bank",
     balance: 0,
+    credit_limit: 0,
     // icon: "CreditCard",
     // color: "#4ECDC4",
   });
@@ -79,7 +81,8 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
     }
 
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
       if (userError) throw userError;
 
       const userId = userData?.user?.id;
@@ -90,6 +93,8 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
         type: formData.type,
         balance: formData.balance,
         user_id: userId,
+        credit_limit:
+          formData.type === "credit_card" ? formData.credit_limit : null,
         //   icon: formData.icon,
         //   color: formData.color,
       };
@@ -117,6 +122,7 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
         name: "",
         type: "bank",
         balance: 0,
+        credit_limit: 0,
         //   icon: "CreditCard",
         //   color: "#4ECDC4",
       });
@@ -210,6 +216,27 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
               className="bg-background border-border"
             />
           </div>
+
+          {/* クレカの場合のみ上限を表示 */}
+          {formData.type === "credit_card" && (
+            <div className="space-y-2">
+              <Label htmlFor="credit_limit">Credit Limit</Label>
+              <Input
+                id="credit_limit"
+                type="number"
+                step="0.01"
+                placeholder="e.g., 5000.00"
+                value={formData.credit_limit}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    credit_limit: parseFloat(e.target.value) || 0,
+                  })
+                }
+                className="bg-background border-border"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             {/* <div className="space-y-2">

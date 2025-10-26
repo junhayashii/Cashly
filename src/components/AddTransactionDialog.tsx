@@ -229,6 +229,12 @@ export function AddTransactionDialog({
 
           if (error) throw error;
 
+          const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+          await supabase.rpc("decrease_available_limit", {
+            card_id: formData.account_id,
+            amount: totalAmount,
+          });
+
           toast({
             title: "Credit payment added",
             description: "Added to your credit card payments list",

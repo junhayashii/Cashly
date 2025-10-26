@@ -44,6 +44,8 @@ export interface Account {
   name: string;
   type: "bank" | "credit_card" | "cash" | "e_wallet" | "investment";
   balance: number;
+  credit_limit: number;
+  available_limit: number;
   institution: string;
   created_at: string;
   updated_at: string;
