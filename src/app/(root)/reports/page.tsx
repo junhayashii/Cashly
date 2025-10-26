@@ -1,15 +1,11 @@
 "use client";
 import { BudgetSection } from "@/components/BudgetSection";
 import { SpendingChart } from "@/components/SpendingChart";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, Download } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -21,6 +17,10 @@ import dayjs from "dayjs";
 import { TransactionList } from "@/components/TransactionList";
 import { PeriodComparison } from "@/components/PeriodComparison";
 import type { Transaction } from "@/types";
+
+import jsPDF from "jspdf";
+import domtoimage from "dom-to-image-more";
+import html2canvas from "html2canvas";
 
 const ReportsPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
@@ -216,8 +216,45 @@ const ReportsPage = () => {
     };
   }, [fallbackInsight, insightInput, periodTransactions]);
 
+  const handleExportPDF = async () => {
+    const reportElement = document.getElementById("report-section");
+    if (!reportElement) return;
+
+    try {
+      // ⚡ html2canvasの代わり
+      const blob = await domtoimage.toBlob(reportElement, {
+        bgcolor: "#ffffff", // 背景白に固定
+        quality: 1,
+        style: {
+          transform: "scale(1)", // 変換補正
+        },
+      });
+
+      const img = await blobToBase64(blob);
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const imgProps = pdf.getImageProperties(img);
+      const imgHeight = (imgProps.height * pageWidth) / imgProps.width;
+
+      pdf.text(`Cashly Monthly Report - ${periodLabel}`, 10, 15);
+      pdf.addImage(img, "PNG", 0, 25, pageWidth, imgHeight);
+      pdf.save(`Cashly_Report_${selectedMonth}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    }
+  };
+
+  const blobToBase64 = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
   return (
-    <div className="space-y-8">
+    <div id="report-section" className="space-y-8">
       {/* Title + Period Selector*/}
       <div className="flex items-center justify-between">
         <div>
@@ -239,6 +276,15 @@ const ReportsPage = () => {
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
           />
+          <Button
+            onClick={handleExportPDF}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export PDF
+          </Button>
         </div>
       </div>
 
@@ -248,8 +294,7 @@ const ReportsPage = () => {
       <Alert className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
         <AlertCircle className="h-4 w-4 text-primary" />
         <AlertDescription className="text-foreground">
-          <strong>📝 レポートまとめ:</strong>{" "}
-          {smartInsight || fallbackInsight}
+          <strong>📝 レポートまとめ:</strong> {smartInsight || fallbackInsight}
         </AlertDescription>
       </Alert>
 
