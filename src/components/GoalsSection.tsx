@@ -48,6 +48,15 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
     const Icon = goal.icon;
     const remaining = goal.target_amount - goal.current_amount;
 
+    // 💡 次回積立日をフォーマット
+    const nextDate =
+      goal.next_auto_saving_date &&
+      new Date(goal.next_auto_saving_date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+
     return (
       <div key={goal.id} className="space-y-2">
         <div className="flex items-start justify-between">
@@ -96,6 +105,7 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
         </div>
 
         <Progress value={percentage} className="h-1.5" />
+
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">
             {percentage.toFixed(0)}% Complete
@@ -105,6 +115,13 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
             {remaining.toLocaleString()} to go
           </span>
         </div>
+
+        {/* 💰 ここが追加部分 */}
+        {goal.auto_saving_frequency !== "none" && nextDate && (
+          <p className="text-xs text-muted-foreground italic">
+            💰 Next auto saving: {nextDate} ({goal.auto_saving_frequency})
+          </p>
+        )}
       </div>
     );
   };

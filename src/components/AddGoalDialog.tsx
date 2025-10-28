@@ -36,38 +36,14 @@ interface AddGoalDialogProps {
   onClose: () => void;
 }
 
-const goalIcons = [
-  { value: "plane", label: "Vacation", icon: Plane },
-  { value: "home", label: "House", icon: Home },
-  { value: "graduation", label: "Education", icon: GraduationCap },
-  { value: "car", label: "Car", icon: Car },
-  { value: "heart", label: "Wedding", icon: Heart },
-  { value: "gamepad", label: "Gaming", icon: Gamepad2 },
-  { value: "camera", label: "Photography", icon: Camera },
-  { value: "laptop", label: "Technology", icon: Laptop },
-  { value: "smartphone", label: "Phone", icon: Smartphone },
-  { value: "briefcase", label: "Business", icon: Briefcase },
-];
-
-const goalColors = [
-  { value: "text-blue-600", label: "Blue" },
-  { value: "text-green-600", label: "Green" },
-  { value: "text-purple-600", label: "Purple" },
-  { value: "text-red-600", label: "Red" },
-  { value: "text-orange-600", label: "Orange" },
-  { value: "text-pink-600", label: "Pink" },
-  { value: "text-indigo-600", label: "Indigo" },
-  { value: "text-teal-600", label: "Teal" },
-];
-
 export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     target_amount: "",
     current_amount: "",
     target_date: "",
-    icon: "plane",
-    color: "blue",
+    auto_saving_amount: "",
+    auto_saving_frequency: "none",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -84,23 +60,31 @@ export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
         target_amount: parseFloat(formData.target_amount),
         current_amount: parseFloat(formData.current_amount) || 0,
         target_date: formData.target_date || undefined,
+        auto_saving_amount: parseFloat(formData.auto_saving_amount) || 0,
+        auto_saving_frequency: formData.auto_saving_frequency,
+        next_auto_saving_date:
+          formData.auto_saving_frequency === "none"
+            ? null
+            : new Date().toISOString().slice(0, 10),
         status: "active",
       });
 
       toast({
         title: "Goal created successfully!",
-        description: "Your new savings goal has been added.",
+        description:
+          formData.auto_saving_frequency === "none"
+            ? "Your goal has been created."
+            : "Goal created with auto saving enabled.",
       });
 
       onClose();
-      // Reset form
       setFormData({
         name: "",
         target_amount: "",
         current_amount: "",
         target_date: "",
-        icon: "plane",
-        color: "blue",
+        auto_saving_amount: "",
+        auto_saving_frequency: "none",
       });
     } catch (error) {
       console.error("Error creating goal:", error);
@@ -121,8 +105,6 @@ export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
     }));
   };
 
-  const selectedIcon = goalIcons.find((icon) => icon.value === formData.icon);
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -131,6 +113,7 @@ export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* --- Existing Fields --- */}
           <div className="space-y-2">
             <Label htmlFor="name">Goal Name</Label>
             <Input
@@ -180,75 +163,46 @@ export function AddGoalDialog({ isOpen, onClose }: AddGoalDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Icon</Label>
-            <Select
-              value={formData.icon}
-              onValueChange={(value) => handleInputChange("icon", value)}
-            >
-              <SelectTrigger>
-                <SelectValue>
-                  {selectedIcon && (
-                    <div className="flex items-center gap-2">
-                      <selectedIcon.icon className="h-4 w-4" />
-                      {selectedIcon.label}
-                    </div>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {goalIcons.map((icon) => (
-                  <SelectItem key={icon.value} value={icon.value}>
-                    <div className="flex items-center gap-2">
-                      <icon.icon className="h-4 w-4" />
-                      {icon.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* --- NEW SECTION: Auto Saving --- */}
+          <div className="border-t pt-4 space-y-2">
+            <Label className="font-semibold">Auto Saving</Label>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="auto_saving_amount">Amount</Label>
+                <Input
+                  id="auto_saving_amount"
+                  type="number"
+                  placeholder="100"
+                  value={formData.auto_saving_amount}
+                  onChange={(e) =>
+                    handleInputChange("auto_saving_amount", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="auto_saving_frequency">Frequency</Label>
+                <Select
+                  value={formData.auto_saving_frequency}
+                  onValueChange={(v) =>
+                    handleInputChange("auto_saving_frequency", v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Color Theme</Label>
-            <Select
-              value={formData.color}
-              onValueChange={(value) => handleInputChange("color", value)}
-            >
-              <SelectTrigger>
-                <SelectValue>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-4 h-4 rounded-full bg-${formData.color}-600`}
-                    />
-                    {
-                      goalColors.find(
-                        (c) => c.value === `text-${formData.color}-600`
-                      )?.label
-                    }
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {goalColors.map((color) => {
-                  const colorKey = color.value
-                    .replace("text-", "")
-                    .replace("-600", "");
-                  return (
-                    <SelectItem key={color.value} value={colorKey}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-4 h-4 rounded-full bg-${colorKey}-600`}
-                        />
-                        {color.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
+          {/* Buttons */}
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

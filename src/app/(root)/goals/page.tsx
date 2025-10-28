@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useGoals } from "@/hooks/useGoals";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useToast } from "@/hooks/use-toast";
 
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
@@ -25,6 +26,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 const Goals = () => {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -41,6 +43,40 @@ const Goals = () => {
 
     fetchUser();
   }, []);
+
+  // ✅ 自動積立RPC呼び出し
+  useEffect(() => {
+    if (!userId) return;
+
+    const runAutoSave = async () => {
+      try {
+        console.log("[AutoSave] Running RPC for", userId);
+        const { error } = await supabase.rpc("run_goal_autosave", {
+          p_user_id: userId,
+        });
+
+        if (error) {
+          console.error("AutoSave RPC failed:", error);
+          toast({
+            title: "Auto saving failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          console.log("[AutoSave] Success!");
+          toast({
+            title: "Auto saving executed",
+            description: "Your goals have been automatically updated 💰",
+          });
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      }
+    };
+
+    // ページ開いたときに実行
+    runAutoSave();
+  }, [userId, toast]);
 
   const { settings } = useUserSettings(userId || undefined);
 
