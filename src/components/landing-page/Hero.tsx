@@ -79,11 +79,7 @@ const Hero = () => {
             <div className="h-72 w-[85%] max-w-5xl rounded-full bg-primary/20 blur-[140px]" />
           </div>
 
-          <div className="relative overflow-hidden rounded-[42px] border border-border/80 bg-gradient-to-br from-background/95 via-background/80 to-primary/10 shadow-2xl backdrop-blur">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.32),_transparent_60%)]"
-            />
+          <div className="relative overflow-hidden rounded-[42px] border border-border/80 bg-transparent shadow-2xl">
             <div className="relative flex flex-col items-center gap-10 px-6 py-12 sm:px-10 md:px-16">
               <div className="relative w-full overflow-hidden rounded-[28px] border border-white/10 bg-black/90 shadow-2xl ring-1 ring-white/10">
                 <div

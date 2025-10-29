@@ -40,6 +40,17 @@ const FAQSection = () => {
       className="relative overflow-hidden border-t border-border/70 py-24"
       aria-labelledby="faq-heading"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute inset-x-0 -top-48 flex justify-center">
+          <div className="h-[320px] w-[80%] max-w-4xl rounded-full bg-primary/12 blur-[170px]" />
+        </div>
+        <div className="absolute -left-28 top-1/2 h-[250px] w-[250px] rounded-full bg-primary/8 blur-[140px]" />
+        <div className="absolute -right-20 bottom-4 h-[240px] w-[240px] rounded-full bg-primary/6 blur-[150px]" />
+      </div>
+
       <div className="mx-auto flex max-w-5xl flex-col gap-12 px-4 md:px-6">
         <div className="space-y-4 text-center">
           <Badge

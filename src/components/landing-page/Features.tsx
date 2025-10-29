@@ -54,11 +54,22 @@ const FeaturesSection = () => {
       id="features"
       className="relative overflow-hidden border-t border-border/70 py-24"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute inset-x-0 -top-52 flex justify-center">
+          <div className="h-[320px] w-[80%] max-w-4xl rounded-full bg-primary/15 blur-3xl" />
+        </div>
+        <div className="absolute -left-24 top-1/3 h-[260px] w-[260px] rounded-full bg-primary/10 blur-[140px]" />
+        <div className="absolute -right-24 bottom-0 h-[280px] w-[280px] rounded-full bg-primary/5 blur-[160px]" />
+      </div>
+
       <div className="mx-auto flex max-w-6xl flex-col gap-20 px-4 md:px-6">
-        <div className="max-w-3xl space-y-4">
+        <div className="mx-auto max-w-3xl space-y-4 text-center">
           <Badge
             variant="secondary"
-            className="border border-primary/20 bg-primary/10 text-primary"
+            className="mx-auto border border-primary/20 bg-primary/10 text-primary"
           >
             Why teams choose Cashly
           </Badge>

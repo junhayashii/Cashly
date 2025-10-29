@@ -60,12 +60,23 @@ const PricingSection = () => {
       id="pricing"
       className="relative overflow-hidden border-t border-border/70 py-24"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute inset-x-0 -top-56 flex justify-center">
+          <div className="h-[340px] w-[78%] max-w-5xl rounded-full bg-primary/12 blur-[180px]" />
+        </div>
+        <div className="absolute -left-32 top-1/3 h-[260px] w-[260px] rounded-full bg-primary/8 blur-[150px]" />
+        <div className="absolute -right-32 bottom-0 h-[320px] w-[320px] rounded-full bg-primary/10 blur-[180px]" />
+      </div>
+
       <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 md:px-6">
-        <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+        <div className="flex flex-col items-center gap-6 text-center">
           <div className="max-w-3xl space-y-4">
             <Badge
               variant="secondary"
-              className="border border-primary/20 bg-primary/10 text-primary"
+              className="mx-auto border border-primary/20 bg-primary/10 text-primary"
             >
               Pricing made simple
             </Badge>
@@ -78,7 +89,7 @@ const PricingSection = () => {
               before your trial ends, no surprises.
             </p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+          <span className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Sparkles className="size-4" aria-hidden="true" />
             Eligible nonprofits save 30%
           </span>
@@ -130,7 +141,7 @@ const PricingSection = () => {
                     </div>
                   </div>
 
-                  <ul className="mt-8 space-y-3 text-sm">
+                  <ul className="my-8 space-y-3 text-sm">
                     {features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <span className="mt-1 inline-flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary">
