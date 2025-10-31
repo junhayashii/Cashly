@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  TouchEvent as ReactTouchEvent,
+} from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,6 +57,32 @@ const categoryIcons: Record<
   Other: ShoppingBag,
 };
 
+type ResizableColumnKey =
+  | "title"
+  | "account"
+  | "category"
+  | "date"
+  | "amount"
+  | "action";
+
+const initialColumnWidths: Record<ResizableColumnKey, number> = {
+  title: 240,
+  account: 200,
+  category: 200,
+  date: 140,
+  amount: 140,
+  action: 90,
+};
+
+const minColumnWidths: Record<ResizableColumnKey, number> = {
+  title: 160,
+  account: 140,
+  category: 140,
+  date: 120,
+  amount: 120,
+  action: 90,
+};
+
 interface TransactionListProps {
   transactions: Transaction[];
   currencySymbol?: string;
@@ -77,6 +107,118 @@ export function TransactionList({
 
   // ソート状態
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [columnWidths, setColumnWidths] = useState<
+    Record<ResizableColumnKey, number>
+  >(() => ({ ...initialColumnWidths }));
+  const [resizingColumn, setResizingColumn] =
+    useState<ResizableColumnKey | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; width: number }>({
+    x: 0,
+    width: 0,
+  });
+
+  const getColumnStyle = (column: ResizableColumnKey) => ({
+    minWidth: columnWidths[column],
+    width: columnWidths[column],
+  });
+
+  const handleResizeStart = (
+    event:
+      | ReactMouseEvent<HTMLSpanElement>
+      | ReactTouchEvent<HTMLSpanElement>,
+    column: ResizableColumnKey
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const clientX =
+      "touches" in event ? event.touches[0]?.clientX ?? 0 : event.clientX;
+
+    setResizingColumn(column);
+    setDragStart({
+      x: clientX,
+      width: columnWidths[column],
+    });
+  };
+
+  const renderResizeHandle = (column: ResizableColumnKey) => {
+    const isActive = resizingColumn === column;
+    return (
+      <span
+        role="separator"
+        aria-orientation="vertical"
+        onMouseDown={(event) => handleResizeStart(event, column)}
+        onTouchStart={(event) => handleResizeStart(event, column)}
+        className="group absolute right-0 top-0 z-10 flex h-full w-3 cursor-col-resize select-none items-center justify-center touch-none"
+      >
+        <span
+          aria-hidden
+          className={`h-full w-px rounded transition-colors ${
+            isActive ? "bg-primary" : "group-hover:bg-foreground/60 bg-border"
+          }`}
+        />
+      </span>
+    );
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const column = resizingColumn;
+
+    const updateWidth = (clientX: number) => {
+      const delta = clientX - dragStart.x;
+      const nextWidth = Math.max(
+        minColumnWidths[column],
+        dragStart.width + delta
+      );
+
+      setColumnWidths((prev) => {
+        if (prev[column] === nextWidth) return prev;
+        return {
+          ...prev,
+          [column]: nextWidth,
+        };
+      });
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      event.preventDefault();
+      updateWidth(event.clientX);
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (event.touches.length === 0) return;
+      const touch = event.touches[0];
+      event.preventDefault();
+      updateWidth(touch.clientX);
+    };
+
+    const stopResizing = () => {
+      setResizingColumn(null);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResizing);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", stopResizing);
+    window.addEventListener("touchcancel", stopResizing);
+
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", stopResizing);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", stopResizing);
+      window.removeEventListener("touchcancel", stopResizing);
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+    };
+  }, [dragStart, resizingColumn]);
 
   const categories = [
     ...new Set(
@@ -123,7 +265,7 @@ export function TransactionList({
   };
 
   return (
-    <Card className="h-full flex flex-col bg-card border-border">
+    <Card className="flex h-full min-h-0 w-full flex-1 max-w-none flex-col overflow-hidden bg-card border-border">
       {/* Fixed Header */}
       <div className="flex-shrink-0 p-6 pb-4">
         <div className="flex items-center justify-between mb-6">
@@ -194,34 +336,69 @@ export function TransactionList({
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-auto">
-            <Table>
+          <div className="h-full overflow-x-auto overflow-y-auto">
+            <Table className="table-fixed">
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
                   <TableHead className="w-[40px]"></TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead
+                    className="relative"
+                    style={getColumnStyle("title")}
+                  >
+                    <div className="pr-3">Title</div>
+                    {renderResizeHandle("title")}
+                  </TableHead>
+                  <TableHead
+                    className="relative"
+                    style={getColumnStyle("account")}
+                  >
+                    <div className="pr-3">Account</div>
+                    {renderResizeHandle("account")}
+                  </TableHead>
+                  <TableHead
+                    className="relative"
+                    style={getColumnStyle("category")}
+                  >
+                    <div className="pr-3">Category</div>
+                    {renderResizeHandle("category")}
+                  </TableHead>
 
                   {/* Date Column with sort */}
                   <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() =>
-                      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                    }
+                    className="relative"
+                    style={getColumnStyle("date")}
                   >
-                    <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                      }
+                      className="flex w-full items-center gap-1 bg-transparent p-0 pr-3 text-left font-medium text-foreground outline-none transition-colors hover:text-foreground focus-visible:outline-none"
+                  >
                       Date
                       {sortOrder === "asc" ? (
                         <ArrowUp className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <ArrowDown className="h-4 w-4 text-muted-foreground" />
                       )}
-                    </div>
+                    </button>
+                    {renderResizeHandle("date")}
                   </TableHead>
 
-                  <TableHead className="text-center">Amount</TableHead>
-                  <TableHead className="text-center">Action</TableHead>
+                  <TableHead
+                    className="relative text-center"
+                    style={getColumnStyle("amount")}
+                  >
+                    <div className="flex w-full justify-center pr-3">Amount</div>
+                    {renderResizeHandle("amount")}
+                  </TableHead>
+                  <TableHead
+                    className="relative text-center"
+                    style={getColumnStyle("action")}
+                  >
+                    <div className="flex w-full justify-center pr-3">Action</div>
+                    {renderResizeHandle("action")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -243,28 +420,47 @@ export function TransactionList({
                           <Icon className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-foreground">
+                      <TableCell
+                        className="font-medium text-foreground truncate"
+                        style={getColumnStyle("title")}
+                        title={transaction.title}
+                      >
                         {transaction.title}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell
+                        className="text-muted-foreground truncate"
+                        style={getColumnStyle("account")}
+                        title={account?.name || "-"}
+                      >
                         {account?.name || "-"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell
+                        className="text-muted-foreground truncate"
+                        style={getColumnStyle("category")}
+                        title={categoryName}
+                      >
                         {categoryName}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell
+                        className="text-muted-foreground"
+                        style={getColumnStyle("date")}
+                      >
                         {formatDate(transaction.date)}
                       </TableCell>
                       <TableCell
                         className={`text-center font-semibold ${
                           isPositive ? "text-success" : "text-foreground"
                         }`}
+                        style={getColumnStyle("amount")}
                       >
                         {isPositive ? "+" : "-"}
                         {currencySymbol}
                         {Math.abs(transaction.amount).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell
+                        className="text-center"
+                        style={getColumnStyle("action")}
+                      >
                         <Button
                           variant="ghost"
                           size="icon"
