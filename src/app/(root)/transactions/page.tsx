@@ -10,6 +10,8 @@ import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
 import { useCreditCardPayments } from "@/hooks/useCreditCardPayments";
 import RecurringBills from "@/components/RecurringBills";
+import { useBills } from "@/hooks/useBills";
+import { RecurringBillsManageTable } from "@/components/RecurringBillsManageTable";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
 
@@ -21,7 +23,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
 
-  const { payments, refresh: refreshPayments } = useCreditCardPayments();
+  const billsHook = useBills();
+  const creditHook = useCreditCardPayments();
+  const { payments, refresh: refreshPayments } = creditHook;
 
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -99,6 +103,9 @@ const TransactionPage = () => {
           <TabsTrigger value="credit-cards" className="flex-1 sm:flex-initial">
             Credit Cards
           </TabsTrigger>
+          <TabsTrigger value="recurring" className="flex-1 sm:flex-initial">
+            Recurring
+          </TabsTrigger>
         </TabsList>
 
         <div className="mt-6 w-full flex-1 overflow-hidden min-h-0">
@@ -134,7 +141,11 @@ const TransactionPage = () => {
             value="upcoming"
             className="h-full w-full overflow-auto"
           >
-            <RecurringBills currencySymbol={currencySymbol} />
+            <RecurringBills
+              currencySymbol={currencySymbol}
+              billsHook={billsHook}
+              creditHook={creditHook}
+            />
           </TabsContent>
 
           <TabsContent
@@ -145,6 +156,17 @@ const TransactionPage = () => {
               payments={payments}
               currencySymbol={currencySymbol}
               refresh={refreshPayments}
+            />
+          </TabsContent>
+
+          <TabsContent
+            value="recurring"
+            className="h-full w-full overflow-auto"
+          >
+            <RecurringBillsManageTable
+              billsHook={billsHook}
+              creditHook={creditHook}
+              currencySymbol={currencySymbol}
             />
           </TabsContent>
         </div>

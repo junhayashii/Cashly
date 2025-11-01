@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   Dialog,
@@ -18,7 +18,15 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { RecurringBill } from "@/hooks/useBills";
+import type { RecurringBill } from "@/hooks/useBills";
+import {
+  calculateNextDueDate,
+  PAYMENT_METHOD_OPTIONS,
+  requiresAccountSelection,
+  CREDIT_PAYMENT_METHOD,
+} from "@/lib/recurringBills";
+import type { PaymentMethod, Frequency } from "@/lib/recurringBills";
+import { ensureCreditCardPayment } from "@/lib/creditCardPayments";
 
 interface EditRecurringBillsDialogProps {
   open: boolean;
@@ -35,11 +43,13 @@ export default function EditRecurringBillsDialog({
 }: EditRecurringBillsDialogProps) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [frequency, setFrequency] = useState("monthly");
+  const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [nextDueDate, setNextDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const previousPaymentMethodRef = useRef<PaymentMethod | "">("");
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>(
     []
   );
@@ -47,6 +57,8 @@ export default function EditRecurringBillsDialog({
     Array<{ id: string; name: string }>
   >([]);
   const [loading, setLoading] = useState(false);
+
+  const NONE_VALUE = "__none__";
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -92,7 +104,7 @@ export default function EditRecurringBillsDialog({
     if (recurringBill) {
       setTitle(recurringBill.title || "");
       setAmount(recurringBill.amount?.toString() || "");
-      setFrequency(recurringBill.frequency || "monthly");
+      setFrequency((recurringBill.frequency as Frequency) || "monthly");
       setNextDueDate(recurringBill.next_due_date?.split("T")[0] || "");
       setStartDate(
         recurringBill.start_date?.split("T")[0] ||
@@ -100,15 +112,41 @@ export default function EditRecurringBillsDialog({
       );
       setAccountId(recurringBill.account_id || "");
       setCategoryId(recurringBill.category_id || "");
+      const method =
+        (recurringBill.payment_method as PaymentMethod) || "";
+      setPaymentMethod(method);
+      previousPaymentMethodRef.current = method;
     }
   }, [recurringBill]);
+
 
   const handleSave = async () => {
     try {
       if (!recurringBill) return;
 
-      if (!title || !amount || !accountId || !categoryId || !nextDueDate) {
+      const safeNextDueDate =
+        nextDueDate ||
+        calculateNextDueDate(startDate, frequency) ||
+        startDate;
+
+      if (!title || !amount || !safeNextDueDate) {
         alert("Please fill in all required fields.");
+        return;
+      }
+
+      const selectedPaymentMethod = paymentMethod || null;
+      if (
+        selectedPaymentMethod &&
+        requiresAccountSelection(selectedPaymentMethod) &&
+        !accountId
+      ) {
+        alert("Please choose an account for credit payments.");
+        return;
+      }
+
+      const parsedAmount = parseFloat(amount);
+      if (Number.isNaN(parsedAmount)) {
+        alert("Invalid amount.");
         return;
       }
 
@@ -122,12 +160,13 @@ export default function EditRecurringBillsDialog({
 
       const updatedBill = {
         title,
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         frequency,
-        next_due_date: nextDueDate,
-        start_date: startDate || new Date().toISOString(), // ← start_dateを常に送る
-        account_id: accountId,
-        category_id: categoryId,
+        next_due_date: safeNextDueDate,
+        start_date: startDate || new Date().toISOString().split("T")[0], // ← keep consistent with date column
+        account_id: accountId || null,
+        category_id: categoryId || null,
+        payment_method: selectedPaymentMethod,
         updated_at: new Date().toISOString(),
       };
 
@@ -141,6 +180,27 @@ export default function EditRecurringBillsDialog({
         console.error("Error updating recurring bill:", error);
         alert("Failed to update recurring bill.");
       } else {
+        if (
+          selectedPaymentMethod === CREDIT_PAYMENT_METHOD &&
+          accountId
+        ) {
+          try {
+            await ensureCreditCardPayment({
+              supabase,
+              userId,
+              accountId,
+              title,
+              amount: parsedAmount,
+              dueDate: startDate || safeNextDueDate,
+            });
+          } catch (creditError) {
+            console.error(
+              "Error scheduling credit payment:",
+              creditError
+            );
+          }
+        }
+        previousPaymentMethodRef.current = selectedPaymentMethod || "";
         onSuccess?.();
         onClose();
       }
@@ -183,7 +243,20 @@ export default function EditRecurringBillsDialog({
 
           <div>
             <Label>Frequency</Label>
-            <Select value={frequency} onValueChange={setFrequency}>
+            <Select
+              value={frequency}
+              onValueChange={(value) => {
+                const nextFrequency = value as Frequency;
+                setFrequency(nextFrequency);
+                if (startDate) {
+                  const computed = calculateNextDueDate(
+                    startDate,
+                    nextFrequency
+                  );
+                  setNextDueDate(computed || startDate);
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select frequency" />
               </SelectTrigger>
@@ -196,12 +269,27 @@ export default function EditRecurringBillsDialog({
           </div>
 
           <div>
-            <Label>Next Due Date</Label>
-            <Input
-              type="date"
-              value={nextDueDate}
-              onChange={(e) => setNextDueDate(e.target.value)}
-            />
+            <Label>Payment Method</Label>
+            <Select
+              value={paymentMethod || NONE_VALUE}
+              onValueChange={(value) =>
+                setPaymentMethod(
+                  value === NONE_VALUE ? "" : (value as PaymentMethod)
+                )
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>None</SelectItem>
+                {PAYMENT_METHOD_OPTIONS.map((method) => (
+                  <SelectItem key={method} value={method}>
+                    {method}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -209,17 +297,37 @@ export default function EditRecurringBillsDialog({
             <Input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setStartDate(value);
+                if (value) {
+                  const computed = calculateNextDueDate(value, frequency);
+                  setNextDueDate(computed || value);
+                } else {
+                  setNextDueDate("");
+                }
+              }}
             />
           </div>
 
           <div>
+            <Label>Next Due Date</Label>
+            <Input type="date" value={nextDueDate} disabled />
+          </div>
+
+          <div>
             <Label>Account</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
+            <Select
+              value={accountId || NONE_VALUE}
+              onValueChange={(value) =>
+                setAccountId(value === NONE_VALUE ? "" : value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={NONE_VALUE}>None</SelectItem>
                 {accounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id}>
                     {acc.name}

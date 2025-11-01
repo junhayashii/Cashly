@@ -6,9 +6,9 @@ import { TransactionListSimple } from "@/components/TransactionListSimple";
 import { SpendingChart } from "@/components/SpendingChart";
 import { BudgetSection } from "@/components/BudgetSection";
 import { GoalsSectionSimple } from "@/components/GoalsSectionSimple";
-import { RecurringBills } from "@/components/RecurringBillsSimple";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
+import { RecurringBills } from "@/components/RecurringBillsSimple";
 import {
   Select,
   SelectContent,

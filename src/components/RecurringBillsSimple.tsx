@@ -10,18 +10,20 @@ import Link from "next/link";
 
 import { AddRecurringBillDialog } from "./AddRecurringBillsDialog";
 import EditRecurringBillsDialog from "./EditRecurringBillsDialog";
+import type { PaymentMethod, Frequency } from "@/lib/recurringBills";
 
 interface RecurringBill {
   id: string;
   user_id?: string;
   title: string;
   amount: number;
-  is_paid: boolean;
+  is_paid?: boolean;
   next_due_date: string;
   account_id: string | null;
   category_id: string | null;
-  frequency: "weekly" | "monthly" | "yearly";
+  frequency: Frequency;
   start_date?: string;
+  payment_method?: PaymentMethod | null;
 }
 
 type RecurringBillsProps = {
@@ -62,7 +64,7 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
       return;
     }
 
-    setBills(data.map((b) => ({ ...b, is_paid: b.is_paid ?? true })));
+    setBills(data.map((b) => ({ ...b, is_paid: b.is_paid ?? false })));
   }, [toast]);
 
   useEffect(() => {
@@ -100,7 +102,6 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
       await supabase
         .from("recurring_bills")
         .update({
-          is_paid: true,
           next_due_date: nextDue.toISOString().split("T")[0],
         })
         .eq("id", bill.id)
@@ -170,7 +171,10 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
                   {bill.title}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Due {bill.next_due_date}
+                  {bill.is_paid
+                    ? `Next on ${bill.next_due_date}`
+                    : `Due ${bill.next_due_date}`}
+                  {bill.payment_method && ` • ${bill.payment_method}`}
                 </p>
               </div>
             </div>

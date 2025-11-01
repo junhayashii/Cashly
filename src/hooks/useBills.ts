@@ -1,26 +1,61 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  calculateNextDueDate,
+  requiresAccountSelection,
+  CREDIT_PAYMENT_METHOD,
+} from "@/lib/recurringBills";
+import type { PaymentMethod, Frequency } from "@/lib/recurringBills";
 
 export interface RecurringBill {
   id: string;
   title: string;
   amount: number;
-  is_paid: boolean;
+  is_paid?: boolean;
   next_due_date: string;
   account_id: string | null;
   category_id: string | null;
-  frequency: "weekly" | "monthly" | "yearly";
+  frequency: Frequency;
   start_date?: string;
   created_at?: string;
   updated_at?: string;
   user_id?: string;
+  payment_method?: PaymentMethod | null;
 }
 
 export function useBills() {
   const [bills, setBills] = useState<RecurringBill[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paidCycles, setPaidCycles] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
+  const markBillCyclePaid = useCallback(
+    (
+      bill: RecurringBill,
+      nextDueDate: string,
+      updates: Partial<RecurringBill> = {}
+    ) => {
+      setPaidCycles((previous) => ({
+        ...previous,
+        [bill.id]: nextDueDate,
+      }));
+
+      setBills((previous) =>
+        previous.map((existing) =>
+          existing.id === bill.id
+            ? {
+                ...existing,
+                ...updates,
+                next_due_date: nextDueDate,
+                is_paid: true,
+              }
+            : existing
+        )
+      );
+    },
+    []
+  );
 
   const fetchBills = useCallback(async () => {
     try {
@@ -46,16 +81,38 @@ export function useBills() {
         return;
       }
 
-      setBills(data || []);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const normalized = (data || []).map((bill) => {
+        const dueDate = new Date(bill.next_due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        const futureDue = dueDate > today;
+        const cyclePaid = paidCycles[bill.id] === bill.next_due_date;
+
+        return {
+          ...bill,
+          is_paid: cyclePaid && futureDue,
+        };
+      });
+
+      setBills(normalized);
     } catch (error) {
       console.error("Error fetching bills:", error);
       toast({ title: "Error fetching bills", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, paidCycles]);
 
-  const markAsPaid = async (bill: RecurringBill) => {
+  const payBill = async (
+    bill: RecurringBill,
+    options: {
+      accountId?: string | null;
+      paymentMethod?: PaymentMethod | "" | null;
+      paymentDate?: string;
+    } = {}
+  ) => {
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
@@ -63,45 +120,82 @@ export function useBills() {
       const userId = userData?.user?.id;
       if (!userId) throw new Error("User not found");
 
-      // Create transaction record
+      const resolvedPaymentMethod =
+        options.paymentMethod && options.paymentMethod !== ""
+          ? options.paymentMethod
+          : bill.payment_method || null;
+
+      const resolvedAccountId =
+        options.accountId !== undefined
+          ? options.accountId
+          : bill.account_id ?? null;
+
+      if (
+        resolvedPaymentMethod &&
+        requiresAccountSelection(resolvedPaymentMethod) &&
+        !resolvedAccountId
+      ) {
+        throw new Error("Account is required for credit payments.");
+      }
+
+      if (!resolvedPaymentMethod) {
+        throw new Error("Please choose a payment method.");
+      }
+
+      if (resolvedPaymentMethod === CREDIT_PAYMENT_METHOD) {
+        throw new Error(
+          "Credit card payments are managed through the credit card section."
+        );
+      }
+
+      const paymentDate =
+        options.paymentDate || new Date().toISOString().split("T")[0];
+
       await supabase.from("transactions").insert([
         {
           title: bill.title,
           amount: -bill.amount,
-          date: new Date().toISOString().split("T")[0],
-          account_id: bill.account_id,
+          date: paymentDate,
+          account_id: resolvedAccountId,
           category_id: bill.category_id,
           user_id: userId,
         },
       ]);
 
-      // Calculate next due date
-      const nextDue = new Date(bill.next_due_date);
-      if (bill.frequency === "monthly") {
-        nextDue.setMonth(nextDue.getMonth() + 1);
-      } else if (bill.frequency === "weekly") {
-        nextDue.setDate(nextDue.getDate() + 7);
-      } else if (bill.frequency === "yearly") {
-        nextDue.setFullYear(nextDue.getFullYear() + 1);
-      }
+      const baseDate =
+        bill.next_due_date || bill.start_date || paymentDate;
+      const calculatedNext = calculateNextDueDate(baseDate, bill.frequency);
+      const nextDueDate = calculatedNext || baseDate;
 
-      // Update bill
       await supabase
         .from("recurring_bills")
         .update({
-          is_paid: true,
-          next_due_date: nextDue.toISOString().split("T")[0],
+          next_due_date: nextDueDate,
+          account_id: resolvedAccountId,
+          payment_method: resolvedPaymentMethod,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", bill.id)
         .eq("user_id", userId);
 
-      toast({ title: "Bill marked as paid!" });
+      markBillCyclePaid(
+        bill,
+        nextDueDate,
+        {
+          account_id: resolvedAccountId ?? null,
+          payment_method: resolvedPaymentMethod,
+        }
+      );
+
+      toast({ title: "Bill paid successfully" });
       fetchBills();
     } catch (error) {
-      console.error("Error marking bill as paid:", error);
+      console.error("Error paying bill:", error);
       toast({
-        title: "Error marking bill as paid",
+        title: "Payment failed",
         variant: "destructive",
+        description:
+          error instanceof Error ? error.message : "Unable to pay this bill.",
       });
     }
   };
@@ -127,6 +221,11 @@ export function useBills() {
       }
 
       toast({ title: "Bill deleted successfully" });
+      setPaidCycles((previous) => {
+        if (!(billId in previous)) return previous;
+        const { [billId]: _removed, ...rest } = previous;
+        return rest;
+      });
       fetchBills();
     } catch (error) {
       console.error("Error deleting bill:", error);
@@ -202,7 +301,8 @@ export function useBills() {
     bills,
     loading,
     fetchBills,
-    markAsPaid,
+    payBill,
+    markBillCyclePaid,
     deleteBill,
     getStatusColor,
     getStatusText,

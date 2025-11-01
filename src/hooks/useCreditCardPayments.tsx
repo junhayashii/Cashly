@@ -30,3 +30,5 @@ export function useCreditCardPayments() {
 
   return { payments, loading, refresh: fetchPayments };
 }
+
+export type CreditCardPaymentsHook = ReturnType<typeof useCreditCardPayments>;

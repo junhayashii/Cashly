@@ -22,6 +22,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  calculateNextDueDate,
+  PAYMENT_METHOD_OPTIONS,
+  requiresAccountSelection,
+} from "@/lib/recurringBills";
+import type { PaymentMethod, Frequency } from "@/lib/recurringBills";
+import { ensureCreditCardPayment } from "@/lib/creditCardPayments";
 
 export function AddRecurringBillDialog({
   onAdded,
@@ -41,15 +48,19 @@ export function AddRecurringBillDialog({
   const { accounts } = useAccounts();
   const { categories } = useCategories();
 
-  const [formData, setFormData] = useState({
+  const NONE_VALUE = "__none__";
+  const today = new Date().toISOString().split("T")[0];
+  const defaultFrequency: Frequency = "monthly";
+  const [formData, setFormData] = useState(() => ({
     title: "",
     amount: "",
     account_id: "",
     category_id: "",
-    start_date: new Date().toISOString().split("T")[0], // ✅ Start date 追加
-    next_due_date: new Date().toISOString().split("T")[0],
-    frequency: "monthly" as "weekly" | "monthly" | "yearly",
-  });
+    start_date: today,
+    next_due_date: calculateNextDueDate(today, defaultFrequency),
+    frequency: defaultFrequency,
+    payment_method: "" as "" | PaymentMethod,
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,16 +75,39 @@ export function AddRecurringBillDialog({
       const userId = userData?.user?.id;
       if (!userId) throw new Error("User not found");
 
+      const paymentMethod = formData.payment_method || null;
+      if (
+        paymentMethod &&
+        requiresAccountSelection(paymentMethod) &&
+        !formData.account_id
+      ) {
+        toast({
+          title: "Account required",
+          description: "Please choose an account for credit payments.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const accountIdValue = formData.account_id || null;
+
+      const nextDueDate =
+        formData.next_due_date ||
+        calculateNextDueDate(formData.start_date, formData.frequency);
+
+      const parsedAmount = parseFloat(formData.amount);
+
       const newBill = {
         title: formData.title,
-        amount: parseFloat(formData.amount),
-        is_paid: false,
-        start_date: formData.start_date, // ✅ ユーザーが指定した開始日
-        next_due_date: formData.next_due_date,
-        account_id: formData.account_id || null,
+        amount: parsedAmount,
+        start_date: formData.start_date,
+        next_due_date: nextDueDate,
+        account_id: accountIdValue,
         category_id: formData.category_id || null,
         frequency: formData.frequency,
         user_id: userId,
+        payment_method: paymentMethod,
       };
 
       console.log("🧾 Creating new recurring bill:", newBill);
@@ -98,6 +132,28 @@ export function AddRecurringBillDialog({
         title: "Added",
         description: `${formData.title} was added successfully.`,
       });
+
+      if (
+        paymentMethod &&
+        requiresAccountSelection(paymentMethod) &&
+        formData.account_id
+      ) {
+        try {
+          await ensureCreditCardPayment({
+            supabase,
+            userId,
+            accountId: formData.account_id,
+            title: formData.title,
+            amount: parsedAmount,
+            dueDate: formData.start_date,
+          });
+        } catch (creditError) {
+          console.error(
+            "Error scheduling credit card payment:",
+            creditError
+          );
+        }
+      }
 
       setIsOpen(false);
       onAdded();
@@ -166,22 +222,14 @@ export function AddRecurringBillDialog({
             <Input
               type="date"
               value={formData.start_date}
-              onChange={(e) =>
-                setFormData({ ...formData, start_date: e.target.value })
-              }
-              required
-            />
-          </div>
-
-          {/* Next Due Date */}
-          <div className="space-y-2">
-            <Label>Next Due Date</Label>
-            <Input
-              type="date"
-              value={formData.next_due_date}
-              onChange={(e) =>
-                setFormData({ ...formData, next_due_date: e.target.value })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  start_date: value,
+                  next_due_date: calculateNextDueDate(value, prev.frequency),
+                }));
+              }}
               required
             />
           </div>
@@ -192,7 +240,14 @@ export function AddRecurringBillDialog({
             <Select
               value={formData.frequency}
               onValueChange={(value) =>
-                setFormData({ ...formData, frequency: value as any })
+                setFormData((prev) => ({
+                  ...prev,
+                  frequency: value as Frequency,
+                  next_due_date: calculateNextDueDate(
+                    prev.start_date,
+                    value as Frequency
+                  ),
+                }))
               }
             >
               <SelectTrigger>
@@ -206,20 +261,57 @@ export function AddRecurringBillDialog({
             </Select>
           </div>
 
+          {/* Payment Method */}
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <Select
+              value={formData.payment_method || NONE_VALUE}
+              onValueChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  payment_method:
+                    value === NONE_VALUE ? "" : (value as PaymentMethod),
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>None</SelectItem>
+                {PAYMENT_METHOD_OPTIONS.map((method) => (
+                  <SelectItem key={method} value={method}>
+                    {method}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Next Due Date (auto-calculated) */}
+          <div className="space-y-2">
+            <Label>Next Due Date</Label>
+            <Input type="date" value={formData.next_due_date} disabled />
+          </div>
+
           {/* Account / Category */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Account</Label>
               <Select
-                value={formData.account_id}
+                value={formData.account_id || NONE_VALUE}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, account_id: value })
+                  setFormData({
+                    ...formData,
+                    account_id: value === NONE_VALUE ? "" : value,
+                  })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NONE_VALUE}>None</SelectItem>
                   {accounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
