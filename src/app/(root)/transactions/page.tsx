@@ -4,12 +4,22 @@ import { useState, useEffect } from "react";
 import { TransactionList } from "@/components/TransactionList";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import {
+  Download,
+  Clock3,
+  CalendarDays,
+  CreditCard,
+  Repeat,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpDown,
+  Wallet,
+} from "lucide-react";
 
 import { Transaction } from "@/types";
 import { useTransaction } from "@/hooks/useTransactions";
 import { useCreditCardPayments } from "@/hooks/useCreditCardPayments";
-import RecurringBills from "@/components/RecurringBills";
+import UpcomingBills from "@/components/UpcomingBills";
 import { useBills } from "@/hooks/useBills";
 import { RecurringBillsManageTable } from "@/components/RecurringBillsManageTable";
 import { supabase } from "@/lib/supabaseClient";
@@ -19,6 +29,7 @@ import { exportTransactionsCSV } from "@/components/exportTransactionsCSV";
 import { CreditCardPaymentsList } from "@/components/CreditCardPaymentsList";
 import { ImportTransactionsDialog } from "@/components/ImportTransactionsDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MetricCard } from "@/components/MetricCard";
 
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
@@ -61,61 +72,65 @@ const TransactionPage = () => {
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   const netFlow = totalIncome - totalExpenses;
 
+  // Calculate transaction count by type for metrics
+  const incomeCount = transactions.filter((t) => t.type === "income").length;
+  const expenseCount = transactions.filter((t) => t.type === "expense").length;
+  const totalCount = transactions.length;
+
   return (
-    <div className="flex h-[100dvh] w-full flex-col gap-8 overflow-hidden">
-      <div className="flex flex-shrink-0 items-center justify-between">
-        <div>
-          <h2 className="mb-2 text-3xl font-bold text-foreground">
-            Transactions
-          </h2>
-          <p className="text-muted-foreground">
-            View and manage all your transactions
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() =>
-              exportTransactionsCSV(transactions, `transactions.csv`)
-            }
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <ImportTransactionsDialog />
-          <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+    <div className="flex h-[95vh] w-full flex-col gap-4 overflow-hidden">
+      {/* Header Section */}
+      <div className="flex flex-shrink-0 flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="mb-1 text-3xl font-bold text-foreground">
+              Transactions
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              View and manage all your transactions
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <ImportTransactionsDialog />
+            <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+          </div>
         </div>
       </div>
 
       <Tabs
         defaultValue="recent"
-        className="flex flex-1 min-h-0 flex-col overflow-hidden"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
       >
-        <TabsList className="w-full flex-shrink-0 justify-start overflow-x-auto">
+        <TabsList className="w-full flex-shrink-0 justify-start gap-2 overflow-x-auto bg-background/60 px-2 backdrop-blur-sm">
           <TabsTrigger value="recent" className="flex-1 sm:flex-initial">
-            Recent
+            <Clock3 className="h-4 w-4" />
+            <span>Recent</span>
           </TabsTrigger>
           <TabsTrigger value="upcoming" className="flex-1 sm:flex-initial">
-            Upcoming
+            <CalendarDays className="h-4 w-4" />
+            <span>Upcoming</span>
           </TabsTrigger>
           <TabsTrigger value="credit-cards" className="flex-1 sm:flex-initial">
-            Credit Cards
+            <CreditCard className="h-4 w-4" />
+            <span>Credit Cards</span>
           </TabsTrigger>
           <TabsTrigger value="recurring" className="flex-1 sm:flex-initial">
-            Recurring
+            <Repeat className="h-4 w-4" />
+            <span>Recurring</span>
           </TabsTrigger>
         </TabsList>
 
-        <div className="mt-6 w-full flex-1 overflow-hidden min-h-0">
+        <div className="w-full flex-1 overflow-hidden px-1 py-2 sm:px-0 sm:py-3 min-h-0">
           <TabsContent
             value="recent"
             className="flex h-full w-full flex-col overflow-hidden min-h-0"
           >
             {loading ? (
-              <div className="flex w-full items-center justify-center py-12">
-                <div>Loading transactions...</div>
+              <div className="flex w-full items-center justify-center py-16">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary"></div>
+                  <p className="text-sm">Loading transactions...</p>
+                </div>
               </div>
             ) : (
               <div className="flex w-full flex-1 min-h-0">
@@ -139,9 +154,9 @@ const TransactionPage = () => {
 
           <TabsContent
             value="upcoming"
-            className="h-full w-full overflow-auto"
+            className="flex h-full w-full flex-col overflow-hidden min-h-0"
           >
-            <RecurringBills
+            <UpcomingBills
               currencySymbol={currencySymbol}
               billsHook={billsHook}
               creditHook={creditHook}
@@ -150,7 +165,7 @@ const TransactionPage = () => {
 
           <TabsContent
             value="credit-cards"
-            className="h-full w-full overflow-auto"
+            className="flex h-full w-full flex-col overflow-hidden min-h-0"
           >
             <CreditCardPaymentsList
               payments={payments}
@@ -161,7 +176,7 @@ const TransactionPage = () => {
 
           <TabsContent
             value="recurring"
-            className="h-full w-full overflow-auto"
+            className="flex h-full w-full flex-col overflow-hidden min-h-0"
           >
             <RecurringBillsManageTable
               billsHook={billsHook}

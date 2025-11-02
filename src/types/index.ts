@@ -9,6 +9,7 @@ export interface Transaction {
   date: string;
   type: "income" | "expense" | "savings" | "transfer";
   user_id: string;
+  payment_method?: string | null;
   category?: Category;
   goal_id?: string;
   from_account_id?: string;

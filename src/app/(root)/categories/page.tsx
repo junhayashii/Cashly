@@ -36,6 +36,7 @@ import {
   MoreHorizontal,
   Calendar,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -340,268 +341,329 @@ const Categories = () => {
   if (!selectedMonth) return null;
 
   return (
-    <div className="space-y-10">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Categories
-          </h2>
-          <p className="text-muted-foreground">
-            Organize and manage your spending categories & budgets
-          </p>
-        </div>
-        <div className="flex items-center gap-6">
-          {/* Month Selector */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 12 }, (_, i) => {
-                  const month = dayjs().subtract(i, "month");
-                  const monthValue = month.format("YYYY-MM");
-                  const monthLabel = month.format("MMMM YYYY");
-                  return (
-                    <SelectItem key={monthValue} value={monthValue}>
-                      {monthLabel}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+    <div className="flex h-[100dvh] w-full flex-col gap-4 overflow-hidden">
+      {/* Header Section */}
+      <div className="flex flex-shrink-0 flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="mb-1 text-3xl font-bold text-foreground">
+              Categories
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Organize and manage your spending categories & budgets
+            </p>
           </div>
-          <AddCategoryDialog onAddCategory={handleAddCategory} />
+          <div className="flex items-center gap-6">
+            {/* Month Selector */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-48 border-border/40 bg-background/80 backdrop-blur-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = dayjs().subtract(i, "month");
+                    const monthValue = month.format("YYYY-MM");
+                    const monthLabel = month.format("MMMM YYYY");
+                    return (
+                      <SelectItem key={monthValue} value={monthValue}>
+                        {monthLabel}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <AddCategoryDialog onAddCategory={handleAddCategory} />
+          </div>
         </div>
       </div>
 
-      {categoriesLoading ? (
-        <div className="text-center py-8 text-muted-foreground">
-          Loading categories...
-        </div>
-      ) : (
-        <div className="flex flex-col gap-10">
-          {/* ----- Income Section ----- */}
-          <section>
-            <h3 className="text-2xl font-semibold mb-2 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-500" />
-              Income
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Total income for {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
-              <span className="font-semibold text-green-600">
-                {currencySymbol}
-                {totalIncome.toFixed(2)}
-              </span>
-            </p>
-            {incomeCategories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {incomeCategories.map((category) => {
-                  const Icon = getIconComponent(category.icon || "DollarSign");
-                  return (
-                    <Card
-                      key={category.id}
-                      className="hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="relative">
-                        <div className="flex items-start gap-3">
-                          <div className="p-3 rounded-lg bg-green-50">
-                            <Icon className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">
-                              {category.name}
-                            </CardTitle>
-                            <CardDescription className="text-sm">
-                              {category.transactions} transactions
-                            </CardDescription>
-                          </div>
-                        </div>
+      <Tabs
+        defaultValue="income"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+      >
+        <TabsList className="w-full flex-shrink-0 justify-start overflow-x-auto border border-border/40 bg-background/60 backdrop-blur-sm shadow-sm px-2">
+          <TabsTrigger value="income" className="flex-1 sm:flex-initial">
+            <TrendingUp className="h-4 w-4" />
+            <span>Income</span>
+          </TabsTrigger>
+          <TabsTrigger value="expense" className="flex-1 sm:flex-initial">
+            <TrendingDown className="h-4 w-4" />
+            <span>Expenses</span>
+          </TabsTrigger>
+        </TabsList>
 
-                        <div className="absolute top-2 right-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleEditCategory(category)}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(category)}
-                                className="text-destructive"
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Income ({dayjs(selectedMonth).format("MMM YYYY")})
-                          </span>
-                          <span className="font-medium text-green-600">
-                            {currencySymbol}
-                            {category.spent.toFixed(2)}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+        <div className="w-full flex-1 overflow-hidden rounded-xl border border-border/40 bg-background/50 p-4 shadow-sm backdrop-blur-sm min-h-0">
+          <TabsContent value="income" className="h-full w-full overflow-auto">
+            {categoriesLoading ? (
+              <div className="flex w-full items-center justify-center py-16">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary"></div>
+                  <p className="text-sm">Loading categories...</p>
+                </div>
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">
-                No income categories yet.
-              </p>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Total income for {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
+                    <span className="font-semibold text-green-600">
+                      {currencySymbol}
+                      {totalIncome.toFixed(2)}
+                    </span>
+                  </p>
+                </div>
+                {incomeCategories.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {incomeCategories.map((category) => {
+                      const Icon = getIconComponent(
+                        category.icon || "DollarSign"
+                      );
+                      return (
+                        <Card
+                          key={category.id}
+                          className="hover:shadow-md transition-shadow"
+                        >
+                          <CardHeader className="relative">
+                            <div className="flex items-start gap-3">
+                              <div className="p-3 rounded-lg bg-green-50">
+                                <Icon className="h-5 w-5 text-green-600" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg">
+                                  {category.name}
+                                </CardTitle>
+                                <CardDescription className="text-sm">
+                                  {category.transactions} transactions
+                                </CardDescription>
+                              </div>
+                            </div>
+
+                            <div className="absolute top-2 right-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditCategory(category)}
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(category)}
+                                    className="text-destructive"
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </CardHeader>
+
+                          <CardContent className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Income (
+                                {dayjs(selectedMonth).format("MMM YYYY")})
+                              </span>
+                              <span className="font-medium text-green-600">
+                                {currencySymbol}
+                                {category.spent.toFixed(2)}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex h-full min-h-[400px] items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/30 backdrop-blur-sm">
+                    <div className="text-center space-y-4 px-6">
+                      <div className="mx-auto h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center ring-4 ring-background">
+                        <TrendingUp className="h-7 w-7 text-muted-foreground/70" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="font-semibold text-lg text-foreground">
+                          No income categories yet
+                        </p>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                          Add your first income category to get started
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </section>
+          </TabsContent>
 
-          {/* ----- Expense Section ----- */}
-          <section>
-            <h3 className="text-2xl font-semibold mb-2 flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-red-500" />
-              Expenses
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Total budget:{" "}
-              <span className="font-semibold">
-                {currencySymbol}
-                {totalBudget.toFixed(2)}
-              </span>{" "}
-              | Total spent in {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
-              <span className="font-semibold text-red-600">
-                {currencySymbol}
-                {totalExpense.toFixed(2)}
-              </span>
-            </p>
-
-            {expenseCategories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {expenseCategories.map((category) => {
-                  const Icon = getIconComponent(
-                    category.icon || "ShoppingCart"
-                  );
-                  const percentage =
-                    category.monthlyBudget > 0
-                      ? (category.spent / category.monthlyBudget) * 100
-                      : 0;
-                  const isOverBudget = percentage > 100;
-
-                  return (
-                    <Card
-                      key={category.id}
-                      className="hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="relative">
-                        <div className="flex items-start gap-3">
-                          <div className="p-3 rounded-lg bg-muted">
-                            <Icon className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">
-                              {category.name}
-                            </CardTitle>
-                            <CardDescription className="text-sm">
-                              {category.transactions} transactions
-                            </CardDescription>
-                          </div>
-                        </div>
-
-                        <div className="absolute top-2 right-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleEditCategory(category)}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(category)}
-                                className="text-destructive"
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Monthly Budget
-                          </span>
-                          <span className="font-medium">
-                            {currencySymbol}
-                            {category.monthlyBudget}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Spent ({dayjs(selectedMonth).format("MMM YYYY")})
-                          </span>
-                          <span
-                            className={`font-medium ${
-                              isOverBudget ? "text-destructive" : ""
-                            }`}
-                          >
-                            {currencySymbol}
-                            {category.spent.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all ${
-                              isOverBudget ? "bg-destructive" : "bg-primary"
-                            }`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>{percentage.toFixed(0)}% used</span>
-                          {isOverBudget && (
-                            <Badge variant="destructive" className="text-xs">
-                              Over Budget
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+          <TabsContent value="expense" className="h-full w-full overflow-auto">
+            {categoriesLoading ? (
+              <div className="flex w-full items-center justify-center py-16">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary"></div>
+                  <p className="text-sm">Loading categories...</p>
+                </div>
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">
-                No expense categories yet.
-              </p>
-            )}
-          </section>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Total budget:{" "}
+                    <span className="font-semibold text-foreground">
+                      {currencySymbol}
+                      {totalBudget.toFixed(2)}
+                    </span>{" "}
+                    | Total spent in {dayjs(selectedMonth).format("MMMM YYYY")}:{" "}
+                    <span className="font-semibold text-red-600">
+                      {currencySymbol}
+                      {totalExpense.toFixed(2)}
+                    </span>
+                  </p>
+                </div>
 
-          <EditCategoryDialog
-            category={editingCategory}
-            open={editDialogOpen}
-            onOpenChange={setEditDialogOpen}
-            onCategoryUpdated={handleCategoryUpdated}
-          />
+                {expenseCategories.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {expenseCategories.map((category) => {
+                      const Icon = getIconComponent(
+                        category.icon || "ShoppingCart"
+                      );
+                      const percentage =
+                        category.monthlyBudget > 0
+                          ? (category.spent / category.monthlyBudget) * 100
+                          : 0;
+                      const isOverBudget = percentage > 100;
+
+                      return (
+                        <Card
+                          key={category.id}
+                          className="hover:shadow-md transition-shadow"
+                        >
+                          <CardHeader className="relative">
+                            <div className="flex items-start gap-3">
+                              <div className="p-3 rounded-lg bg-muted">
+                                <Icon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg">
+                                  {category.name}
+                                </CardTitle>
+                                <CardDescription className="text-sm">
+                                  {category.transactions} transactions
+                                </CardDescription>
+                              </div>
+                            </div>
+
+                            <div className="absolute top-2 right-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditCategory(category)}
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(category)}
+                                    className="text-destructive"
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </CardHeader>
+
+                          <CardContent className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Monthly Budget
+                              </span>
+                              <span className="font-medium">
+                                {currencySymbol}
+                                {category.monthlyBudget}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Spent ({dayjs(selectedMonth).format("MMM YYYY")}
+                                )
+                              </span>
+                              <span
+                                className={`font-medium ${
+                                  isOverBudget ? "text-destructive" : ""
+                                }`}
+                              >
+                                {currencySymbol}
+                                {category.spent.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all ${
+                                  isOverBudget ? "bg-destructive" : "bg-primary"
+                                }`}
+                                style={{
+                                  width: `${Math.min(percentage, 100)}%`,
+                                }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>{percentage.toFixed(0)}% used</span>
+                              {isOverBudget && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  Over Budget
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex h-full min-h-[400px] items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/30 backdrop-blur-sm">
+                    <div className="text-center space-y-4 px-6">
+                      <div className="mx-auto h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center ring-4 ring-background">
+                        <TrendingDown className="h-7 w-7 text-muted-foreground/70" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="font-semibold text-lg text-foreground">
+                          No expense categories yet
+                        </p>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                          Add your first expense category to get started
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
         </div>
-      )}
+      </Tabs>
+
+      <EditCategoryDialog
+        category={editingCategory}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onCategoryUpdated={handleCategoryUpdated}
+      />
     </div>
   );
 };
