@@ -27,12 +27,12 @@ const Hero = () => {
             Cashly Beta
           </Badge>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-            Own your cash flow with clarity.
+            Feel connected to your money and grow with intention.
           </h1>
           <p className="text-lg text-muted-foreground sm:text-xl">
-            Cashly unifies your accounts, budgets, and recurring bills into one
-            smart workspace so you can plan every dollar with confidence and hit
-            your financial goals faster.
+            Cashly brings your accounts, budgets, and recurring bills together
+            in one mindful workspace. Helps you spend with intention and grow
+            toward your goals.
           </p>
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
