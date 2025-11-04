@@ -74,6 +74,9 @@ interface TransactionListProps {
   currencySymbol?: string;
   onTransactionUpdated?: (updated: Transaction) => void;
   onTransactionDeleted?: (id: string) => void;
+  title?: string;
+  subtitle?: string;
+  note?: string;
 }
 
 export function TransactionList({
@@ -81,6 +84,9 @@ export function TransactionList({
   currencySymbol,
   onTransactionUpdated,
   onTransactionDeleted,
+  title,
+  subtitle,
+  note,
 }: TransactionListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -170,6 +176,11 @@ export function TransactionList({
   const totalTransactions = sortedTransactions.length;
   const totalPages = Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
   const currentPageSafe = Math.min(currentPage, totalPages);
+  const rangeStart =
+    totalTransactions === 0 ? 0 : (currentPageSafe - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(currentPageSafe * PAGE_SIZE, totalTransactions);
+  const defaultSubtitle = `${rangeStart} - ${rangeEnd} of ${totalTransactions} transactions`;
+
   const paginatedTransactions = sortedTransactions.slice(
     (currentPageSafe - 1) * PAGE_SIZE,
     currentPageSafe * PAGE_SIZE
@@ -317,20 +328,14 @@ export function TransactionList({
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-xl font-semibold text-foreground">
-                Recent Transactions
+                {title ?? "Recent Transactions"}
               </h2>
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  {totalTransactions === 0
-                    ? 0
-                    : (currentPageSafe - 1) * PAGE_SIZE + 1}
-                </span>{" "}
-                -{" "}
-                <span className="font-medium text-foreground">
-                  {Math.min(currentPageSafe * PAGE_SIZE, totalTransactions)}
-                </span>{" "}
-                of {totalTransactions} transactions
+                {subtitle ?? defaultSubtitle}
               </p>
+              {note ? (
+                <p className="mt-1 text-xs text-muted-foreground/80">{note}</p>
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               {selectedRows.size > 0 ? (

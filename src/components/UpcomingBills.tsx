@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Check,
@@ -20,6 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "./ui/pagination";
 import { AddRecurringBillDialog } from "./AddRecurringBillsDialog";
 import EditRecurringBillsDialog from "./EditRecurringBillsDialog";
 import { PayRecurringBillDialog } from "./PayRecurringBillDialog";
@@ -38,6 +47,8 @@ interface RecurringBillsProps {
   creditHook: CreditCardPaymentsHook;
 }
 
+const UPCOMING_PAGE_SIZE = 10;
+
 const UpcomingBills = ({
   currencySymbol,
   billsHook,
@@ -52,6 +63,7 @@ const UpcomingBills = ({
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {}
   );
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     bills,
@@ -203,12 +215,71 @@ const UpcomingBills = ({
       })),
     ];
 
-    return items
-      .sort(
-        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-      )
-      .slice(0, 10);
+    return items.sort(
+      (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+    );
   }, [upcomingRecurring, upcomingCreditGroups]);
+
+  const totalUpcoming = upcomingItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalUpcoming / UPCOMING_PAGE_SIZE));
+  const currentPageSafe = Math.min(currentPage, totalPages);
+  const paginatedUpcomingItems = useMemo(
+    () =>
+      upcomingItems.slice(
+        (currentPageSafe - 1) * UPCOMING_PAGE_SIZE,
+        currentPageSafe * UPCOMING_PAGE_SIZE
+      ),
+    [upcomingItems, currentPageSafe]
+  );
+  const rangeStart =
+    totalUpcoming === 0 ? 0 : (currentPageSafe - 1) * UPCOMING_PAGE_SIZE + 1;
+  const rangeEnd = Math.min(
+    currentPageSafe * UPCOMING_PAGE_SIZE,
+    totalUpcoming
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [totalUpcoming]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginationItems = useMemo(() => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+
+    const shouldShowLeftEllipsis = currentPageSafe > 3;
+    const shouldShowRightEllipsis = currentPageSafe < totalPages - 2;
+    pages.push(1);
+
+    if (shouldShowLeftEllipsis) {
+      pages.push("...");
+    }
+
+    const start = Math.max(2, currentPageSafe - 1);
+    const end = Math.min(totalPages - 1, currentPageSafe + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (shouldShowRightEllipsis) {
+      pages.push("...");
+    }
+
+    pages.push(totalPages);
+
+    return pages;
+  }, [currentPageSafe, totalPages]);
 
   const totals = useMemo(() => {
     const recurringTotal = upcomingRecurring.reduce(
@@ -225,7 +296,7 @@ const UpcomingBills = ({
   }, [upcomingRecurring, upcomingCreditGroups]);
 
   const hasAnySource = bills.length > 0 || upcomingCreditGroups.length > 0;
-  const hasUpcoming = upcomingItems.length > 0;
+  const hasUpcoming = totalUpcoming > 0;
 
   const handleRecordCreditGroup = async (group: {
     id: string;
@@ -256,7 +327,7 @@ const UpcomingBills = ({
 
   return (
     <>
-      <Card className="flex h-full flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm">
+      <Card className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background/60 shadow-sm backdrop-blur-sm">
         <div className="bg-background/50 backdrop-blur-sm">
           <div className="flex flex-col gap-4 px-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -265,11 +336,28 @@ const UpcomingBills = ({
                   Upcoming Bills
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Showing{" "}
-                  <span className="font-semibold text-foreground">
-                    {upcomingItems.length}
-                  </span>{" "}
-                  upcoming {upcomingItems.length === 1 ? "payment" : "payments"}
+                  {hasUpcoming ? (
+                    <>
+                      <span className="font-semibold text-foreground">
+                        {rangeStart}
+                      </span>{" "}
+                      -{" "}
+                      <span className="font-semibold text-foreground">
+                        {rangeEnd}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-foreground">
+                        {totalUpcoming}
+                      </span>{" "}
+                      upcoming {totalUpcoming === 1 ? "payment" : "payments"}
+                    </>
+                  ) : (
+                    <>
+                      Showing{" "}
+                      <span className="font-semibold text-foreground">0</span>{" "}
+                      upcoming payments
+                    </>
+                  )}
                 </p>
                 <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-2">
                   <div>
@@ -302,7 +390,7 @@ const UpcomingBills = ({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 px-4 pb-4 overflow-auto">
+        <div className="flex-1 min-h-0 px-4">
           {loading && !hasAnySource ? (
             <div className="flex h-full min-h-[400px] items-center justify-center">
               <div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -352,258 +440,327 @@ const UpcomingBills = ({
               </div>
             </div>
           ) : (
-            <div className="h-full overflow-x-auto overflow-y-auto rounded-xl border border-border/40 bg-background/60 backdrop-blur-sm shadow-sm">
-              <Table className="table-fixed w-full">
-                <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
-                  <TableRow className="hover:bg-transparent bg-muted/80">
-                    <TableHead className="h-12 w-[60px] text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-                      <div className="flex items-center justify-center">
-                        <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40"></div>
-                      </div>
-                    </TableHead>
-                    <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                      Title
-                    </TableHead>
-                    <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                      Due Date
-                    </TableHead>
-                    <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                      Payment Method
-                    </TableHead>
-                    <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                      Frequency
-                    </TableHead>
-                    <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                      Amount
-                    </TableHead>
-                    <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {upcomingItems.flatMap((item, index) => {
-                    const isCreditGroup = item.kind === "creditGroup";
-                    const bill = item.bill;
-                    const amountValue = Number(item.amount ?? 0);
-                    const isExpanded = isCreditGroup && expandedGroups[item.id];
-                    const canOpenEdit = item.kind === "recurring" && !!bill;
-                    const canToggleDetails = isCreditGroup;
-                    const handleRowActivation = () => {
-                      if (canOpenEdit && bill) {
-                        setSelectedBill(bill);
-                        setIsEditOpen(true);
-                        return;
-                      }
-                      if (canToggleDetails) {
-                        toggleGroupDetails(item.id);
-                      }
-                    };
-                    const handleRowKeyDown = (
-                      event: ReactKeyboardEvent<HTMLTableRowElement>
-                    ) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleRowActivation();
-                      }
-                    };
-
-                    return [
-                      // Main row
-                      <TableRow
-                        key={`${item.kind}:${item.id}`}
-                        tabIndex={0}
-                        onClick={handleRowActivation}
-                        onKeyDown={handleRowKeyDown}
-                        className={`border-b border-border/25 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 ${
-                          index % 2 === 0
-                            ? "bg-background/50"
-                            : "bg-background/40"
-                        } hover:bg-primary/8 hover:border-primary/15 hover:shadow-sm cursor-pointer`}
-                      >
-                        <TableCell className="py-4 w-[60px]">
+            <div className="flex h-full flex-col">
+              <div className="flex-1 min-h-0">
+                <div className="h-full overflow-x-auto overflow-y-auto rounded-xl border border-border bg-background/60 backdrop-blur-sm shadow-sm">
+                  <Table className="table-fixed w-full">
+                    <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
+                      <TableRow className="hover:bg-transparent bg-muted/80">
+                        <TableHead className="h-12 w-[60px] text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
                           <div className="flex items-center justify-center">
-                            {bill?.is_paid ? (
-                              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                            ) : (
-                              <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                            )}
+                            <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40"></div>
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4 w-[calc((100%-60px)/6)]">
-                          <div className="flex items-start gap-3">
-                            {isCreditGroup ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 shrink-0 p-0"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  toggleGroupDetails(item.id);
-                                }}
-                                aria-label={
-                                  expandedGroups[item.id]
-                                    ? "Collapse details"
-                                    : "Expand details"
-                                }
-                              >
-                                {expandedGroups[item.id] ? (
-                                  <ChevronDown className="h-4 w-4" />
+                        </TableHead>
+                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
+                          Title
+                        </TableHead>
+                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
+                          Due Date
+                        </TableHead>
+                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
+                          Payment Method
+                        </TableHead>
+                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
+                          Frequency
+                        </TableHead>
+                        <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
+                          Amount
+                        </TableHead>
+                        <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedUpcomingItems.flatMap((item, index) => {
+                        const globalIndex =
+                          (currentPageSafe - 1) * UPCOMING_PAGE_SIZE + index;
+                        const isCreditGroup = item.kind === "creditGroup";
+                        const bill = item.bill;
+                        const amountValue = Number(item.amount ?? 0);
+                        const isExpanded =
+                          isCreditGroup && expandedGroups[item.id];
+                        const canOpenEdit = item.kind === "recurring" && !!bill;
+                        const canToggleDetails = isCreditGroup;
+                        const handleRowActivation = () => {
+                          if (canOpenEdit && bill) {
+                            setSelectedBill(bill);
+                            setIsEditOpen(true);
+                            return;
+                          }
+                          if (canToggleDetails) {
+                            toggleGroupDetails(item.id);
+                          }
+                        };
+                        const handleRowKeyDown = (
+                          event: ReactKeyboardEvent<HTMLTableRowElement>
+                        ) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleRowActivation();
+                          }
+                        };
+
+                        return [
+                          // Main row
+                          <TableRow
+                            key={`${item.kind}:${item.id}`}
+                            tabIndex={0}
+                            onClick={handleRowActivation}
+                            onKeyDown={handleRowKeyDown}
+                            className={`border-b border-border/25 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 ${
+                              globalIndex % 2 === 0
+                                ? "bg-background/50"
+                                : "bg-background/40"
+                            } hover:bg-primary/8 hover:border-primary/15 hover:shadow-sm cursor-pointer`}
+                          >
+                            <TableCell className="py-4 w-[60px]">
+                              <div className="flex items-center justify-center">
+                                {bill?.is_paid ? (
+                                  <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                 ) : (
-                                  <ChevronRight className="h-4 w-4" />
+                                  <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                                 )}
-                              </Button>
-                            ) : (
-                              <div className="h-8 w-8" aria-hidden="true"></div>
-                            )}
-                            <div className="flex flex-col gap-1">
-                              <span className="font-medium text-sm text-foreground truncate">
-                                {item.title}
-                              </span>
-                              {isCreditGroup && (
-                                <span className="text-xs text-muted-foreground">
-                                  {item.payments.length} payment
-                                  {item.payments.length > 1 ? "s" : ""}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                          {isCreditGroup
-                            ? formatDate(item.dueDate)
-                            : bill?.is_paid
-                            ? formatDate(bill.next_due_date)
-                            : formatDate(item.dueDate)}
-                        </TableCell>
-                        <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                          {item.paymentMethod ||
-                            (isCreditGroup ? "Credit Card" : "-")}
-                        </TableCell>
-                        <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                          {item.kind === "recurring"
-                            ? getFrequencyText(item.frequency)
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="py-4 text-center w-[calc((100%-60px)/6)]">
-                          <div className="flex items-center justify-center">
-                            <span className="text-sm font-semibold text-foreground">
-                              {currencySymbol}
-                              {amountValue.toFixed(2)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 text-center w-[calc((100%-60px)/6)]">
-                          <div className="flex items-center justify-center gap-2">
-                            {item.kind === "recurring" &&
-                              bill &&
-                              !bill.is_paid && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setBillToPay(bill);
-                                    setIsPayOpen(true);
-                                  }}
-                                  className="text-xs border-border/60 hover:bg-accent/50"
-                                >
-                                  Pay
-                                </Button>
-                              )}
-
-                            {isCreditGroup && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={
-                                  groupRecordingId === item.id ||
-                                  item.payments.length === 0
-                                }
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleRecordCreditGroup({
-                                    id: item.id,
-                                    title: item.title,
-                                    amount: item.amount,
-                                    dueDate: item.dueDate,
-                                    payments: item.payments,
-                                    bill: item.bill,
-                                  });
-                                }}
-                                className="text-xs border-border/60 hover:bg-accent/50"
-                              >
-                                {groupRecordingId === item.id
-                                  ? "Recording..."
-                                  : "Pay"}
-                              </Button>
-                            )}
-
-                            {bill?.is_paid && (
-                              <span className="text-xs text-green-600">
-                                Paid
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>,
-                      // Expanded payment rows for credit groups
-                      ...(isExpanded
-                        ? item.payments.map((payment, paymentIndex) => (
-                            <TableRow
-                              key={`${item.id}-payment-${payment.id}`}
-                              className={`border-b border-border/20 transition-all duration-200 bg-background/30 hover:bg-primary/5 hover:border-primary/10 ${
-                                paymentIndex % 2 === 0
-                                  ? "bg-background/35"
-                                  : "bg-background/30"
-                              }`}
-                            >
-                              <TableCell className="py-3 pl-12 w-[60px]">
-                                <div className="flex items-center justify-center">
-                                  <div className="h-2 w-2 rounded-full bg-primary/60"></div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 w-[calc((100%-60px)/6)]">
+                              <div className="flex items-start gap-3">
+                                {isCreditGroup ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 shrink-0 p-0"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      toggleGroupDetails(item.id);
+                                    }}
+                                    aria-label={
+                                      expandedGroups[item.id]
+                                        ? "Collapse details"
+                                        : "Expand details"
+                                    }
+                                  >
+                                    {expandedGroups[item.id] ? (
+                                      <ChevronDown className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                ) : (
+                                  <div
+                                    className="h-8 w-8"
+                                    aria-hidden="true"
+                                  ></div>
+                                )}
+                                <div className="flex flex-col gap-1">
+                                  <span className="font-medium text-sm text-foreground truncate">
+                                    {item.title}
+                                  </span>
+                                  {isCreditGroup && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {item.payments.length} payment
+                                      {item.payments.length > 1 ? "s" : ""}
+                                    </span>
+                                  )}
                                 </div>
-                              </TableCell>
-                              <TableCell className="py-3 text-sm font-medium text-foreground w-[calc((100%-60px)/6)]">
-                                {payment.title}
-                              </TableCell>
-                              <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                                {formatDate(payment.due_date)}
-                              </TableCell>
-                              <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                                Credit Card
-                              </TableCell>
-                              <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                                -
-                              </TableCell>
-                              <TableCell className="py-3 text-center w-[calc((100%-60px)/6)]">
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
+                              {isCreditGroup
+                                ? formatDate(item.dueDate)
+                                : bill?.is_paid
+                                ? formatDate(bill.next_due_date)
+                                : formatDate(item.dueDate)}
+                            </TableCell>
+                            <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
+                              {item.paymentMethod ||
+                                (isCreditGroup ? "Credit Card" : "-")}
+                            </TableCell>
+                            <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
+                              {item.kind === "recurring"
+                                ? getFrequencyText(item.frequency)
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="py-4 text-center w-[calc((100%-60px)/6)]">
+                              <div className="flex items-center justify-center">
                                 <span className="text-sm font-semibold text-foreground">
                                   {currencySymbol}
-                                  {payment.amount.toFixed(2)}
+                                  {amountValue.toFixed(2)}
                                 </span>
-                              </TableCell>
-                              <TableCell className="py-3 text-center w-[calc((100%-60px)/6)]">
-                                {(payment as any).installment_number &&
-                                (payment as any).total_installments ? (
-                                  <span className="text-xs text-muted-foreground">
-                                    {(payment as any).installment_number}/
-                                    {(payment as any).total_installments}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    -
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 text-center w-[calc((100%-60px)/6)]">
+                              <div className="flex items-center justify-center gap-2">
+                                {item.kind === "recurring" &&
+                                  bill &&
+                                  !bill.is_paid && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        setBillToPay(bill);
+                                        setIsPayOpen(true);
+                                      }}
+                                      className="text-xs border-border/60 hover:bg-accent/50"
+                                    >
+                                      Pay
+                                    </Button>
+                                  )}
+
+                                {isCreditGroup && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      groupRecordingId === item.id ||
+                                      item.payments.length === 0
+                                    }
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleRecordCreditGroup({
+                                        id: item.id,
+                                        title: item.title,
+                                        amount: item.amount,
+                                        dueDate: item.dueDate,
+                                        payments: item.payments,
+                                        bill: item.bill,
+                                      });
+                                    }}
+                                    className="text-xs border-border/60 hover:bg-accent/50"
+                                  >
+                                    {groupRecordingId === item.id
+                                      ? "Recording..."
+                                      : "Pay"}
+                                  </Button>
+                                )}
+
+                                {bill?.is_paid && (
+                                  <span className="text-xs text-green-600">
+                                    Paid
                                   </span>
                                 )}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        : []),
-                    ];
-                  })}
-                </TableBody>
-              </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>,
+                          // Expanded payment rows for credit groups
+                          ...(isExpanded
+                            ? item.payments.map((payment, paymentIndex) => (
+                                <TableRow
+                                  key={`${item.id}-payment-${payment.id}`}
+                                  className={`border-b border-border/20 transition-all duration-200 bg-background/30 hover:bg-primary/5 hover:border-primary/10 ${
+                                    paymentIndex % 2 === 0
+                                      ? "bg-background/35"
+                                      : "bg-background/30"
+                                  }`}
+                                >
+                                  <TableCell className="py-3 pl-12 w-[60px]">
+                                    <div className="flex items-center justify-center">
+                                      <div className="h-2 w-2 rounded-full bg-primary/60"></div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-3 text-sm font-medium text-foreground w-[calc((100%-60px)/6)]">
+                                    {payment.title}
+                                  </TableCell>
+                                  <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
+                                    {formatDate(payment.due_date)}
+                                  </TableCell>
+                                  <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
+                                    Credit Card
+                                  </TableCell>
+                                  <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
+                                    -
+                                  </TableCell>
+                                  <TableCell className="py-3 text-center w-[calc((100%-60px)/6)]">
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {currencySymbol}
+                                      {payment.amount.toFixed(2)}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="py-3 text-center w-[calc((100%-60px)/6)]">
+                                    {(payment as any).installment_number &&
+                                    (payment as any).total_installments ? (
+                                      <span className="text-xs text-muted-foreground">
+                                        {(payment as any).installment_number}/
+                                        {(payment as any).total_installments}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">
+                                        -
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            : []),
+                        ];
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {hasUpcoming && (
+          <div className="bg-background/50 px-4">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+              <span className="text-xs text-muted-foreground">
+                Page {currentPageSafe} of {totalPages}
+              </span>
+              <Pagination className="w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (currentPageSafe === 1) return;
+                        setCurrentPage((prev) => Math.max(prev - 1, 1));
+                      }}
+                      className="disabled:pointer-events-none disabled:opacity-50"
+                      aria-disabled={currentPageSafe === 1}
+                    />
+                  </PaginationItem>
+                  {paginationItems.map((item, itemIndex) => (
+                    <PaginationItem key={`${item}-${itemIndex}`}>
+                      {item === "..." ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <PaginationLink
+                          href="#"
+                          isActive={currentPageSafe === item}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setCurrentPage(item);
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (currentPageSafe === totalPages) return;
+                        setCurrentPage((prev) =>
+                          Math.min(prev + 1, totalPages)
+                        );
+                      }}
+                      className="disabled:pointer-events-none disabled:opacity-50"
+                      aria-disabled={currentPageSafe === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AddRecurringBillDialog

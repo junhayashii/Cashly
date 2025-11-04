@@ -14,6 +14,7 @@ export interface Transaction {
   goal_id?: string;
   from_account_id?: string;
   to_account_id?: string;
+  recurring_bill_id?: string | null;
 }
 
 export interface Category {

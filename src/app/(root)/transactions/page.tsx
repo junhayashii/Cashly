@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { TransactionList } from "@/components/TransactionList";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
 
   const billsHook = useBills();
+  const { bills, loading: billsLoading } = billsHook;
   const creditHook = useCreditCardPayments();
   const { payments, refresh: refreshPayments } = creditHook;
 
@@ -60,6 +61,26 @@ const TransactionPage = () => {
 
   const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
 
+  const handleTransactionUpdated = useCallback(
+    (updated: Transaction) => {
+      setTransactions((prev) =>
+        prev.map((transaction) =>
+          transaction.id === updated.id ? updated : transaction
+        )
+      );
+    },
+    [setTransactions]
+  );
+
+  const handleTransactionDeleted = useCallback(
+    (deletedId: string) => {
+      setTransactions((prev) =>
+        prev.filter((transaction) => transaction.id !== deletedId)
+      );
+    },
+    [setTransactions]
+  );
+
   const handleAddTransaction = async (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
   };
@@ -76,6 +97,39 @@ const TransactionPage = () => {
   const incomeCount = transactions.filter((t) => t.type === "income").length;
   const expenseCount = transactions.filter((t) => t.type === "expense").length;
   const totalCount = transactions.length;
+
+  const recurringTransactions = useMemo(() => {
+    if (transactions.length === 0) return [];
+
+    const titleAmountKeys = new Set<string>();
+    bills.forEach((bill) => {
+      const normalizedTitle = bill.title?.trim().toLowerCase();
+      if (!normalizedTitle) return;
+      titleAmountKeys.add(
+        `${normalizedTitle}|${Math.abs(bill.amount).toFixed(2)}`
+      );
+    });
+
+    return transactions.filter((transaction) => {
+      if (transaction.recurring_bill_id) {
+        return true;
+      }
+
+      if (titleAmountKeys.size === 0) {
+        return false;
+      }
+
+      const normalizedTitle = transaction.title?.trim().toLowerCase() || "";
+      if (!normalizedTitle) {
+        return false;
+      }
+
+      const key = `${normalizedTitle}|${Math.abs(transaction.amount).toFixed(2)}`;
+      return titleAmountKeys.has(key);
+    });
+  }, [transactions, bills]);
+
+  const recurringLoading = loading || billsLoading;
 
   return (
     <div className="flex h-[95vh] w-full flex-col gap-4 overflow-hidden">
@@ -137,16 +191,8 @@ const TransactionPage = () => {
                 <TransactionList
                   transactions={transactions}
                   currencySymbol={currencySymbol}
-                  onTransactionUpdated={(updated) =>
-                    setTransactions((prev) =>
-                      prev.map((t) => (t.id === updated.id ? updated : t))
-                    )
-                  }
-                  onTransactionDeleted={(deletedId) =>
-                    setTransactions((prev) =>
-                      prev.filter((t) => t.id !== deletedId)
-                    )
-                  }
+                  onTransactionUpdated={handleTransactionUpdated}
+                  onTransactionDeleted={handleTransactionDeleted}
                 />
               </div>
             )}
@@ -178,11 +224,43 @@ const TransactionPage = () => {
             value="recurring"
             className="flex h-full w-full flex-col overflow-hidden min-h-0"
           >
-            <RecurringBillsManageTable
-              billsHook={billsHook}
-              creditHook={creditHook}
-              currencySymbol={currencySymbol}
-            />
+            <div className="grid h-full w-full min-h-0 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+              <div className="flex min-h-0 flex-col">
+                <RecurringBillsManageTable
+                  billsHook={billsHook}
+                  creditHook={creditHook}
+                  currencySymbol={currencySymbol}
+                />
+              </div>
+              <div className="flex min-h-0 flex-col">
+                {recurringLoading ? (
+                  <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-border/40 bg-muted/20">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary"></div>
+                      <p className="text-sm">
+                        Loading recurring transactions...
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex h-full flex-1 min-h-0">
+                    <TransactionList
+                      transactions={recurringTransactions}
+                      currencySymbol={currencySymbol}
+                      onTransactionUpdated={handleTransactionUpdated}
+                      onTransactionDeleted={handleTransactionDeleted}
+                      title="Recurring Bill Transactions"
+                      subtitle={
+                        recurringTransactions.length === 0
+                          ? "No recurring bill payments recorded yet"
+                          : undefined
+                      }
+                      note="Shows payments linked to recurring bills (directly or by matching bill name and amount)."
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>
