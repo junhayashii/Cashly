@@ -21,6 +21,7 @@ import { useTransaction } from "@/hooks/useTransactions";
 import { useCreditCardPayments } from "@/hooks/useCreditCardPayments";
 import UpcomingBills from "@/components/UpcomingBills";
 import { useBills } from "@/hooks/useBills";
+import type { RecurringBill } from "@/hooks/useBills";
 import { RecurringBillsManageTable } from "@/components/RecurringBillsManageTable";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
@@ -40,6 +41,9 @@ const TransactionPage = () => {
   const { payments, refresh: refreshPayments } = creditHook;
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedRecurringBillId, setSelectedRecurringBillId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -85,6 +89,13 @@ const TransactionPage = () => {
     setTransactions([newTransaction, ...transactions]);
   };
 
+  const handleRecurringBillSelect = useCallback(
+    (bill: RecurringBill | null) => {
+      setSelectedRecurringBillId(bill?.id ?? null);
+    },
+    []
+  );
+
   const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -124,10 +135,52 @@ const TransactionPage = () => {
         return false;
       }
 
-      const key = `${normalizedTitle}|${Math.abs(transaction.amount).toFixed(2)}`;
+      const key = `${normalizedTitle}|${Math.abs(transaction.amount).toFixed(
+        2
+      )}`;
       return titleAmountKeys.has(key);
     });
   }, [transactions, bills]);
+
+  const selectedRecurringBill = useMemo(() => {
+    if (!selectedRecurringBillId) return null;
+    return bills.find((bill) => bill.id === selectedRecurringBillId) ?? null;
+  }, [bills, selectedRecurringBillId]);
+
+  useEffect(() => {
+    if (!selectedRecurringBillId) return;
+    const stillExists = bills.some(
+      (bill) => bill.id === selectedRecurringBillId
+    );
+    if (!stillExists) {
+      setSelectedRecurringBillId(null);
+    }
+  }, [bills, selectedRecurringBillId]);
+
+  const filteredRecurringTransactions = useMemo(() => {
+    if (!selectedRecurringBill) return recurringTransactions;
+
+    const normalizedTitle =
+      selectedRecurringBill.title?.trim().toLowerCase() ?? "";
+    const normalizedAmount = Math.abs(selectedRecurringBill.amount).toFixed(2);
+
+    return recurringTransactions.filter((transaction) => {
+      if (transaction.recurring_bill_id === selectedRecurringBill.id) {
+        return true;
+      }
+
+      if (!normalizedTitle) return false;
+
+      const transactionTitle = transaction.title?.trim().toLowerCase() ?? "";
+      if (!transactionTitle) return false;
+
+      const transactionAmount = Math.abs(transaction.amount).toFixed(2);
+      return (
+        transactionAmount === normalizedAmount &&
+        transactionTitle === normalizedTitle
+      );
+    });
+  }, [recurringTransactions, selectedRecurringBill]);
 
   const recurringLoading = loading || billsLoading;
 
@@ -230,6 +283,8 @@ const TransactionPage = () => {
                   billsHook={billsHook}
                   creditHook={creditHook}
                   currencySymbol={currencySymbol}
+                  selectedBillId={selectedRecurringBillId}
+                  onSelectRecurringBill={handleRecurringBillSelect}
                 />
               </div>
               <div className="flex min-h-0 flex-col">
@@ -244,19 +299,29 @@ const TransactionPage = () => {
                   </div>
                 ) : (
                   <div className="flex h-full flex-1 min-h-0">
-                    <TransactionList
-                      transactions={recurringTransactions}
-                      currencySymbol={currencySymbol}
-                      onTransactionUpdated={handleTransactionUpdated}
-                      onTransactionDeleted={handleTransactionDeleted}
-                      title="Recurring Bill Transactions"
-                      subtitle={
-                        recurringTransactions.length === 0
-                          ? "No recurring bill payments recorded yet"
-                          : undefined
-                      }
-                      note="Shows payments linked to recurring bills (directly or by matching bill name and amount)."
-                    />
+                    <div className="flex w-full flex-1 flex-col">
+                      <TransactionList
+                        transactions={filteredRecurringTransactions}
+                        currencySymbol={currencySymbol}
+                        onTransactionUpdated={handleTransactionUpdated}
+                        onTransactionDeleted={handleTransactionDeleted}
+                        title={
+                          selectedRecurringBill
+                            ? `Recurring Bill Transactions — ${selectedRecurringBill.title}`
+                            : "Recurring Bill Transactions"
+                        }
+                        subtitle={
+                          filteredRecurringTransactions.length === 0
+                            ? "No recurring bill payments recorded yet"
+                            : undefined
+                        }
+                        note={
+                          selectedRecurringBill
+                            ? "Filtering by the selected recurring bill. Clear the filter to view all linked payments."
+                            : "Shows payments linked to recurring bills (directly or by matching bill name and amount)."
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>
