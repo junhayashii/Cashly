@@ -341,7 +341,7 @@ const Categories = () => {
   if (!selectedMonth) return null;
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col gap-4 overflow-hidden">
+    <div className="flex h-[95vh] w-full flex-col gap-4 overflow-hidden">
       {/* Header Section */}
       <div className="flex flex-shrink-0 flex-col gap-3">
         <div className="flex items-center justify-between">

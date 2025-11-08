@@ -127,7 +127,7 @@ const Goals = () => {
 
   return (
     <ProtectedRoute>
-      <div className="space-y-8">
+      <div className="space-y-8 h-[95vh] flex flex-col w-full overflow-hidden">
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
@@ -182,90 +182,8 @@ const Goals = () => {
           />
         </div>
 
-        {/* Overall Progress Card */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-bold text-foreground">
-                Overall Progress
-              </h3>
-              <p className="text-muted-foreground">
-                Progress across all your savings goals
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-foreground">
-                {totalProgress.toFixed(1)}%
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {currencySymbol}
-                {totalCurrent.toLocaleString()} of {currencySymbol}
-                {totalTarget.toLocaleString()}
-              </p>
-            </div>
-          </div>
-          <Progress value={totalProgress} className="h-3" />
-        </Card>
-
         {/* Goals Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GoalsSection currencySymbol={currencySymbol} />
-
-          {/* Quick Stats Card */}
-          <Card className="p-6">
-            <h3 className="text-xl font-bold text-foreground mb-4">
-              Quick Stats
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <Target className="h-4 w-4 text-green-600" />
-                  </div>
-                  <span className="text-sm font-medium">Total Goals</span>
-                </div>
-                <span className="font-bold">{goals.length}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Clock className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <span className="text-sm font-medium">Active Goals</span>
-                </div>
-                <span className="font-bold">{activeGoals.length}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/10">
-                    <TrendingUp className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <span className="text-sm font-medium">Completed</span>
-                </div>
-                <span className="font-bold">{completedGoals.length}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/10">
-                    <Calendar className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <span className="text-sm font-medium">Nearest Deadline</span>
-                </div>
-                <span className="font-bold text-sm">
-                  {goals.length > 0 && goals[0].target_date
-                    ? new Date(goals[0].target_date).toLocaleDateString(
-                        "en-US",
-                        { month: "short", year: "numeric" }
-                      )
-                    : "N/A"}
-                </span>
-              </div>
-            </div>
-          </Card>
-        </div>
+        <GoalsSection currencySymbol={currencySymbol} />
 
         {/* Add Goal Dialog */}
         <AddGoalDialog

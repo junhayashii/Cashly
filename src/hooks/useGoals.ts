@@ -134,12 +134,16 @@ export function useGoals() {
     return goals.find((goal) => goal.id === id);
   };
 
+  const isGoalCompleted = (goal: Goal) => {
+    return goal.status === "completed" || goal.current_amount >= goal.target_amount;
+  };
+
   const getActiveGoals = () => {
-    return goals.filter((goal) => goal.status === "active");
+    return goals.filter((goal) => goal.status === "active" && !isGoalCompleted(goal));
   };
 
   const getCompletedGoals = () => {
-    return goals.filter((goal) => goal.status === "completed");
+    return goals.filter((goal) => isGoalCompleted(goal));
   };
 
   const getPausedGoals = () => {
