@@ -321,7 +321,7 @@ export function TransactionList({
   };
 
   return (
-    <Card className="flex max-h-screen min-h-0 w-full flex-1 max-w-none flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm">
+    <Card className="flex h-full max-h-screen min-h-0 w-full flex-1 max-w-none flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm">
       {/* Fixed Header */}
       <div className="bg-background/50 backdrop-blur-sm">
         <div className="flex flex-col gap-4 px-4">

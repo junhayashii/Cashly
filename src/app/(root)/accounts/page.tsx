@@ -167,9 +167,9 @@ const Accounts = () => {
     : transactions;
 
   return (
-    <div className="space-y-8">
+    <div className="flex h-[95vh] flex-col gap-8 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-shrink-0 items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-foreground mb-2">Accounts</h2>
           <p className="text-muted-foreground">
@@ -205,20 +205,26 @@ const Accounts = () => {
       </div> */}
 
       {/* Main Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
         {/* Left Sidebar - Accounts List */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6">
+        <div className="lg:col-span-1 min-h-0">
+          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/40 bg-card/50">
+            <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">Accounts</p>
+              <span className="text-xs text-muted-foreground">
+                {accountsLoading ? "—" : accounts.length}
+              </span>
+            </div>
             {accountsLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="flex flex-1 items-center justify-center px-4 text-center text-muted-foreground">
                 Loading accounts...
               </div>
             ) : accounts.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
+              <div className="flex flex-1 items-center justify-center px-4 text-center text-muted-foreground">
                 No accounts yet. Add your first one!
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="flex-1 space-y-3 overflow-y-auto px-2 py-4 pr-3">
                 {accounts.map((account) => {
                   const Icon = getIconComponent("Wallet");
                   const gradientClass = getAccountGradient(account.type);
@@ -320,132 +326,140 @@ const Accounts = () => {
         </div>
 
         {/* Right Content Area */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 flex flex-col gap-6 min-h-0">
           {/* Selected Account Info */}
-          {selectedAccount ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 💰 Current Balance */}
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-sm text-muted-foreground">
-                    Current Balance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">
-                    {currencySymbol}
-                    {selectedAccount.balance.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                </CardContent>
-              </Card>
+          <div className="shrink-0">
+            {selectedAccount ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 💰 Current Balance */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-muted-foreground">
+                      Current Balance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {currencySymbol}
+                      {selectedAccount.balance.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                  </CardContent>
+                </Card>
 
-              {/* 💳 Credit Limit */}
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-sm text-muted-foreground">
-                    Credit Limit
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedAccount.credit_limit ? (
-                    <>
-                      {/* 総枠表示 */}
-                      <p className="text-2xl font-bold">
-                        {currencySymbol}
-                        {selectedAccount.credit_limit.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </p>
+                {/* 💳 Credit Limit */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-muted-foreground">
+                      Credit Limit
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedAccount.credit_limit ? (
+                      <>
+                        {/* 総枠表示 */}
+                        <p className="text-2xl font-bold">
+                          {currencySymbol}
+                          {selectedAccount.credit_limit.toLocaleString(
+                            "en-US",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
+                        </p>
 
-                      {/* 使用済み金額 */}
-                      {typeof selectedAccount.available_limit === "number" && (
-                        <div className="mt-3">
-                          {/* 計算 */}
-                          {(() => {
-                            const usedAmount =
-                              selectedAccount.credit_limit -
-                              selectedAccount.available_limit;
-                            const usagePercent =
-                              (usedAmount / selectedAccount.credit_limit) * 100;
+                        {/* 使用済み金額 */}
+                        {typeof selectedAccount.available_limit === "number" && (
+                          <div className="mt-3">
+                            {/* 計算 */}
+                            {(() => {
+                              const usedAmount =
+                                selectedAccount.credit_limit -
+                                selectedAccount.available_limit;
+                              const usagePercent =
+                                (usedAmount / selectedAccount.credit_limit) *
+                                100;
 
-                            return (
-                              <>
-                                <p className="text-sm text-muted-foreground mb-1">
-                                  Used: {currencySymbol}
-                                  {usedAmount.toLocaleString("en-US", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}{" "}
-                                  ({usagePercent.toFixed(0)}%)
-                                </p>
+                              return (
+                                <>
+                                  <p className="text-sm text-muted-foreground mb-1">
+                                    Used: {currencySymbol}
+                                    {usedAmount.toLocaleString("en-US", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}{" "}
+                                    ({usagePercent.toFixed(0)}%)
+                                  </p>
 
-                                {/* プログレスバー */}
-                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary transition-all duration-500"
-                                    style={{ width: `${usagePercent}%` }}
-                                  ></div>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-lg text-muted-foreground">—</p>
-                  )}
-                </CardContent>
-              </Card>
+                                  {/* プログレスバー */}
+                                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-primary transition-all duration-500"
+                                      style={{ width: `${usagePercent}%` }}
+                                    ></div>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-lg text-muted-foreground">—</p>
+                    )}
+                  </CardContent>
+                </Card>
 
-              {/* 📅 Upcoming Payment */}
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-sm text-muted-foreground">
-                    Upcoming Payment
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">
-                    {currencySymbol}
-                    {monthlyDue.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Due this month
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="bg-muted/50 rounded-xl p-6 text-center">
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Select an Account
-              </h3>
-              <p className="text-muted-foreground">
-                Choose an account from the sidebar to view its details and
-                transactions
-              </p>
-            </div>
-          )}
+                {/* 📅 Upcoming Payment */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-muted-foreground">
+                      Upcoming Payment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {currencySymbol}
+                      {monthlyDue.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Due this month
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="bg-muted/50 rounded-xl p-6 text-center">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Select an Account
+                </h3>
+                <p className="text-muted-foreground">
+                  Choose an account from the sidebar to view its details and
+                  transactions
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Transactions*/}
 
-          <TransactionList
-            transactions={selectedAccountTransactions}
-            title={
-              selectedAccount
-                ? `${selectedAccount.name} Transactions`
-                : "All Transactions"
-            }
-            currencySymbol={currencySymbol}
-          />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <TransactionList
+              transactions={selectedAccountTransactions}
+              title={
+                selectedAccount
+                  ? `${selectedAccount.name} Transactions`
+                  : "All Transactions"
+              }
+              currencySymbol={currencySymbol}
+            />
+          </div>
         </div>
       </div>
 
