@@ -12,6 +12,9 @@ export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<VerifyStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+  const nextParam = searchParams.get("next");
+  const redirectTarget =
+    nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
 
   useEffect(() => {
     let active = true;
@@ -72,11 +75,11 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     if (status === "success") {
       const timer = setTimeout(() => {
-        router.replace("/dashboard");
+        router.replace(redirectTarget);
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [router, status]);
+  }, [redirectTarget, router, status]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50">

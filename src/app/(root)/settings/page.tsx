@@ -286,6 +286,10 @@ const Settings = () => {
       });
       setUpgradeHandled(true);
       clearUpgradeParams();
+    } else if (upgradeStatus === "cta") {
+      setPaymentDialogOpen(true);
+      setUpgradeHandled(true);
+      clearUpgradeParams();
     }
   }, [
     clearUpgradeParams,

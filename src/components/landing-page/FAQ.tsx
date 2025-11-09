@@ -7,9 +7,9 @@ const faqs = [
       "Yes. Cashly connects to thousands of financial institutions with secure aggregators. Most users link their core accounts in under five minutes using read-only access.",
   },
   {
-    question: "What happens after the 14-day trial?",
+    question: "Do I need a trial before upgrading?",
     answer:
-      "You’ll pick a plan that fits your workflow. If you do nothing you’ll stay on the Starter tier, which keeps basic budgeting and manual imports free forever.",
+      "No trial required. Stay on the free Starter plan as long as you like and upgrade to Pro whenever you’re ready—billing begins immediately and you can cancel anytime.",
   },
   {
     question: "How do automations work?",
@@ -21,11 +21,11 @@ const faqs = [
     answer:
       "Absolutely. Cashly uses bank-grade encryption, SOC 2 compliant infrastructure, and we never store your credentials. You can revoke access anytime.",
   },
-  {
-    question: "Can my partner or accountant join the workspace?",
-    answer:
-      "Invite as many collaborators as your plan allows. Share tailored views, assign tasks, and audit who changed what with a full activity log.",
-  },
+  // {
+  //   question: "Can my partner or accountant join the workspace?",
+  //   answer:
+  //     "Invite as many collaborators as your plan allows. Share tailored views, assign tasks, and audit who changed what with a full activity log.",
+  // },
   {
     question: "Do you offer onboarding help?",
     answer:

@@ -55,11 +55,11 @@ const Hero = () => {
           <div className="flex flex-col items-center gap-4 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:justify-center">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-              Bank-grade encryption & 2FA
+              Bank-grade encryption.
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="size-4 text-primary" aria-hidden="true" />
-              14-day free trial. Cancel anytime.
+              Transparent monthly billing.
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2

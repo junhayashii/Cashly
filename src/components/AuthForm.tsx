@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ForgotPasswordDialog } from "./ForgotPasswordDialog";
 
-export function AuthForm({ mode }: { mode: "signup" | "login" }) {
+type AuthFormProps = {
+  mode: "signup" | "login";
+  nextPath?: string;
+};
+
+export function AuthForm({ mode, nextPath }: AuthFormProps) {
   const isLogin = mode === "login";
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -15,6 +20,8 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const safeNextPath =
+    nextPath && nextPath.startsWith("/") ? nextPath : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +32,9 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
     // Supabase の認証呼び出し
     const emailRedirectTo =
       !isLogin && typeof window !== "undefined"
-        ? `${window.location.origin}/verify-email`
+        ? `${window.location.origin}/verify-email${
+            safeNextPath ? `?next=${encodeURIComponent(safeNextPath)}` : ""
+          }`
         : undefined;
     const { data, error } = isLogin
       ? await supabase.auth.signInWithPassword({ email, password })
@@ -52,7 +61,7 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
         await supabase.auth.signOut();
         return;
       }
-      router.push("/dashboard");
+      router.push(safeNextPath ?? "/dashboard");
       return;
     }
 
@@ -97,14 +106,28 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
           {isLogin ? (
             <>
               No account?{" "}
-              <a href="/signup" className="text-blue-600 hover:underline">
+              <a
+                href={
+                  safeNextPath
+                    ? `/signup?next=${encodeURIComponent(safeNextPath)}`
+                    : "/signup"
+                }
+                className="text-blue-600 hover:underline"
+              >
                 Sign up
               </a>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <a href="/login" className="text-blue-600 hover:underline">
+              <a
+                href={
+                  safeNextPath
+                    ? `/login?next=${encodeURIComponent(safeNextPath)}`
+                    : "/login"
+                }
+                className="text-blue-600 hover:underline"
+              >
                 Sign in
               </a>
             </>

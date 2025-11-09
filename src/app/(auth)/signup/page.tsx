@@ -1,10 +1,22 @@
 import React from "react";
 import { AuthForm } from "@/components/AuthForm";
 
-const SignUpPage = () => {
+type PageProps = {
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
+
+const SignUpPage = ({ searchParams }: PageProps) => {
+  const rawNext = searchParams?.next;
+  const nextPath =
+    typeof rawNext === "string"
+      ? rawNext
+      : Array.isArray(rawNext)
+      ? rawNext[0]
+      : undefined;
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50">
-      <AuthForm mode="signup" />
+      <AuthForm mode="signup" nextPath={nextPath} />
     </main>
   );
 };

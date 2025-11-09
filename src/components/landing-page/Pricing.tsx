@@ -4,6 +4,8 @@ import { Check, Sparkles, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+const upgradeNextParam = encodeURIComponent("/settings?upgrade=cta");
+
 const plans = [
   {
     name: "Starter",
@@ -21,8 +23,8 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "$19",
-    cadence: "/mo",
+    price: "R$14.90",
+    cadence: "/month",
     description:
       "Advanced forecasting, accountability, and collaboration for growing teams.",
     features: [
@@ -32,8 +34,8 @@ const plans = [
       "Automated workflows & rules engine",
       "Priority chat & email support",
     ],
-    cta: "Start 14-day trial",
-    href: "/signup",
+    cta: "Upgrade to Pro",
+    href: `/signup?next=${upgradeNextParam}`,
     highlight: "Most popular",
   },
   {
@@ -85,8 +87,8 @@ const PricingSection = () => {
               automations.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Upgrade or downgrade at any time. We’ll send a reminder three days
-              before your trial ends, no surprises.
+              Upgrade or downgrade whenever you need. Pay monthly, cancel
+              anytime—no trial clock or surprise renewals.
             </p>
           </div>
           <span className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
