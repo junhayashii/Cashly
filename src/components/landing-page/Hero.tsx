@@ -72,14 +72,18 @@ const Hero = () => {
         </div>
 
         <div className="relative mt-20 w-full max-w-5xl">
-          <Image
-            src="/dashboard.png"
-            alt="Cashly dashboard preview"
-            width={1920}
-            height={1080}
-            priority
-            className="h-auto w-full rounded-[32px] border border-white/10 object-cover shadow-[0_45px_120px_rgba(15,23,42,0.45)]"
-          />
+          <div className="relative rounded-[46px] bg-gradient-to-br from-primary/70 via-primary/30 to-transparent p-[2px] shadow-[0_50px_140px_rgba(59,130,246,0.35)]">
+            <div className="relative rounded-[44px] border border-white/10 bg-slate-950/80 p-4 backdrop-blur">
+              <Image
+                src="/dashboard.png"
+                alt="Cashly dashboard preview"
+                width={1920}
+                height={1080}
+                priority
+                className="relative h-auto w-full rounded-[32px] border border-white/5 object-cover"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

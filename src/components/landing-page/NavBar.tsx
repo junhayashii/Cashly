@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +26,15 @@ const NavBar = () => {
           href="/"
           className="flex items-center gap-2 text-base font-semibold tracking-tight"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-            <Sparkles className="size-4" aria-hidden="true" />
+          <span className="grid size-12 shrink-0 place-items-center text-primary">
+            <Image
+              src="/logo.png"
+              alt="Cashly logo"
+              width={48}
+              height={48}
+              className="size-10"
+              priority
+            />
           </span>
           <div className="flex flex-col leading-tight">
             <span>Cashly</span>
@@ -74,8 +82,14 @@ const NavBar = () => {
                   href="/"
                   className="flex items-center gap-3 text-lg font-semibold"
                 >
-                  <span className="grid size-10 place-items-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-                    <Sparkles className="size-5" aria-hidden="true" />
+                  <span className="grid size-[60px] place-items-center text-primary">
+                    <Image
+                      src="/logo.png"
+                      alt="Cashly logo"
+                      width={52}
+                      height={52}
+                      className="size-12"
+                    />
                   </span>
                   Cashly
                 </Link>
