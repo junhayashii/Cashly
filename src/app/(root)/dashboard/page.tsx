@@ -34,6 +34,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ExpenseBreakdownChart } from "@/components/ExpenseBreakdownChart";
 import { BudgetSectionSimple } from "@/components/BudgetSectionSimple";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { useGoals } from "@/hooks/useGoals";
 
 const Dashboard = () => {
   const { transactions, setTransactions } = useTransaction();
@@ -57,6 +58,7 @@ const Dashboard = () => {
   }, []);
 
   const { settings } = useUserSettings(userId || undefined);
+  const { getTotalCurrent: getTotalSavingsFromGoals } = useGoals();
 
   const [firstName, setFirstName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("current-month");
@@ -153,6 +155,8 @@ const Dashboard = () => {
   const monthlySavings = filteredTransactions
     .filter((t) => t.type === "savings")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const goalSavings = getTotalSavingsFromGoals();
+  const totalSavings = goalSavings > 0 ? goalSavings : monthlySavings;
 
   return (
     <ProtectedRoute>
@@ -213,7 +217,7 @@ const Dashboard = () => {
           />
           <MetricCard
             title="Total Savings"
-            value={`${currencySymbol}${monthlySavings.toFixed(2)}`}
+            value={`${currencySymbol}${totalSavings.toFixed(2)}`}
             change="+15.8% from last month"
             changeType="positive"
             icon={PiggyBank}

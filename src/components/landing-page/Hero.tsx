@@ -59,7 +59,7 @@ const Hero = () => {
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="size-4 text-primary" aria-hidden="true" />
-              Transparent monthly billing.
+              Privacy-first design.
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2
@@ -71,32 +71,15 @@ const Hero = () => {
           </div>
         </div>
 
-        <div className="relative mt-20 w-full max-w-6xl">
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 top-0 -z-10 flex justify-center"
-          >
-            <div className="h-72 w-[85%] max-w-5xl rounded-full bg-primary/20 blur-[140px]" />
-          </div>
-
-          <div className="relative overflow-hidden rounded-[42px] border border-border/80 bg-transparent shadow-2xl">
-            <div className="relative flex flex-col items-center gap-10 px-6 py-12 sm:px-10 md:px-16">
-              <div className="relative w-full overflow-hidden rounded-[28px] border border-white/10 bg-black/90 shadow-2xl ring-1 ring-white/10">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/20"
-                />
-                <Image
-                  src="/"
-                  alt="Cashly dashboard preview"
-                  width={1920}
-                  height={1080}
-                  priority
-                  className="h-auto w-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
+        <div className="relative mt-20 w-full max-w-5xl">
+          <Image
+            src="/dashboard.png"
+            alt="Cashly dashboard preview"
+            width={1920}
+            height={1080}
+            priority
+            className="h-auto w-full rounded-[32px] border border-white/10 object-cover shadow-[0_45px_120px_rgba(15,23,42,0.45)]"
+          />
         </div>
       </div>
     </section>
