@@ -194,7 +194,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col h-[95vh]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">
@@ -246,14 +246,16 @@ export default function NotificationsPage() {
         </TabsList>
       </Tabs>
 
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-y-auto pb-4">
         {filteredNotifications.length === 0 ? (
           <Card className="border-dashed bg-muted/50">
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
                 <BellOff className="h-6 w-6 text-muted-foreground" />
               </div>
-              <CardTitle className="text-lg">You&apos;re all caught up</CardTitle>
+              <CardTitle className="text-lg">
+                You&apos;re all caught up
+              </CardTitle>
               <CardDescription>
                 {tab === "unread"
                   ? "No unread notifications right now."
