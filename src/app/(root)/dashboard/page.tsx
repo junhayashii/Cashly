@@ -156,7 +156,7 @@ const Dashboard = () => {
 
   return (
     <ProtectedRoute>
-      <div className="space-y-6">
+      <div className="space-y-6 h-[95vh]">
         {/* Welcome Section */}
         <div className="flex items-center justify-between">
           <div>
