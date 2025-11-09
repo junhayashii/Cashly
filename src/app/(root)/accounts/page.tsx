@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, type ComponentType } from "react";
 import {
   Card,
@@ -41,6 +42,8 @@ import {
 
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
+
+const STANDARD_ACCOUNT_LIMIT = 2;
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -95,7 +98,14 @@ const Accounts = () => {
 
   const { settings } = useUserSettings(userId || undefined);
 
+  const isPro = settings?.is_pro;
   const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
+  const hasReachedStandardLimit =
+    !isPro && accounts.length >= STANDARD_ACCOUNT_LIMIT;
+  const remainingStandardSlots = Math.max(
+    STANDARD_ACCOUNT_LIMIT - accounts.length,
+    0
+  );
 
   const { toast } = useToast();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -171,12 +181,39 @@ const Accounts = () => {
       {/* Header */}
       <div className="flex flex-shrink-0 items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-foreground mb-2">Accounts</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-3xl font-bold text-foreground">Accounts</h2>
+            <Badge variant={isPro ? "default" : "outline"}>
+              {isPro ? "Pro" : "Standard"}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
             Manage your bank accounts, cards, and wallets
           </p>
+          {!isPro && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {accounts.length}/{STANDARD_ACCOUNT_LIMIT} accounts used.{" "}
+              {remainingStandardSlots > 0
+                ? `${remainingStandardSlots} slot${
+                    remainingStandardSlots > 1 ? "s" : ""
+                  } left on the Standard plan.`
+                : "Upgrade to Pro for unlimited accounts."}
+            </p>
+          )}
         </div>
-        <AddAccountDialog onAddAccount={handleAddAccount} />
+        {hasReachedStandardLimit ? (
+          <div className="flex flex-col items-end gap-2 text-right">
+            <Button variant="outline" asChild>
+              <Link href="/settings">Upgrade to Pro</Link>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              You have reached the Standard plan limit of {STANDARD_ACCOUNT_LIMIT}{" "}
+              accounts.
+            </p>
+          </div>
+        ) : (
+          <AddAccountDialog onAddAccount={handleAddAccount} />
+        )}
       </div>
 
       {/* Summary Cards

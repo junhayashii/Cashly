@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -11,7 +12,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Globe } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { User, Globe, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -20,10 +30,38 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { useTheme } from "@/components/ThemeProvider";
 import PluggyConnectLauncher from "@/components/PluggyConnectLauncher";
 
+const PRO_FEATURES = [
+  "Unlimited bank and wallet accounts",
+  "Pluggy bank connections & auto-sync",
+  "Priority support and feature previews",
+];
+const PRO_PRICE = "$14.90/mo";
+
+type SubscriptionInfo = {
+  subscriptionId: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  cancelAt: number | null;
+  currentPeriodEnd: number | null;
+  planNickname?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+};
+
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [notificationsUpdating, setNotificationsUpdating] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] =
+    useState<SubscriptionInfo | null>(null);
+  const [confirmingUpgrade, setConfirmingUpgrade] = useState(false);
+  const [upgradeHandled, setUpgradeHandled] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const { theme, setTheme } = useTheme();
 
@@ -50,13 +88,50 @@ const Settings = () => {
   const { profile, updateProfile } = useUserProfile(userId || undefined);
 
   // Settings hook
-  const { settings, updateSettings } = useUserSettings(userId || undefined);
+  const { settings, updateSettings, refreshSettings } = useUserSettings(
+    userId || undefined
+  );
 
   useEffect(() => {
     if (settings?.theme) {
       setTheme(settings.theme);
     }
   }, [settings?.theme, setTheme]);
+
+  const fetchSubscriptionDetails = useCallback(async () => {
+    if (!userId) return;
+    if (!settings?.is_pro && !settings?.stripe_subscription_id) {
+      setSubscriptionInfo(null);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/billing/subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          errorBody?.error ?? "Unable to fetch subscription details."
+        );
+      }
+
+      const data = await response.json();
+      setSubscriptionInfo(data);
+    } catch (error) {
+      console.error("[Settings] Failed to fetch subscription info.", error);
+      setSubscriptionInfo(null);
+    }
+  }, [settings?.is_pro, settings?.stripe_subscription_id, userId]);
+
+  useEffect(() => {
+    fetchSubscriptionDetails();
+  }, [fetchSubscriptionDetails]);
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -66,10 +141,12 @@ const Settings = () => {
         last_name: profile.last_name,
       });
       toast({ title: "Profile updated successfully" });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unable to update profile.";
       toast({
         title: "Error updating profile",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -81,6 +158,143 @@ const Settings = () => {
     await supabase.auth.signOut();
     window.location.href = "/login";
   };
+
+  const openPortalSession = async () => {
+    if (!userId) {
+      toast({
+        title: "Please sign in again",
+        description: "We need your user session to manage billing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPortalLoading(true);
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          errorBody?.error ?? "Unable to open the billing portal right now."
+        );
+      }
+
+      const { url } = await response.json();
+      if (!url) {
+        throw new Error("Stripe did not return a billing portal URL.");
+      }
+
+      window.location.href = url;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Please try again or contact support so we can help cancel.";
+      toast({
+        title: "Cannot open billing portal",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const clearUpgradeParams = useCallback(() => {
+    if (!searchParams) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("upgrade");
+    params.delete("session_id");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams]);
+
+  const confirmUpgrade = useCallback(
+    async (sessionId: string) => {
+      if (!sessionId || confirmingUpgrade) return;
+      setConfirmingUpgrade(true);
+      try {
+        const response = await fetch("/api/billing/confirm", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null);
+          throw new Error(
+            errorBody?.error ?? "Failed to confirm your subscription."
+          );
+        }
+
+        await refreshSettings();
+        toast({
+          title: "You're on Cashly Pro!",
+          description: "Pluggy connections and premium features are unlocked.",
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Please contact support so we can finish your upgrade.";
+        toast({
+          title: "Could not finalize upgrade",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        setConfirmingUpgrade(false);
+        setUpgradeHandled(true);
+        clearUpgradeParams();
+      }
+    },
+    [clearUpgradeParams, confirmingUpgrade, refreshSettings, toast]
+  );
+
+  const upgradeStatus = searchParams?.get("upgrade");
+  const sessionIdFromParams = searchParams?.get("session_id");
+
+  useEffect(() => {
+    if (upgradeHandled || !upgradeStatus) return;
+
+    if (upgradeStatus === "success") {
+      if (sessionIdFromParams) {
+        confirmUpgrade(sessionIdFromParams);
+      } else {
+        toast({
+          title: "Upgrade confirmation missing",
+          description:
+            "We could not verify your payment session. Please use the upgrade button again.",
+          variant: "destructive",
+        });
+        setUpgradeHandled(true);
+        clearUpgradeParams();
+      }
+    } else if (upgradeStatus === "cancelled") {
+      toast({
+        title: "Checkout cancelled",
+        description: "No charges were made. Upgrade whenever you're ready.",
+      });
+      setUpgradeHandled(true);
+      clearUpgradeParams();
+    }
+  }, [
+    clearUpgradeParams,
+    confirmUpgrade,
+    sessionIdFromParams,
+    toast,
+    upgradeHandled,
+    upgradeStatus,
+  ]);
 
   const handleNotificationsChange = async (checked: boolean) => {
     if (!userId) {
@@ -162,6 +376,69 @@ const Settings = () => {
     }
   };
 
+  const formatUnixDate = (seconds?: number | null) => {
+    if (!seconds) return null;
+    return new Date(seconds * 1000).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const cancellationDate = subscriptionInfo?.cancelAtPeriodEnd
+    ? formatUnixDate(
+        subscriptionInfo.currentPeriodEnd ?? subscriptionInfo.cancelAt
+      )
+    : null;
+
+  const renewalDate =
+    !subscriptionInfo?.cancelAtPeriodEnd && subscriptionInfo?.currentPeriodEnd
+      ? formatUnixDate(subscriptionInfo.currentPeriodEnd)
+      : null;
+
+  const handleStripeCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      if (!userId || !userEmail) {
+        throw new Error("Your session is missing user details. Please sign in again.");
+      }
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerEmail: userEmail,
+          userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error ?? "Failed to start checkout");
+      }
+
+      const { url } = await response.json();
+      if (!url) {
+        throw new Error("Stripe did not return a checkout URL.");
+      }
+
+      window.location.href = url;
+    } catch (error) {
+      console.error("Failed to start Stripe checkout:", error);
+      toast({
+        title: "Unable to start checkout",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -228,6 +505,73 @@ const Settings = () => {
             <CardDescription>Customize your preferences</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Account Type */}
+            <div className="space-y-2">
+              <Label>Account Type</Label>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={settings.is_pro ? "default" : "outline"}>
+                      {settings.is_pro ? "Pro" : "Standard"}
+                    </Badge>
+                    {!settings.is_pro && (
+                      <span className="text-xs text-muted-foreground">
+                        Standard plan includes up to 2 accounts.
+                      </span>
+                    )}
+                  </div>
+                  {settings.is_pro && (
+                    <span
+                      className={`text-xs ${
+                        subscriptionInfo?.cancelAtPeriodEnd
+                          ? "text-amber-500"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {subscriptionInfo?.cancelAtPeriodEnd && cancellationDate
+                        ? `Your plan will be canceled on ${cancellationDate}.`
+                        : subscriptionInfo?.cancelAtPeriodEnd
+                        ? "Your plan is scheduled to cancel at the end of this billing period."
+                        : renewalDate
+                        ? `Renews on ${renewalDate}.`
+                        : "Cancel or change billing anytime from the portal."}
+                    </span>
+                  )}
+                </div>
+                {settings.is_pro ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={openPortalSession}
+                    disabled={portalLoading || confirmingUpgrade}
+                  >
+                    {portalLoading ? "Opening..." : "Manage subscription"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => setPaymentDialogOpen(true)}
+                    disabled={checkoutLoading || confirmingUpgrade}
+                  >
+                    {checkoutLoading || confirmingUpgrade
+                      ? "Finalizing..."
+                      : "Upgrade to Pro"}
+                  </Button>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Choose Pro to unlock advanced Cashly features as they roll out.
+              </p>
+              {subscriptionInfo?.cancelAtPeriodEnd && (
+                <div className="rounded-md border border-amber-300 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                  {cancellationDate
+                    ? `Your plan will be canceled on ${cancellationDate}.`
+                    : "Your plan will be canceled at the end of the current billing period."}
+                </div>
+              )}
+            </div>
+
             {/* Theme */}
             <div className="flex items-center justify-between">
               <Label htmlFor="theme">Dark Mode</Label>
@@ -279,10 +623,91 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <PluggyConnectLauncher />
+            {settings.is_pro ? (
+              <PluggyConnectLauncher />
+            ) : (
+              <div className="space-y-4 text-left">
+                <p className="text-sm text-muted-foreground">
+                  Pluggy bank connections are a Pro feature. Switch your account
+                  type above to unlock unlimited syncs and automated imports.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {settings.is_pro ? (
+                    <Button
+                      onClick={openPortalSession}
+                      disabled={portalLoading || confirmingUpgrade}
+                      variant="outline"
+                    >
+                      {portalLoading ? "Opening..." : "Manage subscription"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setPaymentDialogOpen(true)}
+                      disabled={
+                        checkoutLoading || confirmingUpgrade || portalLoading
+                      }
+                    >
+                      {checkoutLoading || confirmingUpgrade
+                        ? "Finalizing..."
+                        : "Upgrade to Pro"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Upgrade to Pro</DialogTitle>
+            <DialogDescription>
+              Unlock Pluggy connections, unlimited accounts, and more powerful
+              Cashly tools.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-2">
+            <div className="space-y-3">
+              {PRO_FEATURES.map((feature) => (
+                <div key={feature} className="flex items-start gap-3">
+                  <Check className="h-4 w-4 text-primary mt-1" />
+                  <p className="text-sm text-foreground">{feature}</p>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Billing handled by Stripe. You can cancel any time.
+              </p>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPaymentDialogOpen(false)}
+                disabled={
+                  checkoutLoading || confirmingUpgrade || portalLoading
+                }
+              >
+                Maybe later
+              </Button>
+              <Button
+                type="button"
+                onClick={handleStripeCheckout}
+                disabled={
+                  checkoutLoading || confirmingUpgrade || portalLoading
+                }
+              >
+                {checkoutLoading
+                  ? "Redirecting..."
+                  : `Upgrade for ${PRO_PRICE}`}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
