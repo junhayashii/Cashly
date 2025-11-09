@@ -120,3 +120,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+body.report-export-active,
+body.report-export-active * {
+  user-select: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  caret-color: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: none !important;
+}
+
+body.report-export-active *:focus,
+body.report-export-active *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body.report-export-active ::selection,
+body.report-export-active *::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+body.report-export-active {
+  --ring: transparent;
+  --ring-offset-width: 0px;
+  --ring-offset-color: transparent;
+}

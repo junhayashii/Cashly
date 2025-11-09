@@ -62,7 +62,7 @@ export const SpendingChart = ({ currencySymbol }: SpendingChartProps) => {
   }, [transactions]);
 
   return (
-    <Card className="p-6 bg-card border-border animate-fade-in h-[24rem] flex flex-col">
+    <Card className="flex h-full min-h-[26rem] flex-col border border-border/40 bg-background/60 p-6 shadow-sm backdrop-blur-sm animate-fade-in">
       {/* Header + Legend */}
       <div className="flex items-center justify-between mb-4">
         <div>

@@ -20,6 +20,7 @@ import {
 import { type ComponentType, useMemo } from "react";
 import dayjs from "dayjs";
 import { ExpensePieChart } from "@/components/BudgetPieChart";
+import { cn } from "@/lib/utils";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -44,6 +45,7 @@ interface BudgetSectionProps {
   year?: number;
   month?: number;
   label?: string;
+  expandAll?: boolean;
 }
 
 export function BudgetSection({
@@ -51,6 +53,7 @@ export function BudgetSection({
   year,
   month,
   label,
+  expandAll = false,
 }: BudgetSectionProps) {
   const { categories } = useCategories();
   const { transactions } = useTransaction();
@@ -113,7 +116,12 @@ export function BudgetSection({
   }, [year, month]);
 
   return (
-    <Card className="p-6 bg-card border-border flex flex-col gap-6">
+    <Card
+      className={cn(
+        "flex min-h-0 w-full flex-1 flex-col gap-6 border border-border/40 bg-background/60 p-6 shadow-sm backdrop-blur-sm",
+        expandAll ? "h-auto max-h-none overflow-visible" : "h-full max-h-screen overflow-hidden"
+      )}
+    >
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
         <span className="text-sm text-muted-foreground">
@@ -132,7 +140,12 @@ export function BudgetSection({
       </div>
 
       {/* === カテゴリ別リスト === */}
-      <div className="space-y-6">
+      <div
+        className={cn(
+          "flex-1 space-y-6 overflow-y-auto pr-2",
+          expandAll && "max-h-none overflow-visible pr-0"
+        )}
+      >
         {stats.categoryStats.map((category) => {
           const percentage =
             category.monthlyBudget > 0

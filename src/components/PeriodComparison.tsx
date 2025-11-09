@@ -27,12 +27,29 @@ type PeriodComparisonProps = {
   currencySymbol: string;
 };
 
+const createOptionValue = (year: number, month: number) => `${year}-${month}`;
+const parseOptionValue = (value: string) => {
+  const [year, month] = value.split("-").map(Number);
+  return { year, month };
+};
+const getMonthLabel = (selection: { year: number; month: number }) =>
+  dayjs(new Date(selection.year, selection.month, 1)).format("MMM");
+
 export const PeriodComparison = ({ currencySymbol }: PeriodComparisonProps) => {
   const { transactions } = useTransaction();
   const { categories } = useCategories();
 
-  const [month1, setMonth1] = useState(dayjs().month());
-  const [month2, setMonth2] = useState(dayjs().subtract(1, "month").month());
+  const currentMonth = dayjs();
+  const previousMonth = dayjs().subtract(1, "month");
+
+  const [month1, setMonth1] = useState({
+    month: currentMonth.month(),
+    year: currentMonth.year(),
+  });
+  const [month2, setMonth2] = useState({
+    month: previousMonth.month(),
+    year: previousMonth.year(),
+  });
 
   // 月選択肢（直近12ヶ月）
   const monthlyOptions = useMemo(() => {
@@ -42,6 +59,7 @@ export const PeriodComparison = ({ currencySymbol }: PeriodComparisonProps) => {
         label: date.format("YYYY年 MMM"),
         month: date.month(),
         year: date.year(),
+        value: createOptionValue(date.year(), date.month()),
       };
     }).reverse();
   }, []);
@@ -72,33 +90,31 @@ export const PeriodComparison = ({ currencySymbol }: PeriodComparisonProps) => {
       return result;
     };
 
-    const m1Option = monthlyOptions.find((o) => o.month === month1);
-    const m2Option = monthlyOptions.find((o) => o.month === month2);
-
-    if (!m1Option || !m2Option) return [];
-
-    const month1Data = aggregateMonth(month1, m1Option.year);
-    const month2Data = aggregateMonth(month2, m2Option.year);
+    const month1Data = aggregateMonth(month1.month, month1.year);
+    const month2Data = aggregateMonth(month2.month, month2.year);
 
     const categoriesSet = new Set([
       ...Object.keys(month1Data),
       ...Object.keys(month2Data),
     ]);
 
+    const month1Label = getMonthLabel(month1);
+    const month2Label = getMonthLabel(month2);
+
     return Array.from(categoriesSet).map((cat) => ({
       category: cat,
-      [dayjs().month(month1).format("MMM")]: month1Data[cat] || 0,
-      [dayjs().month(month2).format("MMM")]: month2Data[cat] || 0,
+      [month1Label]: month1Data[cat] || 0,
+      [month2Label]: month2Data[cat] || 0,
     }));
-  }, [transactions, categories, month1, month2, monthlyOptions]);
+  }, [transactions, categories, month1, month2]);
 
-  const month1Label = dayjs().month(month1).format("MMM");
-  const month2Label = dayjs().month(month2).format("MMM");
+  const month1Label = getMonthLabel(month1);
+  const month2Label = getMonthLabel(month2);
 
   return (
-    <Card className="p-6 bg-card border-border animate-fade-in h-[28rem] flex flex-col">
+    <Card className="flex h-full min-h-[26rem] flex-col border border-border/40 bg-background/60 p-6 shadow-sm backdrop-blur-sm animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between pb-4 mb-8 border-b border-border/40">
         <div>
           <h2 className="text-xl font-bold text-foreground">
             Category Comparison
@@ -110,15 +126,15 @@ export const PeriodComparison = ({ currencySymbol }: PeriodComparisonProps) => {
 
         <div className="flex gap-4">
           <Select
-            value={month1.toString()}
-            onValueChange={(val) => setMonth1(Number(val))}
+            value={createOptionValue(month1.year, month1.month)}
+            onValueChange={(val) => setMonth1(parseOptionValue(val))}
           >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Month 1" />
             </SelectTrigger>
             <SelectContent>
               {monthlyOptions.map((opt) => (
-                <SelectItem key={opt.label} value={opt.month.toString()}>
+                <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
               ))}
@@ -126,15 +142,15 @@ export const PeriodComparison = ({ currencySymbol }: PeriodComparisonProps) => {
           </Select>
 
           <Select
-            value={month2.toString()}
-            onValueChange={(val) => setMonth2(Number(val))}
+            value={createOptionValue(month2.year, month2.month)}
+            onValueChange={(val) => setMonth2(parseOptionValue(val))}
           >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Month 2" />
             </SelectTrigger>
             <SelectContent>
               {monthlyOptions.map((opt) => (
-                <SelectItem key={opt.label} value={opt.month.toString()}>
+                <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
               ))}

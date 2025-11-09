@@ -17,13 +17,15 @@ import dayjs from "dayjs";
 import { TransactionList } from "@/components/TransactionList";
 import { PeriodComparison } from "@/components/PeriodComparison";
 import type { Transaction } from "@/types";
-
-import jsPDF from "jspdf";
-import domtoimage from "dom-to-image-more";
-import html2canvas from "html2canvas";
+import {
+  generateReportsPdf,
+  type ExpenseCategoryStat,
+  type ReportQuickStats,
+} from "@/lib/generateReportsPdf";
 
 const ReportsPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -64,6 +66,15 @@ const ReportsPage = () => {
     [selectedMonth]
   );
 
+  const periodStartISO = useMemo(
+    () => periodStart.format("YYYY-MM-DD"),
+    [periodStart]
+  );
+  const periodEndISO = useMemo(
+    () => periodEnd.format("YYYY-MM-DD"),
+    [periodEnd]
+  );
+
   const periodTransactions = useMemo(() => {
     if (!transactions) return [];
     return transactions.filter((t) => {
@@ -73,7 +84,7 @@ const ReportsPage = () => {
   }, [transactions, periodStart]);
 
   // Quick stats derived from DB
-  const quickStats = useMemo(() => {
+  const quickStats = useMemo<ReportQuickStats>(() => {
     if (!periodTransactions || periodTransactions.length === 0) {
       return {
         avgDailySpending: 0,
@@ -168,6 +179,37 @@ const ReportsPage = () => {
 
   const [smartInsight, setSmartInsight] = useState<string>(fallbackInsight);
 
+  const expenseCategoryStats = useMemo<ExpenseCategoryStat[]>(() => {
+    if (!periodTransactions || periodTransactions.length === 0) return [];
+    const categoryList = categories ?? [];
+
+    const totals = periodTransactions.reduce<Record<string, number>>(
+      (acc, transaction) => {
+        if (transaction.type !== "expense") return acc;
+        const key = String(transaction.category_id ?? "uncategorized");
+        acc[key] = (acc[key] || 0) + Math.abs(transaction.amount);
+        return acc;
+      },
+      {}
+    );
+
+    return Object.entries(totals)
+      .map(([categoryId, spent]) => {
+        const category = categoryList.find(
+          (c) => String(c.id) === String(categoryId)
+        );
+        return {
+          name: category?.name || "Other",
+          spent,
+          percent:
+            quickStats.totalExpense > 0
+              ? (spent / quickStats.totalExpense) * 100
+              : 0,
+        };
+      })
+      .sort((a, b) => b.spent - a.spent);
+  }, [periodTransactions, categories, quickStats.totalExpense]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -217,41 +259,24 @@ const ReportsPage = () => {
   }, [fallbackInsight, insightInput, periodTransactions]);
 
   const handleExportPDF = async () => {
-    const reportElement = document.getElementById("report-section");
-    if (!reportElement) return;
+    setIsExporting(true);
 
     try {
-      // ⚡ html2canvasの代わり
-      const blob = await domtoimage.toBlob(reportElement, {
-        bgcolor: "#ffffff", // 背景白に固定
-        quality: 1,
-        style: {
-          transform: "scale(1)", // 変換補正
-        },
+      await generateReportsPdf({
+        periodLabel,
+        selectedMonth,
+        currencySymbol,
+        quickStats,
+        insight: smartInsight || fallbackInsight,
+        transactions: periodTransactions,
+        expenseCategoryStats,
       });
-
-      const img = await blobToBase64(blob);
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const imgProps = pdf.getImageProperties(img);
-      const imgHeight = (imgProps.height * pageWidth) / imgProps.width;
-
-      pdf.text(`Cashly Monthly Report - ${periodLabel}`, 10, 15);
-      pdf.addImage(img, "PNG", 0, 25, pageWidth, imgHeight);
-      pdf.save(`Cashly_Report_${selectedMonth}.pdf`);
     } catch (err) {
       console.error("PDF export failed:", err);
+    } finally {
+      setIsExporting(false);
     }
   };
-
-  const blobToBase64 = (blob: Blob): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
 
   return (
     <div id="report-section" className="space-y-8">
@@ -281,9 +306,10 @@ const ReportsPage = () => {
             variant="outline"
             size="sm"
             className="gap-2"
+            disabled={isExporting}
           >
             <Download className="h-4 w-4" />
-            Export PDF
+            {isExporting ? "Generating..." : "Export PDF"}
           </Button>
         </div>
       </div>
@@ -359,21 +385,29 @@ const ReportsPage = () => {
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="flex flex-col gap-4">
-          <SpendingChart currencySymbol={currencySymbol} />
-          <PeriodComparison currencySymbol={currencySymbol} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <SpendingChart currencySymbol={currencySymbol} />
+            <PeriodComparison currencySymbol={currencySymbol} />
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 lg:col-span-2">
           <TransactionList
-            transactions={transactions}
+            transactions={transactions || []}
             currencySymbol={currencySymbol}
+            initialStartDate={periodStartISO}
+            initialEndDate={periodEndISO}
           />
         </div>
-        <BudgetSection
-          currencySymbol={currencySymbol}
-          year={dayjs(selectedMonth + "-01").year()}
-          month={dayjs(selectedMonth + "-01").month() + 1}
-          label={periodLabel}
-        />
+        <div className="lg:col-span-1 h-full">
+          <BudgetSection
+            currencySymbol={currencySymbol}
+            year={dayjs(selectedMonth + "-01").year()}
+            month={dayjs(selectedMonth + "-01").month() + 1}
+            label={periodLabel}
+          />
+        </div>
       </div>
     </div>
   );

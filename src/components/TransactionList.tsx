@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { exportTransactionsCSV } from "@/components/exportTransactionsCSV";
+import { cn } from "@/lib/utils";
 
 const transactionTypeMeta: Record<
   Transaction["type"],
@@ -77,6 +78,10 @@ interface TransactionListProps {
   title?: string;
   subtitle?: string;
   note?: string;
+  initialStartDate?: string;
+  initialEndDate?: string;
+  disablePagination?: boolean;
+  expandToContentHeight?: boolean;
 }
 
 export function TransactionList({
@@ -87,14 +92,22 @@ export function TransactionList({
   title,
   subtitle,
   note,
+  initialStartDate,
+  initialEndDate,
+  disablePagination = false,
+  expandToContentHeight = false,
 }: TransactionListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterAccount, setFilterAccount] = useState<string>("all");
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
-  const [filterStartDate, setFilterStartDate] = useState<string>("");
-  const [filterEndDate, setFilterEndDate] = useState<string>("");
+  const [filterStartDate, setFilterStartDate] = useState<string>(
+    initialStartDate ?? ""
+  );
+  const [filterEndDate, setFilterEndDate] = useState<string>(
+    initialEndDate ?? ""
+  );
 
   const { getAccountById, accounts } = useAccounts();
   const [selectedTransaction, setSelectedTransaction] =
@@ -104,6 +117,14 @@ export function TransactionList({
 
   // ソート状態
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  useEffect(() => {
+    setFilterStartDate(initialStartDate ?? "");
+  }, [initialStartDate]);
+
+  useEffect(() => {
+    setFilterEndDate(initialEndDate ?? "");
+  }, [initialEndDate]);
 
   const categories = [
     ...new Set(
@@ -174,17 +195,31 @@ export function TransactionList({
   });
 
   const totalTransactions = sortedTransactions.length;
-  const totalPages = Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
-  const currentPageSafe = Math.min(currentPage, totalPages);
+  const totalPages = disablePagination
+    ? 1
+    : Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
+  const currentPageSafe = disablePagination
+    ? 1
+    : Math.min(currentPage, totalPages);
   const rangeStart =
-    totalTransactions === 0 ? 0 : (currentPageSafe - 1) * PAGE_SIZE + 1;
-  const rangeEnd = Math.min(currentPageSafe * PAGE_SIZE, totalTransactions);
-  const defaultSubtitle = `${rangeStart} - ${rangeEnd} of ${totalTransactions} transactions`;
+    totalTransactions === 0
+      ? 0
+      : disablePagination
+      ? 1
+      : (currentPageSafe - 1) * PAGE_SIZE + 1;
+  const rangeEnd = disablePagination
+    ? totalTransactions
+    : Math.min(currentPageSafe * PAGE_SIZE, totalTransactions);
+  const defaultSubtitle = disablePagination
+    ? `${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}`
+    : `${rangeStart} - ${rangeEnd} of ${totalTransactions} transactions`;
 
-  const paginatedTransactions = sortedTransactions.slice(
-    (currentPageSafe - 1) * PAGE_SIZE,
-    currentPageSafe * PAGE_SIZE
-  );
+  const paginatedTransactions = disablePagination
+    ? sortedTransactions
+    : sortedTransactions.slice(
+        (currentPageSafe - 1) * PAGE_SIZE,
+        currentPageSafe * PAGE_SIZE
+      );
 
   // Row selection logic
   const isAllSelectedOnPage =
@@ -276,6 +311,12 @@ export function TransactionList({
     }
   }, [currentPage, totalPages]);
 
+  useEffect(() => {
+    if (disablePagination) {
+      setCurrentPage(1);
+    }
+  }, [disablePagination]);
+
   const paginationItems = useMemo(() => {
     const pages: (number | "...")[] = [];
     if (totalPages <= 7) {
@@ -320,8 +361,16 @@ export function TransactionList({
     });
   };
 
+  const shouldShowPagination =
+    !disablePagination && totalTransactions > 0;
+
   return (
-    <Card className="flex h-full max-h-screen min-h-0 w-full flex-1 max-w-none flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm">
+    <Card
+      className={cn(
+        "flex min-h-0 w-full flex-1 max-w-none flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm",
+        expandToContentHeight ? "h-auto max-h-none" : "h-full max-h-screen"
+      )}
+    >
       {/* Fixed Header */}
       <div className="bg-background/50 backdrop-blur-sm">
         <div className="flex flex-col gap-4 px-4">
@@ -473,7 +522,12 @@ export function TransactionList({
       </div>
 
       {/* Scrollable Table Area */}
-      <div className="flex-1 min-h-0 px-4">
+      <div
+        className={cn(
+          "flex-1 min-h-0 px-4",
+          expandToContentHeight && "h-auto min-h-full"
+        )}
+      >
         {paginatedTransactions.length === 0 ? (
           <div className="flex h-full min-h-[400px] items-center justify-center rounded-xl border border-dashed border-border/40 bg-muted/20">
             <div className="text-center space-y-3 px-6">
@@ -491,7 +545,12 @@ export function TransactionList({
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-x-auto overflow-y-auto rounded-lg border border-border/30 bg-background/50 backdrop-blur-sm">
+          <div
+            className={cn(
+              "h-full overflow-x-auto overflow-y-auto rounded-lg border border-border/30 bg-background/50 backdrop-blur-sm",
+              expandToContentHeight && "h-auto max-h-none overflow-visible"
+            )}
+          >
             <Table className="table-fixed w-full">
               <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
                 <TableRow className="hover:bg-transparent bg-muted/80">
@@ -698,7 +757,7 @@ export function TransactionList({
       </div>
 
       {/* Pagination */}
-      {totalTransactions > 0 && (
+      {shouldShowPagination && (
         <div className="bg-background/50 px-4">
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
             <span className="text-xs text-muted-foreground">
