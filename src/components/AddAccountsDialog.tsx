@@ -33,7 +33,7 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<{
     name: string;
-    type: "bank" | "credit_card" | "cash" | "digital_wallet";
+    type: "bank" | "credit_card" | "cash" | "e_wallet" | "investment";
     balance: number;
     credit_limit: number;
     // icon: string;
@@ -183,7 +183,8 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
                     | "bank"
                     | "credit_card"
                     | "cash"
-                    | "digital_wallet",
+                    | "e_wallet"
+                    | "investment",
                 })
               }
             >
@@ -194,7 +195,8 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
                 <SelectItem value="bank">Bank</SelectItem>
                 <SelectItem value="credit_card">Credit Card</SelectItem>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="digital_wallet">Digital Wallet</SelectItem>
+                <SelectItem value="e_wallet">Digital Wallet</SelectItem>
+                <SelectItem value="investment">Investment</SelectItem>
               </SelectContent>
             </Select>
           </div>
