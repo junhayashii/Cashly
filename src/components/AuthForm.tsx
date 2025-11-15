@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ForgotPasswordDialog } from "./ForgotPasswordDialog";
 
 type AuthFormProps = {
@@ -13,11 +15,7 @@ type AuthFormProps = {
 };
 
 const GoogleIcon = () => (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 24 24"
-    className="size-4"
-  >
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4">
     <path
       fill="#4285F4"
       d="M23.52 12.272c0-.851-.076-1.67-.218-2.455H12v4.645h6.46a5.523 5.523 0 0 1-2.395 3.623v3.011h3.868c2.266-2.084 3.587-5.153 3.587-8.824"
@@ -42,19 +40,27 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const safeNextPath =
-    nextPath && nextPath.startsWith("/") ? nextPath : null;
-  const googleButtonLabel = isLogin ? "Continue with Google" : "Sign up with Google";
+  const safeNextPath = nextPath && nextPath.startsWith("/") ? nextPath : null;
+  const googleButtonLabel = isLogin
+    ? "Continue with Google"
+    : "Sign up with Google";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    if (!isLogin && password !== confirmPassword) {
+      setLoading(false);
+      setError("Passwords do not match.");
+      return;
+    }
 
     // Supabase の認証呼び出し
     const emailRedirectTo =
@@ -96,6 +102,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
       "Verification email sent. Please check your inbox and confirm your address."
     );
     setPassword("");
+    setConfirmPassword("");
     await supabase.auth.signOut();
   };
 
@@ -123,43 +130,106 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
   };
 
   return (
-    <div className="w-[360px] p-6 rounded-2xl border shadow-sm bg-white">
-      <h2 className="text-xl font-semibold mb-4 text-center">
-        {isLogin ? "Sign In" : "Sign Up"}
-      </h2>
+    <div className="space-y-6">
+      {(error || message) && (
+        <div className="space-y-3">
+          {error && (
+            <Alert variant="destructive" className="border-red-200 bg-red-50">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {message && (
+            <Alert className="border-sky-100 bg-sky-50 text-slate-700">
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="email"
+            className="text-sm font-medium text-slate-600"
+          >
+            Email address
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+            className="h-12 rounded-2xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-sky-400 focus-visible:ring-2 focus-visible:ring-sky-200"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="password"
+            className="text-sm font-medium text-slate-600"
+          >
+            Password
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={isLogin ? "current-password" : "new-password"}
+            required
+            className="h-12 rounded-2xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-sky-400 focus-visible:ring-2 focus-visible:ring-sky-200"
+          />
+          {isLogin && (
+            <div className="text-right">
+              <ForgotPasswordDialog />
+            </div>
+          )}
+        </div>
+
+        {!isLogin && (
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="confirm-password"
+              className="text-sm font-medium text-slate-600"
+            >
+              Confirm password
+            </Label>
+            <Input
+              id="confirm-password"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              className="h-12 rounded-2xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-sky-400 focus-visible:ring-2 focus-visible:ring-sky-200"
+            />
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="group relative h-12 w-full overflow-hidden rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 text-base font-semibold text-white shadow-[0_18px_60px_rgba(15,23,42,0.35)] transition-all hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-sky-200"
+          disabled={loading}
+        >
+          {loading ? "Signing you in..." : isLogin ? "Sign in" : "Continue"}
         </Button>
-        {message && <p className="text-sm text-green-600 text-center">{message}</p>}
       </form>
 
-      <div className="mt-4 space-y-3">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-gray-200" />
-          OR
-          <span className="h-px flex-1 bg-gray-200" />
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-400">
+          <span className="h-px flex-1 bg-slate-200" />
+          Or continue with
+          <span className="h-px flex-1 bg-slate-200" />
         </div>
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="h-12 w-full rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50"
           onClick={handleGoogleSignIn}
           disabled={loading || googleLoading}
         >
@@ -168,40 +238,37 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
         </Button>
       </div>
 
-      <div className="mt-4 text-sm text-center space-y-2">
-        {isLogin && <ForgotPasswordDialog />}
-        <p>
-          {isLogin ? (
-            <>
-              No account?{" "}
-              <a
-                href={
-                  safeNextPath
-                    ? `/signup?next=${encodeURIComponent(safeNextPath)}`
-                    : "/signup"
-                }
-                className="text-blue-600 hover:underline"
-              >
-                Sign up
-              </a>
-            </>
-          ) : (
-            <>
-              Already have an account?{" "}
-              <a
-                href={
-                  safeNextPath
-                    ? `/login?next=${encodeURIComponent(safeNextPath)}`
-                    : "/login"
-                }
-                className="text-blue-600 hover:underline"
-              >
-                Sign in
-              </a>
-            </>
-          )}
-        </p>
-      </div>
+      <p className="text-center text-sm text-slate-600">
+        {isLogin ? (
+          <>
+            No account yet?{" "}
+            <a
+              href={
+                safeNextPath
+                  ? `/signup?next=${encodeURIComponent(safeNextPath)}`
+                  : "/signup"
+              }
+              className="font-semibold text-sky-600 underline-offset-4 hover:underline"
+            >
+              Create one
+            </a>
+          </>
+        ) : (
+          <>
+            Already a member?{" "}
+            <a
+              href={
+                safeNextPath
+                  ? `/login?next=${encodeURIComponent(safeNextPath)}`
+                  : "/login"
+              }
+              className="font-semibold text-sky-600 underline-offset-4 hover:underline"
+            >
+              Sign in
+            </a>
+          </>
+        )}
+      </p>
     </div>
   );
 }

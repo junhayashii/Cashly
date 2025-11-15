@@ -1,5 +1,6 @@
 import React from "react";
 import { AuthForm } from "@/components/AuthForm";
+import { AuthPageTemplate } from "@/components/AuthPageTemplate";
 
 type PageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
@@ -15,9 +16,13 @@ const SignUpPage = ({ searchParams }: PageProps) => {
       : undefined;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+    <AuthPageTemplate
+      eyebrow="Sign Up"
+      title="Create your account"
+      description="Join Cashly and take control of your cash flow with our all-in-one financial management platform designed for modern teams."
+    >
       <AuthForm mode="signup" nextPath={nextPath} />
-    </main>
+    </AuthPageTemplate>
   );
 };
 

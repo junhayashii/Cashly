@@ -70,7 +70,7 @@ export function ForgotPasswordDialog() {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="text-sm font-medium text-blue-600 hover:underline"
+          className="text-sm font-medium text-primary hover:text-primary/80 hover:underline"
         >
           Forgot your password?
         </button>
