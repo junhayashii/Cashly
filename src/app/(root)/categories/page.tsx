@@ -86,7 +86,7 @@ const Categories = () => {
     ? "flex items-center justify-between pl-12"
     : "flex items-center justify-between";
   const useCompactMonth = isMobile;
-  const monthSelectWidth = useCompactMonth ? "w-32" : "w-48";
+  const monthSelectWidth = useCompactMonth ? "w-fit" : "w-48";
   const {
     categories,
     loading: categoriesLoading,
@@ -364,7 +364,8 @@ const Categories = () => {
           <div className="flex items-center gap-4">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger
-                className={`${monthSelectWidth} border-border/40 bg-background/80 backdrop-blur-sm ${useCompactMonth ? "pl-3 pr-4" : ""}`}
+                size={useCompactMonth ? "sm" : "default"}
+                className={`${monthSelectWidth} border-border/40 bg-background/80 backdrop-blur-sm ${useCompactMonth ? "gap-0 justify-start px-2" : ""}`}
               >
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 {!useCompactMonth && <SelectValue />}
@@ -436,10 +437,8 @@ const Categories = () => {
                           className="hover:shadow-md transition-shadow"
                         >
                           <CardHeader className="relative">
-                            <div className="flex items-start gap-3">
-                              <div className="p-3 rounded-lg bg-green-50">
-                                <Icon className="h-5 w-5 text-green-600" />
-                              </div>
+                            <div className="flex items-start gap-2">
+                              <Icon className="h-5 w-5 text-green-600" />
                               <div>
                                 <CardTitle className="text-lg">
                                   {category.name}
@@ -554,10 +553,8 @@ const Categories = () => {
                           className="hover:shadow-md transition-shadow"
                         >
                           <CardHeader className="relative">
-                            <div className="flex items-start gap-3">
-                              <div className="p-3 rounded-lg bg-muted">
-                                <Icon className="h-5 w-5 text-muted-foreground" />
-                              </div>
+                            <div className="flex items-start gap-2">
+                              <Icon className="h-5 w-5 text-muted-foreground" />
                               <div>
                                 <CardTitle className="text-lg">
                                   {category.name}
