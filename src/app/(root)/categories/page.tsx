@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ShoppingCart,
   Home,
@@ -35,6 +36,7 @@ import {
   TrendingDown,
   MoreHorizontal,
   Calendar,
+  Plus,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -79,6 +81,12 @@ const getIconComponent = (iconName: string): IconComponent => {
 };
 
 const Categories = () => {
+  const isMobile = useIsMobile();
+  const headerClass = isMobile
+    ? "flex items-center justify-between pl-12"
+    : "flex items-center justify-between";
+  const useCompactMonth = isMobile;
+  const monthSelectWidth = useCompactMonth ? "w-32" : "w-48";
   const {
     categories,
     loading: categoriesLoading,
@@ -344,7 +352,7 @@ const Categories = () => {
     <div className="flex h-[95vh] w-full flex-col gap-4 overflow-hidden">
       {/* Header Section */}
       <div className="flex flex-shrink-0 flex-col gap-3">
-        <div className="flex items-center justify-between">
+        <div className={headerClass}>
           <div>
             <h2 className="mb-1 text-3xl font-bold text-foreground">
               Categories
@@ -353,31 +361,30 @@ const Categories = () => {
               Organize and manage your spending categories & budgets
             </p>
           </div>
-          <div className="flex items-center gap-6">
-            {/* Month Selector */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger
+                className={`${monthSelectWidth} border-border/40 bg-background/80 backdrop-blur-sm ${useCompactMonth ? "pl-3 pr-4" : ""}`}
+              >
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-48 border-border/40 bg-background/80 backdrop-blur-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const month = dayjs().subtract(i, "month");
-                    const monthValue = month.format("YYYY-MM");
-                    const monthLabel = month.format("MMMM YYYY");
-                    return (
-                      <SelectItem key={monthValue} value={monthValue}>
-                        {monthLabel}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+                {!useCompactMonth && <SelectValue />}
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => {
+                  const month = dayjs().subtract(i, "month");
+                  const monthValue = month.format("YYYY-MM");
+                  const monthLabel = month.format("MMMM YYYY");
+                  return (
+                    <SelectItem key={monthValue} value={monthValue}>
+                      {monthLabel}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <div className="hidden sm:block">
+              <AddCategoryDialog onAddCategory={handleAddCategory} />
             </div>
-            <AddCategoryDialog onAddCategory={handleAddCategory} />
           </div>
         </div>
       </div>
@@ -664,6 +671,18 @@ const Categories = () => {
         onOpenChange={setEditDialogOpen}
         onCategoryUpdated={handleCategoryUpdated}
       />
+
+      {/* Mobile Add button */}
+      <div className="sm:hidden fixed bottom-4 right-4 z-50">
+        <AddCategoryDialog
+          onAddCategory={handleAddCategory}
+          trigger={
+            <Button className="h-12 w-12 rounded-full shadow-lg shadow-primary/40 bg-primary text-primary-foreground">
+              <Plus className="h-6 w-6" />
+            </Button>
+          }
+        />
+      </div>
     </div>
   );
 };
