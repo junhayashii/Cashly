@@ -9,14 +9,12 @@ import {
   Utensils,
   Car,
   ArrowDownRight,
-  Pencil,
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 
 import { Transaction } from "@/types";
 import { useAccounts } from "@/hooks/useAccounts";
-import { EditTransactionDialog } from "@/components/EditTransactionsDialog";
 
 const categoryIcons: Record<
   string,
@@ -46,8 +44,6 @@ export function TransactionListSimple({
   currencySymbol,
 }: TransactionListSimpleProps) {
   const { getAccountById } = useAccounts();
-  const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
 
   const sortedTransactions = [...transactions].sort((a, b) => {
     const dateA = new Date(a.date || "").getTime();
@@ -67,16 +63,21 @@ export function TransactionListSimple({
   };
 
   return (
-    <Card className="p-6 bg-card border-border h-80 flex flex-col">
+    <Card className="p-6 bg-card border-border h-72 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h2 className="text-xl font-bold text-foreground">
             Recent Transactions
           </h2>
           <span className="text-sm text-muted-foreground">Last 3</span>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+        >
           <Link href="/transactions">
             <span className="text-xs">See All</span>
             <ArrowRight className="h-3 w-3 ml-1" />
@@ -89,18 +90,18 @@ export function TransactionListSimple({
           No transactions found
         </div>
       ) : (
-        <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-1.5 flex-1">
           {topThree.map((transaction) => {
             const categoryName = transaction.category?.name || "Other";
             const Icon = categoryIcons[categoryName] || ShoppingBag;
             const isPositive = transaction.type === "income";
             const account = getAccountById(transaction.account_id);
 
-            return (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between py-2 px-1 hover:bg-muted/30 transition-colors rounded"
-              >
+              return (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between py-1.5 px-1 hover:bg-muted/30 transition-colors rounded"
+                >
                 {/* 左：アイコン */}
                 <div className="flex-shrink-0 mr-3">
                   <Icon className="h-4 w-4 text-muted-foreground" />
@@ -129,32 +130,11 @@ export function TransactionListSimple({
                     {currencySymbol}
                     {Math.abs(transaction.amount).toFixed(2)}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => setSelectedTransaction(transaction)}
-                  >
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
-                  </Button>
                 </div>
               </div>
             );
           })}
         </div>
-      )}
-
-      {selectedTransaction && (
-        <EditTransactionDialog
-          transaction={selectedTransaction}
-          open={!!selectedTransaction}
-          onOpenChange={(open) => {
-            if (!open) setSelectedTransaction(null);
-          }}
-          onTransactionUpdated={(updatedTransaction) => {
-            // update logic here
-          }}
-        />
       )}
     </Card>
   );

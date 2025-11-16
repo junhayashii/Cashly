@@ -117,7 +117,12 @@ export function BudgetSectionSimple() {
           <h2 className="text-xl font-bold text-foreground">Monthly Budgets</h2>
           <span className="text-sm text-muted-foreground">Top 3</span>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+        >
           <Link href="/categories">
             <span className="text-xs">See All</span>
             <ArrowRight className="h-3 w-3 ml-1" />

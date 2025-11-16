@@ -151,7 +151,7 @@ export function ExpenseBreakdownChart({
     "#0b5fa5",
   ];
 
-  // Budget top4
+  // Budget top3
   const budgetStats = expenseCategories
     .map((category) => {
       const spent = filteredTransactions
@@ -164,10 +164,10 @@ export function ExpenseBreakdownChart({
       };
     })
     .sort((a, b) => b.spent - a.spent)
-    .slice(0, 4);
+    .slice(0, 3);
 
   return (
-    <Card className="p-6 bg-card border-border h-[24rem] flex flex-col">
+    <Card className="p-6 bg-card border-border h-[20rem] flex flex-col">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground">
@@ -175,7 +175,12 @@ export function ExpenseBreakdownChart({
           </h2>
           <span className="text-sm text-muted-foreground">December 2025</span>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+        >
           <Link href="/categories">
             <span className="text-xs">See All</span>
             <ArrowRight className="h-3 w-3 ml-1" />
@@ -193,8 +198,8 @@ export function ExpenseBreakdownChart({
         <div className="flex flex-col md:flex-row items-start gap-4 flex-1 min-h-0">
           {/* 左: 円グラフ */}
           <div className="w-full md:w-1/2 flex flex-col gap-3">
-            <div className="relative h-80 flex items-center justify-center pb-12">
-              <div className="w-80 h-80">
+            <div className="relative h-56 flex items-center justify-center pb-0 -translate-y-2">
+              <div className="w-56 h-56 -translate-y-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -203,8 +208,8 @@ export function ExpenseBreakdownChart({
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      innerRadius={80}
-                      outerRadius={120}
+                      innerRadius={60}
+                      outerRadius={100}
                       stroke="#f0f0f0"
                       strokeWidth={2}
                       paddingAngle={2}
@@ -238,13 +243,13 @@ export function ExpenseBreakdownChart({
               </div>
 
               {/* 円グラフの真ん中に合計金額 */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-12">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none -translate-y-3">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">
+                  <div className="text-xl font-bold text-foreground">
                     {currencySymbol}
                     {total.toLocaleString()}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     Total Expenses
                   </div>
                 </div>

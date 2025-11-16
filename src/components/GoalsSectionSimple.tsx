@@ -16,7 +16,7 @@ export function GoalsSectionSimple() {
 
   if (loading) {
     return (
-      <Card className="p-4 bg-card border-border h-80 flex flex-col relative">
+      <Card className="p-4 bg-card border-border h-72 flex flex-col relative">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="text-xl font-bold text-foreground">Savings Goals</h2>
@@ -36,7 +36,7 @@ export function GoalsSectionSimple() {
   }
 
   return (
-    <Card className="p-4 bg-card border-border h-80 flex flex-col relative">
+    <Card className="p-4 bg-card border-border h-72 flex flex-col relative">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-xl font-bold text-foreground">Savings Goals</h2>
@@ -44,7 +44,12 @@ export function GoalsSectionSimple() {
             {activeGoals.length} active, {completedGoals.length} completed
           </div>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+        >
           <Link href="/goals">
             <span className="text-xs">See All</span>
             <ArrowRight className="h-3 w-3 ml-1" />

@@ -124,9 +124,9 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
     .reduce((sum, b) => sum + b.amount, 0);
 
   return (
-    <Card className="p-6 bg-card border-border h-80 flex flex-col">
+    <Card className="p-6 bg-card border-border h-72 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h2 className="text-xl font-bold text-foreground">Recurring Bills</h2>
           <p className="text-sm text-muted-foreground">
@@ -134,7 +134,12 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
             {totalPending.toFixed(2)} pending
           </p>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+        >
           <Link href="/bills">
             <span className="text-xs">See All</span>
             <ArrowRight className="h-3 w-3 ml-1" />
@@ -143,7 +148,7 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
       </div>
 
       {/* Bill List */}
-      <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
+      <div className="flex flex-col gap-2 flex-1">
         {bills.length === 0 && (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-center text-muted-foreground">
@@ -155,7 +160,7 @@ export function RecurringBills({ currencySymbol }: RecurringBillsProps) {
         {bills.slice(0, 3).map((bill) => (
           <div
             key={bill.id}
-            className="flex items-center justify-between py-2 px-1 hover:bg-muted/30 transition-colors rounded"
+            className="flex items-center justify-between py-1.5 px-1 hover:bg-muted/30 transition-colors rounded"
           >
             {/* Left: icon + info */}
             <div className="flex items-center gap-3">

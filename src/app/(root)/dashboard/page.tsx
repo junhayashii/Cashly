@@ -9,6 +9,7 @@ import { GoalsSectionSimple } from "@/components/GoalsSectionSimple";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
 import { RecurringBills } from "@/components/RecurringBillsSimple";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ import {
   PiggyBank,
   Download,
   Calendar,
+  Plus,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -38,8 +40,10 @@ import { useGoals } from "@/hooks/useGoals";
 
 const Dashboard = () => {
   const { transactions, setTransactions } = useTransaction();
+  const { state: sidebarState, isMobile } = useSidebar();
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [isBelow1400, setIsBelow1400] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -83,6 +87,49 @@ const Dashboard = () => {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1399px)");
+    const onChange = (event: MediaQueryListEvent) => setIsBelow1400(event.matches);
+    setIsBelow1400(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  const sidebarForcesNarrowLayout =
+    sidebarState === "expanded" && isBelow1400;
+  const isSidebarCollapsed = sidebarState === "collapsed";
+  const metricsGridClass = sidebarForcesNarrowLayout
+    ? "grid grid-cols-1 min-[850px]:grid-cols-2 min-[1400px]:grid-cols-4 gap-6"
+    : "grid grid-cols-1 min-[850px]:grid-cols-2 lg:grid-cols-4 gap-6";
+  const topChartsGridClass = sidebarForcesNarrowLayout
+    ? "grid grid-cols-1 min-[1250px]:grid-cols-2 gap-6"
+    : "grid grid-cols-1 lg:grid-cols-2 gap-6";
+  const bottomGridClass = sidebarForcesNarrowLayout
+    ? "grid grid-cols-1 min-[1225px]:grid-cols-[1.15fr_0.95fr_0.9fr] min-[1400px]:grid-cols-3 gap-6"
+    : "grid grid-cols-1 lg:grid-cols-3 gap-6";
+  const headerClass = isMobile
+    ? "flex items-center justify-between pl-12"
+    : "flex items-center justify-between";
+  const useCompactPeriodLabels = isMobile;
+  const periodLabels = useCompactPeriodLabels
+    ? {
+        "current-month": "This Mo.",
+        "last-month": "Last Mo.",
+        "last-3-months": "Last 3M",
+        "last-6-months": "Last 6M",
+        "last-year": "Last Yr",
+      }
+    : {
+        "current-month": "This Month",
+        "last-month": "Last Month",
+        "last-3-months": "Last 3 Months",
+        "last-6-months": "Last 6 Months",
+        "last-year": "Last Year",
+      };
+  const periodSelectWidth = useCompactPeriodLabels ? "w-16" : "w-40";
+  const periodSelectAriaLabel =
+    periodLabels[selectedPeriod] ?? "Select period";
 
   // 期間に基づいてトランザクションをフィルタリング
   const getFilteredTransactions = () => {
@@ -162,7 +209,7 @@ const Dashboard = () => {
     <ProtectedRoute>
       <div className="space-y-6 h-[95vh]">
         {/* Welcome Section */}
-        <div className="flex items-center justify-between">
+        <div className={headerClass}>
           <div>
             <h2 className="text-3xl font-bold text-foreground mb-2">
               Welcome back, {firstName}
@@ -170,27 +217,49 @@ const Dashboard = () => {
             <p className="text-muted-foreground">Your financial overview</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-40">
+            <Select
+              value={selectedPeriod}
+              onValueChange={setSelectedPeriod}
+              aria-label={periodSelectAriaLabel}
+            >
+              <SelectTrigger
+                className={`${periodSelectWidth} justify-between px-2 ${
+                  useCompactPeriodLabels ? "ml-2" : ""
+                }`}
+              >
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                {useCompactPeriodLabels ? (
+                  <span className="sr-only">{periodSelectAriaLabel}</span>
+                ) : (
                   <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current-month">This Month</SelectItem>
-                  <SelectItem value="last-month">Last Month</SelectItem>
-                  <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-                  <SelectItem value="last-6-months">Last 6 Months</SelectItem>
-                  <SelectItem value="last-year">Last Year</SelectItem>
-                </SelectContent>
-              </Select>
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current-month">
+                  {periodLabels["current-month"]}
+                </SelectItem>
+                <SelectItem value="last-month">
+                  {periodLabels["last-month"]}
+                </SelectItem>
+                <SelectItem value="last-3-months">
+                  {periodLabels["last-3-months"]}
+                </SelectItem>
+                <SelectItem value="last-6-months">
+                  {periodLabels["last-6-months"]}
+                </SelectItem>
+                <SelectItem value="last-year">
+                  {periodLabels["last-year"]}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="hidden sm:block">
+              <AddTransactionDialog onAddTransaction={handleAddTransaction} />
             </div>
-            <AddTransactionDialog onAddTransaction={handleAddTransaction} />
           </div>
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={metricsGridClass}>
           <MetricCard
             title="Total Balance"
             value={`${currencySymbol}${totalBalance.toFixed(2)}`}
@@ -226,35 +295,47 @@ const Dashboard = () => {
         </div>
 
         {/* Overview Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className={topChartsGridClass}>
           {/* 上段 */}
-          <div className="lg:col-span-2">
+          <div>
             <SpendingChart
               selectedPeriod={selectedPeriod}
               currencySymbol={currencySymbol}
             />
           </div>
 
-          <div className="lg:col-span-2">
+          <div>
             <ExpenseBreakdownChart
               selectedPeriod={selectedPeriod}
               currencySymbol={currencySymbol}
             />
           </div>
+        </div>
 
+        <div className={bottomGridClass}>
           {/* 下段 */}
-          <div className="lg:col-span-2">
+          <div>
             <TransactionListSimple
               transactions={filteredTransactions}
               currencySymbol={currencySymbol}
             />
           </div>
-          <div className="lg:col-span-1">
+          <div>
             <RecurringBills currencySymbol={currencySymbol} />
           </div>
-          <div className="lg:col-span-1">
+          <div>
             <GoalsSectionSimple />
           </div>
+        </div>
+        <div className="sm:hidden fixed bottom-4 right-4 z-50">
+          <AddTransactionDialog
+            onAddTransaction={handleAddTransaction}
+            trigger={
+              <Button className="h-12 w-12 rounded-full shadow-lg shadow-primary/40 bg-primary text-primary-foreground">
+                <Plus className="h-6 w-6" />
+              </Button>
+            }
+          />
         </div>
       </div>
     </ProtectedRoute>

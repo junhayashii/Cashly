@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,12 @@ import { useGoals } from "@/hooks/useGoals";
 
 interface AddTransactionDialogProps {
   onAddTransaction: (transaction: Transaction) => void;
+  trigger?: ReactNode;
 }
 
 export function AddTransactionDialog({
   onAddTransaction,
+  trigger,
 }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -303,10 +305,12 @@ export function AddTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Transaction
-        </Button>
+        {trigger ?? (
+          <Button size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Transaction
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[500px] bg-card border-border">

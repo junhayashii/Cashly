@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Menu, Bell } from "lucide-react";
+import { Settings, Bell, PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -61,8 +61,8 @@ const useCurrentUserId = () => {
 
 const AppSidebar = () => {
   const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
   const isMobile = useIsMobile();
+  const isCollapsed = !isMobile && state === "collapsed";
   const pathname = usePathname();
 
   const userId = useCurrentUserId();
@@ -113,9 +113,9 @@ const AppSidebar = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden fixed top-4 left-4 z-50"
+            className="md:hidden fixed top-5 left-4 z-50 size-12"
           >
-            <Menu className="h-5 w-5" />
+            <PanelLeft className="h-6 w-6" />
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-64">
@@ -168,6 +168,42 @@ const AppSidebar = () => {
 
             <SidebarFooter className="mt-auto border-t border-sidebar-border pt-4">
               <SidebarMenu>
+                <SidebarMenuItem>
+                  {(() => {
+                    const isActive = pathname === notificationItem.url;
+                    return (
+                      <SidebarMenuButton
+                        asChild
+                        size="lg"
+                        isActive={isActive}
+                        tooltip={notificationItem.title}
+                      >
+                        <Link
+                          href={notificationItem.url}
+                          className="group flex w-full items-center gap-2"
+                        >
+                          {renderNavIcon(notificationItem.icon, {
+                            iconClassName:
+                              showUnread && !isActive ? "text-primary" : undefined,
+                            showUnreadBadge: true,
+                          })}
+                          <span className="flex-1 text-base">
+                            {notificationItem.title}
+                          </span>
+                          {showUnread && (
+                            <Badge
+                              variant="outline"
+                              className="ml-auto shrink-0 border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive"
+                            >
+                              {displayUnread}
+                            </Badge>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    );
+                  })()}
+                </SidebarMenuItem>
+
                 <SidebarMenuItem>
                   {(() => {
                     const isActive = pathname === settingsItem.url;
