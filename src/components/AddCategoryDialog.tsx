@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,13 @@ import { supabase } from "@/lib/supabaseClient";
 
 interface AddCategoryDialogProps {
   onAddCategory: (category: Category) => void;
+  trigger?: ReactNode;
 }
 
-export function AddCategoryDialog({ onAddCategory }: AddCategoryDialogProps) {
+export function AddCategoryDialog({
+  onAddCategory,
+  trigger,
+}: AddCategoryDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -144,10 +148,12 @@ export function AddCategoryDialog({ onAddCategory }: AddCategoryDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Category
-        </Button>
+        {trigger ?? (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Category
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>

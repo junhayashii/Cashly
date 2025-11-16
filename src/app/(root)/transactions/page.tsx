@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { TransactionList } from "@/components/TransactionList";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Download,
   Clock3,
@@ -14,6 +15,7 @@ import {
   TrendingDown,
   ArrowUpDown,
   Wallet,
+  Plus,
 } from "lucide-react";
 
 import { Transaction } from "@/types";
@@ -34,6 +36,10 @@ import { MetricCard } from "@/components/MetricCard";
 
 const TransactionPage = () => {
   const { transactions, loading, setTransactions } = useTransaction();
+  const isMobile = useIsMobile();
+  const headerClass = isMobile
+    ? "flex items-center justify-between pl-12"
+    : "flex items-center justify-between";
 
   const billsHook = useBills();
   const { bills, loading: billsLoading } = billsHook;
@@ -185,10 +191,10 @@ const TransactionPage = () => {
   const recurringLoading = loading || billsLoading;
 
   return (
-    <div className="flex h-[95vh] w-full flex-col gap-4 overflow-hidden">
+    <div className="flex h-[95vh] w-full flex-col gap-4 overflow-hidden max-[1320px]:h-auto max-[1320px]:min-h-screen max-[1320px]:overflow-y-auto">
       {/* Header Section */}
       <div className="flex flex-shrink-0 flex-col gap-3">
-        <div className="flex items-center justify-between">
+        <div className={headerClass}>
           <div>
             <h2 className="mb-1 text-3xl font-bold text-foreground">
               Transactions
@@ -199,14 +205,16 @@ const TransactionPage = () => {
           </div>
           <div className="flex items-center gap-2">
             <ImportTransactionsDialog />
-            <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+            <div className="hidden sm:block">
+              <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+            </div>
           </div>
         </div>
       </div>
 
       <Tabs
         defaultValue="recent"
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden max-[1320px]:min-h-fit max-[1320px]:overflow-visible"
       >
         <TabsList className="w-full flex-shrink-0 justify-start gap-2 overflow-x-auto bg-background/60 px-2 backdrop-blur-sm">
           <TabsTrigger value="recent" className="flex-1 sm:flex-initial">
@@ -227,7 +235,7 @@ const TransactionPage = () => {
           </TabsTrigger>
         </TabsList>
 
-        <div className="w-full flex-1 overflow-hidden px-1 py-2 sm:px-0 sm:py-3 min-h-0">
+        <div className="w-full flex-1 overflow-hidden px-1 py-2 sm:px-0 sm:py-3 min-h-0 max-[1320px]:flex-none max-[1320px]:min-h-fit max-[1320px]:overflow-visible">
           <TabsContent
             value="recent"
             className="flex h-full w-full flex-col overflow-hidden min-h-0"
@@ -275,9 +283,9 @@ const TransactionPage = () => {
 
           <TabsContent
             value="recurring"
-            className="flex h-full w-full flex-col overflow-hidden min-h-0"
+            className="flex h-full w-full flex-col overflow-hidden min-h-0 max-[1320px]:h-auto max-[1320px]:min-h-fit max-[1320px]:overflow-visible"
           >
-            <div className="grid h-full w-full min-h-0 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div className="grid h-full w-full min-h-0 gap-3 grid-cols-1 min-[1320px]:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] max-[1320px]:h-auto max-[1320px]:min-h-fit">
               <div className="flex min-h-0 flex-col">
                 <RecurringBillsManageTable
                   billsHook={billsHook}
@@ -329,6 +337,18 @@ const TransactionPage = () => {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Mobile Add button */}
+      <div className="sm:hidden fixed bottom-4 right-4 z-50">
+        <AddTransactionDialog
+          onAddTransaction={handleAddTransaction}
+          trigger={
+            <Button className="h-12 w-12 rounded-full shadow-lg shadow-primary/40 bg-primary text-primary-foreground">
+              <Plus className="h-6 w-6" />
+            </Button>
+          }
+        />
+      </div>
     </div>
   );
 };

@@ -28,7 +28,21 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { ShoppingBag, ArrowUp, ArrowDown, Download, X } from "lucide-react";
+import {
+  ShoppingBag,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  X,
+  Calendar as CalendarIcon,
+  Filter,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { Transaction } from "@/types";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -38,6 +52,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { exportTransactionsCSV } from "@/components/exportTransactionsCSV";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 const transactionTypeMeta: Record<
   Transaction["type"],
@@ -108,6 +123,7 @@ export function TransactionList({
   const [filterEndDate, setFilterEndDate] = useState<string>(
     initialEndDate ?? ""
   );
+  const [activeFilters, setActiveFilters] = useState<string[]>(["type"]);
 
   const { getAccountById, accounts } = useAccounts();
   const [selectedTransaction, setSelectedTransaction] =
@@ -198,6 +214,37 @@ export function TransactionList({
   const totalPages = disablePagination
     ? 1
     : Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
+
+  const dateRangeLabel =
+    filterStartDate || filterEndDate
+      ? `${filterStartDate || "Start"} to ${filterEndDate || "End"}`
+      : "Select dates";
+
+  const addFilter = (filter: string) => {
+    setActiveFilters((prev) =>
+      prev.includes(filter) ? prev : [...prev, filter]
+    );
+  };
+
+  const removeFilter = (filter: string) => {
+    setActiveFilters((prev) => prev.filter((f) => f !== filter));
+    if (filter === "type") setFilterType("all");
+    if (filter === "category") setFilterCategory("all");
+    if (filter === "account") setFilterAccount("all");
+    if (filter === "payment") setFilterPaymentMethod("all");
+    if (filter === "dates") {
+      setFilterStartDate("");
+      setFilterEndDate("");
+    }
+  };
+
+  const availableFilters = [
+    { key: "type", label: "Type" },
+    { key: "payment", label: "Payment Method" },
+    { key: "category", label: "Category" },
+    { key: "account", label: "Account" },
+    { key: "dates", label: "Date Range" },
+  ].filter((f) => !activeFilters.includes(f.key));
   const currentPageSafe = disablePagination
     ? 1
     : Math.min(currentPage, totalPages);
@@ -435,87 +482,201 @@ export function TransactionList({
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
-            <Input
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 border-border/40 bg-background/80 backdrop-blur-sm"
-            />
-
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="border-border/40 bg-background/80 backdrop-blur-sm">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent side="top">
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
-                <SelectItem value="savings">Savings</SelectItem>
-                <SelectItem value="transfer">Transfer</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filterPaymentMethod}
-              onValueChange={setFilterPaymentMethod}
-            >
-              <SelectTrigger className="border-border/40 bg-background/80 backdrop-blur-sm">
-                <SelectValue placeholder="All Payment Methods" />
-              </SelectTrigger>
-              <SelectContent side="top">
-                <SelectItem value="all">All Payment Methods</SelectItem>
-                {paymentMethods.map((method) => (
-                  <SelectItem key={method} value={method}>
-                    {method}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="border-border/40 bg-background/80 backdrop-blur-sm">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent side="top">
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterAccount} onValueChange={setFilterAccount}>
-              <SelectTrigger className="border-border/40 bg-background/80 backdrop-blur-sm">
-                <SelectValue placeholder="All Accounts" />
-              </SelectTrigger>
-              <SelectContent side="top">
-                <SelectItem value="all">All Accounts</SelectItem>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.name}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
-                type="date"
-                aria-label="Start date"
-                value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
-                className="border-border/40 bg-background/80 backdrop-blur-sm md:w-40"
+                placeholder="Search transactions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 min-w-[240px] border-border/40 bg-background/80 backdrop-blur-sm"
               />
-              <Input
-                type="date"
-                aria-label="End date"
-                value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
-                className="border-border/40 bg-background/80 backdrop-blur-sm md:w-40"
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    Add filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {availableFilters.map((filter) => (
+                    <DropdownMenuItem
+                      key={filter.key}
+                      onClick={() => addFilter(filter.key)}
+                    >
+                      {filter.label}
+                    </DropdownMenuItem>
+                  ))}
+                  {availableFilters.length === 0 && (
+                    <DropdownMenuItem disabled>No more filters</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {activeFilters.includes("type") && (
+                <div className="relative">
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="h-8 border-border/40 bg-background/80 backdrop-blur-sm px-2.5 pr-9 text-xs">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="expense">Expense</SelectItem>
+                      <SelectItem value="savings">Savings</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => removeFilter("type")}
+                    className="absolute top-1/2 -translate-y-1/2 right-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground/60"
+                    aria-label="Remove Type filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {activeFilters.includes("payment") && (
+                <div className="relative">
+                  <Select
+                    value={filterPaymentMethod}
+                    onValueChange={setFilterPaymentMethod}
+                  >
+                    <SelectTrigger className="h-8 border-border/40 bg-background/80 backdrop-blur-sm px-2.5 pr-9 text-xs">
+                      <SelectValue placeholder="All Payment Methods" />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      <SelectItem value="all">All Payment Methods</SelectItem>
+                      {paymentMethods.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {method}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => removeFilter("payment")}
+                    className="absolute top-1/2 -translate-y-1/2 right-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground/60"
+                    aria-label="Remove Payment filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {activeFilters.includes("category") && (
+                <div className="relative">
+                  <Select
+                    value={filterCategory}
+                    onValueChange={setFilterCategory}
+                  >
+                    <SelectTrigger className="h-8 border-border/40 bg-background/80 backdrop-blur-sm px-2.5 pr-9 text-xs">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => removeFilter("category")}
+                    className="absolute top-1/2 -translate-y-1/2 right-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground/60"
+                    aria-label="Remove Category filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {activeFilters.includes("account") && (
+                <div className="relative">
+                  <Select value={filterAccount} onValueChange={setFilterAccount}>
+                    <SelectTrigger className="h-8 border-border/40 bg-background/80 backdrop-blur-sm px-2.5 pr-9 text-xs">
+                      <SelectValue placeholder="All Accounts" />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      <SelectItem value="all">All Accounts</SelectItem>
+                      {accounts.map((a) => (
+                        <SelectItem key={a.id} value={a.name}>
+                          {a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => removeFilter("account")}
+                    className="absolute top-1/2 -translate-y-1/2 right-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground/60"
+                    aria-label="Remove Account filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {activeFilters.includes("dates") && (
+                <div className="relative">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-8 border-border/40 bg-background/80 backdrop-blur-sm px-2.5 pr-9 text-xs"
+                      >
+                        <span className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm">{dateRangeLabel}</span>
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      className="w-72 space-y-3 p-3"
+                    >
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Start
+                        </Label>
+                        <Input
+                          type="date"
+                          aria-label="Start date"
+                          value={filterStartDate}
+                          onChange={(e) => setFilterStartDate(e.target.value)}
+                          className="border-border/40 bg-background/80 backdrop-blur-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          End
+                        </Label>
+                        <Input
+                          type="date"
+                          aria-label="End date"
+                          value={filterEndDate}
+                          onChange={(e) => setFilterEndDate(e.target.value)}
+                          className="border-border/40 bg-background/80 backdrop-blur-sm"
+                        />
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <button
+                    type="button"
+                    onClick={() => removeFilter("dates")}
+                    className="absolute top-1/2 -translate-y-1/2 right-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground/60"
+                    aria-label="Remove Date Range filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -547,211 +708,277 @@ export function TransactionList({
         ) : (
           <div
             className={cn(
-              "h-full overflow-x-auto overflow-y-auto rounded-lg border border-border/30 bg-background/50 backdrop-blur-sm",
+              "h-full overflow-y-auto overflow-x-hidden rounded-lg border border-border/30 bg-background/50 backdrop-blur-sm",
               expandToContentHeight && "h-auto max-h-none overflow-visible"
             )}
           >
-            <Table className="table-fixed w-full">
-              <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
-                <TableRow className="hover:bg-transparent bg-muted/80">
-                  <TableHead className="w-[48px] pl-4">
-                    <Checkbox
-                      checked={
-                        isAllSelectedOnPage
-                          ? true
-                          : isSomeSelectedOnPage
-                          ? "indeterminate"
-                          : false
-                      }
-                      onCheckedChange={toggleSelectAllOnPage}
-                      aria-label="Select all on page"
-                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary"
-                    />
-                  </TableHead>
-                  <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
-                    <div className="pr-3 text-xs font-medium uppercase tracking-wider">
-                      Transaction
-                    </div>
-                  </TableHead>
-                  <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
-                    <div className="pr-3 text-xs font-medium uppercase tracking-wider">
-                      Account
-                    </div>
-                  </TableHead>
-                  <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
-                    <div className="pr-3 text-xs font-medium uppercase tracking-wider">
-                      Payment
-                    </div>
-                  </TableHead>
-                  <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
-                    <div className="pr-3 text-xs font-medium uppercase tracking-wider">
-                      Category
-                    </div>
-                  </TableHead>
+            <div className="divide-y divide-border/30 sm:hidden">
+              {paginatedTransactions.map((transaction) => {
+                const categoryName = transaction.category?.name || "Other";
+                const account = getAccountById(transaction.account_id);
+                const paymentMethod = transaction.payment_method || null;
+                const typeMeta =
+                  transactionTypeMeta[transaction.type] ??
+                  transactionTypeMeta.expense;
+                const isPositive = transaction.type === "income";
 
-                  {/* Date Column with sort */}
-                  <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                      }
-                      className="flex w-full items-center gap-1.5 bg-transparent p-0 pr-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground outline-none transition-all hover:text-foreground focus-visible:outline-none"
-                    >
-                      Date
-                      <div className="flex flex-col">
-                        <ArrowUp
-                          className={`h-3 w-3 transition-opacity ${
-                            sortOrder === "asc"
-                              ? "opacity-100 text-primary"
-                              : "opacity-30"
-                          }`}
-                        />
-                        <ArrowDown
-                          className={`h-3 w-3 -mt-1.5 transition-opacity ${
-                            sortOrder === "desc"
-                              ? "opacity-100 text-primary"
-                              : "opacity-30"
-                          }`}
-                        />
-                      </div>
-                    </button>
-                  </TableHead>
-
-                  <TableHead className="h-11 text-center text-muted-foreground w-[calc((100%-48px)/6)]">
-                    <div className="flex w-full justify-center pr-3 text-xs font-medium uppercase tracking-wider">
-                      Amount
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {paginatedTransactions.map((transaction, index) => {
-                  const categoryName = transaction.category?.name || "Other";
-                  const isPositive = transaction.type === "income";
-                  const account = getAccountById(transaction.account_id);
-                  const paymentMethod = transaction.payment_method || null;
-                  const typeMeta =
-                    transactionTypeMeta[transaction.type] ??
-                    transactionTypeMeta.expense;
-                  const handleRowActivation = () => {
-                    setSelectedTransaction(transaction);
-                  };
-                  const handleRowKeyDown = (
-                    event: ReactKeyboardEvent<HTMLTableRowElement>
-                  ) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handleRowActivation();
-                    }
-                  };
-
-                  const isSelected = selectedRows.has(transaction.id);
-
-                  return (
-                    <TableRow
-                      key={transaction.id}
-                      tabIndex={0}
-                      onClick={handleRowActivation}
-                      onKeyDown={handleRowKeyDown}
-                      data-state={isSelected ? "selected" : undefined}
-                      className={`group cursor-pointer border-b border-border/15 bg-background/30 transition-all duration-150 hover:bg-primary/5 hover:border-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 data-[state=selected]:bg-primary/5 data-[state=selected]:border-primary/15 ${
-                        index % 2 === 0
-                          ? "bg-background/40"
-                          : "bg-background/30"
-                      }`}
-                    >
-                      <TableCell
-                        className="pl-4 py-3"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() =>
-                            toggleRowSelection(transaction.id)
-                          }
-                          aria-label={`Select ${transaction.title}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
-                      </TableCell>
-                      <TableCell className="py-3 w-[calc((100%-48px)/6)]">
-                        <div className="flex flex-col gap-1.5 pr-3 min-w-0">
-                          <span
-                            className="font-medium text-sm text-foreground truncate block overflow-hidden text-ellipsis whitespace-nowrap"
-                            title={transaction.title}
-                          >
+                return (
+                  <button
+                    key={transaction.id}
+                    onClick={() => setSelectedTransaction(transaction)}
+                    className="w-full text-left p-4 flex flex-col gap-2 bg-background/70 hover:bg-primary/5 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-foreground truncate text-base">
                             {transaction.title}
-                          </span>
+                          </div>
                           <span
-                            className={`inline-flex w-fit items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${typeMeta.className}`}
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${typeMeta.className}`}
                           >
                             {typeMeta.label}
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell
-                        className="py-3 text-sm text-muted-foreground w-[calc((100%-48px)/6)]"
-                        title={account?.name || "-"}
-                      >
-                        <div className="pr-3 min-w-0">
-                          <span className="truncate block overflow-hidden text-ellipsis whitespace-nowrap">
-                            {account?.name || "-"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className="py-3 text-sm text-muted-foreground w-[calc((100%-48px)/6)]"
-                        title={paymentMethod || "-"}
-                      >
-                        <div className="pr-3 min-w-0">
-                          <span className="truncate block overflow-hidden text-ellipsis whitespace-nowrap">
-                            {paymentMethod || "-"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className="py-3 text-sm w-[calc((100%-48px)/6)]"
-                        title={categoryName}
-                      >
-                        <div className="pr-3 min-w-0">
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-0.5 text-xs font-medium text-foreground/70 truncate">
-                            {categoryName}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3 text-sm font-medium text-muted-foreground w-[calc((100%-48px)/6)]">
-                        <div className="pr-3">
-                          {formatDate(transaction.date)}
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className={`py-3 text-center w-[calc((100%-48px)/6)] ${
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold ${
                           isPositive
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-foreground"
+                            ? "bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                            : "bg-rose-50/80 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400"
                         }`}
                       >
-                        <div className="flex items-center justify-center pr-3">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold ${
-                              isPositive
-                                ? "bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                : "bg-rose-50/80 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400"
+                        {isPositive ? "+" : "-"}
+                        {currencySymbol}
+                        {Math.abs(transaction.amount).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(transaction.date)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground/70">
+                        {categoryName}
+                      </span>
+                      {account?.name && (
+                        <span className="truncate max-w-[160px]">
+                          {account.name}
+                        </span>
+                      )}
+                      {paymentMethod && (
+                        <span className="truncate max-w-[140px]">
+                          {paymentMethod}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="hidden sm:block">
+              <Table className="table-auto w-full" enableScroll={false}>
+                <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
+                  <TableRow className="hover:bg-transparent bg-muted/80">
+                    <TableHead className="w-[48px] pl-4">
+                      <Checkbox
+                        checked={
+                          isAllSelectedOnPage
+                            ? true
+                            : isSomeSelectedOnPage
+                            ? "indeterminate"
+                            : false
+                        }
+                        onCheckedChange={toggleSelectAllOnPage}
+                        aria-label="Select all on page"
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary"
+                      />
+                    </TableHead>
+                    <TableHead className="h-11 text-muted-foreground">
+                      <div className="pr-3 text-xs font-medium uppercase tracking-wider">
+                        Transaction
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-11 text-muted-foreground min-[1400px]:w-[calc((100%-48px)/7)]">
+                      <div className="pr-3 text-xs font-medium uppercase tracking-wider">
+                        Account
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
+                      <div className="pr-3 text-xs font-medium uppercase tracking-wider">
+                        Payment
+                      </div>
+                    </TableHead>
+                    <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
+                      <div className="pr-3 text-xs font-medium uppercase tracking-wider">
+                        Category
+                      </div>
+                    </TableHead>
+
+                    {/* Date Column with sort */}
+                    <TableHead className="h-11 text-muted-foreground w-[calc((100%-48px)/6)]">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                        }
+                        className="flex w-full items-center gap-1.5 bg-transparent p-0 pr-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground outline-none transition-all hover:text-foreground focus-visible:outline-none"
+                      >
+                        Date
+                        <div className="flex flex-col">
+                          <ArrowUp
+                            className={`h-3 w-3 transition-opacity ${
+                              sortOrder === "asc"
+                                ? "opacity-100 text-primary"
+                                : "opacity-30"
                             }`}
-                          >
-                            {isPositive ? "+" : "-"}
-                            {currencySymbol}
-                            {Math.abs(transaction.amount).toFixed(2)}
-                          </span>
+                          />
+                          <ArrowDown
+                            className={`h-3 w-3 -mt-1.5 transition-opacity ${
+                              sortOrder === "desc"
+                                ? "opacity-100 text-primary"
+                                : "opacity-30"
+                            }`}
+                          />
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      </button>
+                    </TableHead>
+
+                    <TableHead className="h-11 text-center text-muted-foreground min-[1400px]:w-[calc((100%-48px)/6)]">
+                      <div className="flex w-full justify-center pr-3 text-xs font-medium uppercase tracking-wider">
+                        Amount
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {paginatedTransactions.map((transaction, index) => {
+                    const categoryName = transaction.category?.name || "Other";
+                    const isPositive = transaction.type === "income";
+                    const account = getAccountById(transaction.account_id);
+                    const paymentMethod = transaction.payment_method || null;
+                    const typeMeta =
+                      transactionTypeMeta[transaction.type] ??
+                      transactionTypeMeta.expense;
+                    const handleRowActivation = () => {
+                      setSelectedTransaction(transaction);
+                    };
+                    const handleRowKeyDown = (
+                      event: ReactKeyboardEvent<HTMLTableRowElement>
+                    ) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleRowActivation();
+                      }
+                    };
+
+                    const isSelected = selectedRows.has(transaction.id);
+
+                    return (
+                      <TableRow
+                        key={transaction.id}
+                        tabIndex={0}
+                        onClick={handleRowActivation}
+                        onKeyDown={handleRowKeyDown}
+                        data-state={isSelected ? "selected" : undefined}
+                        className={`group cursor-pointer border-b border-border/15 bg-background/30 transition-all duration-150 hover:bg-primary/5 hover:border-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 data-[state=selected]:bg-primary/5 data-[state=selected]:border-primary/15 ${
+                          index % 2 === 0
+                            ? "bg-background/40"
+                            : "bg-background/30"
+                        }`}
+                      >
+                        <TableCell
+                          className="pl-4 py-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() =>
+                              toggleRowSelection(transaction.id)
+                            }
+                            aria-label={`Select ${transaction.title}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex flex-col gap-1.5 pr-3 min-w-0">
+                            <span
+                              className="font-medium text-sm text-foreground break-words leading-snug"
+                              title={transaction.title}
+                            >
+                              {transaction.title}
+                            </span>
+                            <span
+                              className={`inline-flex w-fit items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${typeMeta.className}`}
+                            >
+                              {typeMeta.label}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="py-3 text-sm text-muted-foreground min-[1400px]:w-[calc((100%-48px)/7)] max-w-[140px]"
+                          title={account?.name || "-"}
+                        >
+                          <div className="pr-3 min-w-0">
+                            <span className="truncate block overflow-hidden text-ellipsis whitespace-nowrap">
+                              {account?.name || "-"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="py-3 text-sm text-muted-foreground min-[1400px]:w-[calc((100%-48px)/6)]"
+                          title={paymentMethod || "-"}
+                        >
+                          <div className="pr-3 min-w-0">
+                            <span className="truncate block overflow-hidden text-ellipsis whitespace-nowrap">
+                              {paymentMethod || "-"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="py-3 text-sm min-[1400px]:w-[calc((100%-48px)/6)]"
+                          title={categoryName}
+                        >
+                          <div className="pr-3 min-w-0">
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-0.5 text-xs font-medium text-foreground/70 truncate">
+                              {categoryName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3 text-sm font-medium text-muted-foreground min-[1400px]:w-[calc((100%-48px)/6)]">
+                          <div className="pr-3">
+                            {formatDate(transaction.date)}
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className={`py-3 text-center min-[1400px]:w-[calc((100%-48px)/6)] ${
+                            isPositive
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-foreground"
+                          }`}
+                        >
+                          <div className="flex items-center justify-center pr-3">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold ${
+                                isPositive
+                                  ? "bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                  : "bg-rose-50/80 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400"
+                              }`}
+                            >
+                              {isPositive ? "+" : "-"}
+                              {currencySymbol}
+                              {Math.abs(transaction.amount).toFixed(2)}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>

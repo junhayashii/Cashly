@@ -441,156 +441,108 @@ const UpcomingBills = ({
             </div>
           ) : (
             <div className="flex h-full flex-col">
-              <div className="flex-1 min-h-0">
-                <div className="h-full overflow-x-auto overflow-y-auto rounded-xl border border-border bg-background/60 backdrop-blur-sm shadow-sm">
-                  <Table className="table-fixed w-full">
-                    <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
-                      <TableRow className="hover:bg-transparent bg-muted/80">
-                        <TableHead className="h-12 w-[60px] text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-                          <div className="flex items-center justify-center">
-                            <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40"></div>
-                          </div>
-                        </TableHead>
-                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                          Title
-                        </TableHead>
-                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                          Due Date
-                        </TableHead>
-                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                          Payment Method
-                        </TableHead>
-                        <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                          Frequency
-                        </TableHead>
-                        <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                          Amount
-                        </TableHead>
-                        <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)/6)]">
-                          Actions
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedUpcomingItems.flatMap((item, index) => {
-                        const globalIndex =
-                          (currentPageSafe - 1) * UPCOMING_PAGE_SIZE + index;
-                        const isCreditGroup = item.kind === "creditGroup";
-                        const bill = item.bill;
-                        const amountValue = Number(item.amount ?? 0);
-                        const isExpanded =
-                          isCreditGroup && expandedGroups[item.id];
-                        const canOpenEdit = item.kind === "recurring" && !!bill;
-                        const canToggleDetails = isCreditGroup;
-                        const handleRowActivation = () => {
-                          if (canOpenEdit && bill) {
-                            setSelectedBill(bill);
-                            setIsEditOpen(true);
-                            return;
-                          }
-                          if (canToggleDetails) {
-                            toggleGroupDetails(item.id);
-                          }
-                        };
-                        const handleRowKeyDown = (
-                          event: ReactKeyboardEvent<HTMLTableRowElement>
-                        ) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            handleRowActivation();
-                          }
-                        };
+              <div className="flex-1 min-h-0 space-y-3 flex flex-col">
+                {/* Mobile cards */}
+                <div className="space-y-3 min-[900px]:hidden max-h-[70vh] overflow-y-auto pr-1">
+                  {paginatedUpcomingItems.map((item, index) => {
+                    const globalIndex =
+                      (currentPageSafe - 1) * UPCOMING_PAGE_SIZE + index;
+                    const isCreditGroup = item.kind === "creditGroup";
+                    const bill = item.bill;
+                    const amountValue = Number(item.amount ?? 0);
+                    const isExpanded =
+                      isCreditGroup && expandedGroups[item.id];
+                    const canOpenEdit = item.kind === "recurring" && !!bill;
+                    const canToggleDetails = isCreditGroup;
+                    const handleCardActivation = () => {
+                      if (canOpenEdit && bill) {
+                        setSelectedBill(bill);
+                        setIsEditOpen(true);
+                        return;
+                      }
+                      if (canToggleDetails) {
+                        toggleGroupDetails(item.id);
+                      }
+                    };
+                    const handleCardKeyDown = (
+                      event: ReactKeyboardEvent<HTMLDivElement>
+                    ) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleCardActivation();
+                      }
+                    };
 
-                        return [
-                          // Main row
-                          <TableRow
-                            key={`${item.kind}:${item.id}`}
-                            tabIndex={0}
-                            onClick={handleRowActivation}
-                            onKeyDown={handleRowKeyDown}
-                            className={`border-b border-border/25 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 ${
-                              globalIndex % 2 === 0
-                                ? "bg-background/50"
-                                : "bg-background/40"
-                            } hover:bg-primary/8 hover:border-primary/15 hover:shadow-sm cursor-pointer`}
-                          >
-                            <TableCell className="py-4 w-[60px]">
-                              <div className="flex items-center justify-center">
-                                {bill?.is_paid ? (
-                                  <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                ) : (
-                                  <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4 w-[calc((100%-60px)/6)]">
-                              <div className="flex items-start gap-3">
-                                {isCreditGroup ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 shrink-0 p-0"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      toggleGroupDetails(item.id);
-                                    }}
-                                    aria-label={
-                                      expandedGroups[item.id]
-                                        ? "Collapse details"
-                                        : "Expand details"
-                                    }
-                                  >
-                                    {expandedGroups[item.id] ? (
-                                      <ChevronDown className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronRight className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                ) : (
-                                  <div
-                                    className="h-8 w-8"
-                                    aria-hidden="true"
-                                  ></div>
-                                )}
-                                <div className="flex flex-col gap-1">
-                                  <span className="font-medium text-sm text-foreground truncate">
-                                    {item.title}
-                                  </span>
-                                  {isCreditGroup && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {item.payments.length} payment
-                                      {item.payments.length > 1 ? "s" : ""}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                              {isCreditGroup
-                                ? formatDate(item.dueDate)
-                                : bill?.is_paid
-                                ? formatDate(bill.next_due_date)
-                                : formatDate(item.dueDate)}
-                            </TableCell>
-                            <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                              {item.paymentMethod ||
-                                (isCreditGroup ? "Credit Card" : "-")}
-                            </TableCell>
-                            <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                              {item.kind === "recurring"
-                                ? getFrequencyText(item.frequency)
-                                : "-"}
-                            </TableCell>
-                            <TableCell className="py-4 text-center w-[calc((100%-60px)/6)]">
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-semibold text-foreground">
-                                  {currencySymbol}
-                                  {amountValue.toFixed(2)}
+                    return (
+                      <div
+                        key={`${item.kind}:mobile:${item.id}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleCardActivation}
+                        onKeyDown={handleCardKeyDown}
+                        className={`rounded-xl border border-border/70 bg-background/70 p-4 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 hover:border-primary/20 hover:shadow-md ${
+                          globalIndex % 2 === 0
+                            ? "bg-background/60"
+                            : "bg-background/50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
+                              {bill?.is_paid ? (
+                                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-base font-semibold text-foreground">
+                                  {item.title}
                                 </span>
+                                {isCreditGroup && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {item.payments.length} payment
+                                    {item.payments.length > 1 ? "s" : ""}
+                                  </span>
+                                )}
                               </div>
-                            </TableCell>
-                            <TableCell className="py-4 text-center w-[calc((100%-60px)/6)]">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                <span>
+                                  {isCreditGroup
+                                    ? formatDate(item.dueDate)
+                                    : bill?.is_paid
+                                    ? formatDate(bill.next_due_date)
+                                    : formatDate(item.dueDate)}
+                                </span>
+                                <span className="h-1 w-1 rounded-full bg-muted-foreground/60" aria-hidden="true"></span>
+                                <span>
+                                  {item.paymentMethod ||
+                                    (isCreditGroup ? "Credit Card" : "-")}
+                                </span>
+                                {item.kind === "recurring" && (
+                                  <>
+                                    <span
+                                      className="h-1 w-1 rounded-full bg-muted-foreground/60"
+                                      aria-hidden="true"
+                                    ></span>
+                                    <span>{getFrequencyText(item.frequency)}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <div className="text-sm font-semibold text-foreground">
+                              {currencySymbol}
+                              {amountValue.toFixed(2)}
+                            </div>
+                            {bill?.is_paid ? (
+                              <span className="block text-[11px] text-emerald-600">
+                                Paid
+                              </span>
+                            ) : (
+                              <>
                                 {item.kind === "recurring" &&
                                   bill &&
                                   !bill.is_paid && (
@@ -602,12 +554,11 @@ const UpcomingBills = ({
                                         setBillToPay(bill);
                                         setIsPayOpen(true);
                                       }}
-                                      className="text-xs border-border/60 hover:bg-accent/50"
+                                      className="h-8 text-xs border-border/60 hover:bg-accent/50"
                                     >
                                       Pay
                                     </Button>
                                   )}
-
                                 {isCreditGroup && (
                                   <Button
                                     size="sm"
@@ -627,76 +578,344 @@ const UpcomingBills = ({
                                         bill: item.bill,
                                       });
                                     }}
-                                    className="text-xs border-border/60 hover:bg-accent/50"
+                                    className="h-8 text-xs border-border/60 hover:bg-accent/50"
                                   >
                                     {groupRecordingId === item.id
                                       ? "Recording..."
                                       : "Pay"}
                                   </Button>
                                 )}
+                              </>
+                            )}
+                          </div>
+                        </div>
 
-                                {bill?.is_paid && (
-                                  <span className="text-xs text-green-600">
-                                    Paid
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>,
-                          // Expanded payment rows for credit groups
-                          ...(isExpanded
-                            ? item.payments.map((payment, paymentIndex) => (
-                                <TableRow
-                                  key={`${item.id}-payment-${payment.id}`}
-                                  className={`border-b border-border/20 transition-all duration-200 bg-background/30 hover:bg-primary/5 hover:border-primary/10 ${
-                                    paymentIndex % 2 === 0
-                                      ? "bg-background/35"
-                                      : "bg-background/30"
-                                  }`}
-                                >
-                                  <TableCell className="py-3 pl-12 w-[60px]">
-                                    <div className="flex items-center justify-center">
-                                      <div className="h-2 w-2 rounded-full bg-primary/60"></div>
+                        {isCreditGroup && (
+                          <div className="mt-2 space-y-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-2 px-2"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                toggleGroupDetails(item.id);
+                              }}
+                              aria-label={
+                                expandedGroups[item.id]
+                                  ? "Collapse payments"
+                                  : "Expand payments"
+                              }
+                            >
+                              {expandedGroups[item.id] ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                              <span className="text-xs">
+                                {expandedGroups[item.id]
+                                  ? "Hide payments"
+                                  : "View payments"}
+                              </span>
+                            </Button>
+
+                            {isExpanded && (
+                              <div className="space-y-2">
+                                {item.payments.map((payment) => (
+                                  <div
+                                    key={payment.id}
+                                    className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="space-y-1">
+                                        <div className="text-sm font-medium text-foreground">
+                                          {payment.title}
+                                        </div>
+                                        <div className="text-[11px] text-muted-foreground">
+                                          {formatDate(payment.due_date)}
+                                        </div>
+                                      </div>
+                                      <div className="text-sm font-semibold text-foreground">
+                                        {currencySymbol}
+                                        {payment.amount.toFixed(2)}
+                                      </div>
                                     </div>
-                                  </TableCell>
-                                  <TableCell className="py-3 text-sm font-medium text-foreground w-[calc((100%-60px)/6)]">
-                                    {payment.title}
-                                  </TableCell>
-                                  <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                                    {formatDate(payment.due_date)}
-                                  </TableCell>
-                                  <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                                    Credit Card
-                                  </TableCell>
-                                  <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)/6)]">
-                                    -
-                                  </TableCell>
-                                  <TableCell className="py-3 text-center w-[calc((100%-60px)/6)]">
-                                    <span className="text-sm font-semibold text-foreground">
-                                      {currencySymbol}
-                                      {payment.amount.toFixed(2)}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="py-3 text-center w-[calc((100%-60px)/6)]">
                                     {(payment as any).installment_number &&
                                     (payment as any).total_installments ? (
-                                      <span className="text-xs text-muted-foreground">
+                                      <div className="mt-1 text-[11px] text-muted-foreground">
                                         {(payment as any).installment_number}/
-                                        {(payment as any).total_installments}
-                                      </span>
-                                    ) : (
+                                        {(payment as any).total_installments}{" "}
+                                        installments
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden min-[900px]:flex flex-1 min-h-0">
+                  <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto rounded-xl border border-border bg-background/60 backdrop-blur-sm shadow-sm">
+                    <Table className="table-fixed w-full">
+                      <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
+                        <TableRow className="hover:bg-transparent bg-muted/80">
+                          <TableHead className="h-12 w-[60px] text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
+                            <div className="flex items-center justify-center">
+                              <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40"></div>
+                            </div>
+                          </TableHead>
+                          <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)*0.34)]">
+                            Title
+                          </TableHead>
+                          <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)*0.18)]">
+                            Due Date
+                          </TableHead>
+                          <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)*0.13)]">
+                            Payment Method
+                          </TableHead>
+                          <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)*0.1)]">
+                            Frequency
+                          </TableHead>
+                          <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)*0.15)]">
+                            Amount
+                          </TableHead>
+                          <TableHead className="h-12 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 w-[calc((100%-60px)*0.1)]">
+                            Actions
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedUpcomingItems.flatMap((item, index) => {
+                          const globalIndex =
+                            (currentPageSafe - 1) * UPCOMING_PAGE_SIZE + index;
+                          const isCreditGroup = item.kind === "creditGroup";
+                          const bill = item.bill;
+                          const amountValue = Number(item.amount ?? 0);
+                          const isExpanded =
+                            isCreditGroup && expandedGroups[item.id];
+                          const canOpenEdit = item.kind === "recurring" && !!bill;
+                          const canToggleDetails = isCreditGroup;
+                          const handleRowActivation = () => {
+                            if (canOpenEdit && bill) {
+                              setSelectedBill(bill);
+                              setIsEditOpen(true);
+                              return;
+                            }
+                            if (canToggleDetails) {
+                              toggleGroupDetails(item.id);
+                            }
+                          };
+                          const handleRowKeyDown = (
+                            event: ReactKeyboardEvent<HTMLTableRowElement>
+                          ) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleRowActivation();
+                            }
+                          };
+
+                          return [
+                            // Main row
+                            <TableRow
+                              key={`${item.kind}:${item.id}`}
+                              tabIndex={0}
+                              onClick={handleRowActivation}
+                              onKeyDown={handleRowKeyDown}
+                              className={`border-b border-border/25 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 ${
+                                globalIndex % 2 === 0
+                                  ? "bg-background/50"
+                                  : "bg-background/40"
+                              } hover:bg-primary/8 hover:border-primary/15 hover:shadow-sm cursor-pointer`}
+                            >
+                              <TableCell className="py-4 w-[60px]">
+                                <div className="flex items-center justify-center">
+                                  {bill?.is_paid ? (
+                                    <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                  ) : (
+                                    <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 w-[calc((100%-60px)*0.34)]">
+                                <div className="flex items-start gap-3">
+                                  {isCreditGroup ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 shrink-0 p-0"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        toggleGroupDetails(item.id);
+                                      }}
+                                      aria-label={
+                                        expandedGroups[item.id]
+                                          ? "Collapse details"
+                                          : "Expand details"
+                                      }
+                                    >
+                                      {expandedGroups[item.id] ? (
+                                        <ChevronDown className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  ) : (
+                                    <div
+                                      className="h-8 w-8"
+                                      aria-hidden="true"
+                                    ></div>
+                                  )}
+                                  <div className="flex flex-col gap-1">
+                                    <span className="font-medium text-sm text-foreground truncate">
+                                      {item.title}
+                                    </span>
+                                    {isCreditGroup && (
                                       <span className="text-xs text-muted-foreground">
-                                        -
+                                        {item.payments.length} payment
+                                        {item.payments.length > 1 ? "s" : ""}
                                       </span>
                                     )}
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            : []),
-                        ];
-                      })}
-                    </TableBody>
-                  </Table>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)*0.18)]">
+                                {isCreditGroup
+                                  ? formatDate(item.dueDate)
+                                  : bill?.is_paid
+                                  ? formatDate(bill.next_due_date)
+                                  : formatDate(item.dueDate)}
+                              </TableCell>
+                              <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)*0.13)]">
+                                {item.paymentMethod ||
+                                  (isCreditGroup ? "Credit Card" : "-")}
+                              </TableCell>
+                              <TableCell className="py-4 text-sm text-muted-foreground w-[calc((100%-60px)*0.1)]">
+                                {item.kind === "recurring"
+                                  ? getFrequencyText(item.frequency)
+                                  : "-"}
+                              </TableCell>
+                              <TableCell className="py-4 text-center w-[calc((100%-60px)*0.15)]">
+                                <div className="flex items-center justify-center">
+                                  <span className="text-sm font-semibold text-foreground">
+                                    {currencySymbol}
+                                    {amountValue.toFixed(2)}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 text-center w-[calc((100%-60px)*0.1)]">
+                                <div className="flex items-center justify-center gap-2">
+                                  {item.kind === "recurring" &&
+                                    bill &&
+                                    !bill.is_paid && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setBillToPay(bill);
+                                          setIsPayOpen(true);
+                                        }}
+                                        className="text-xs border-border/60 hover:bg-accent/50"
+                                      >
+                                        Pay
+                                      </Button>
+                                    )}
+
+                                  {isCreditGroup && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={
+                                        groupRecordingId === item.id ||
+                                        item.payments.length === 0
+                                      }
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleRecordCreditGroup({
+                                          id: item.id,
+                                          title: item.title,
+                                          amount: item.amount,
+                                          dueDate: item.dueDate,
+                                          payments: item.payments,
+                                          bill: item.bill,
+                                        });
+                                      }}
+                                      className="text-xs border-border/60 hover:bg-accent/50"
+                                    >
+                                      {groupRecordingId === item.id
+                                        ? "Recording..."
+                                        : "Pay"}
+                                    </Button>
+                                  )}
+
+                                  {bill?.is_paid && (
+                                    <span className="text-xs text-green-600">
+                                      Paid
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>,
+                            // Expanded payment rows for credit groups
+                            ...(isExpanded
+                              ? item.payments.map((payment, paymentIndex) => (
+                                  <TableRow
+                                    key={`${item.id}-payment-${payment.id}`}
+                                    className={`border-b border-border/20 transition-all duration-200 bg-background/30 hover:bg-primary/5 hover:border-primary/10 ${
+                                      paymentIndex % 2 === 0
+                                        ? "bg-background/35"
+                                        : "bg-background/30"
+                                    }`}
+                                  >
+                                    <TableCell className="py-3 pl-12 w-[60px]">
+                                      <div className="flex items-center justify-center">
+                                        <div className="h-2 w-2 rounded-full bg-primary/60"></div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm font-medium text-foreground w-[calc((100%-60px)*0.34)]">
+                                      {payment.title}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)*0.18)]">
+                                      {formatDate(payment.due_date)}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)*0.13)]">
+                                      Credit Card
+                                    </TableCell>
+                                    <TableCell className="py-3 text-sm text-muted-foreground w-[calc((100%-60px)*0.1)]">
+                                      -
+                                    </TableCell>
+                                    <TableCell className="py-3 text-center w-[calc((100%-60px)*0.15)]">
+                                      <span className="text-sm font-semibold text-foreground">
+                                        {currencySymbol}
+                                        {payment.amount.toFixed(2)}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell className="py-3 text-center w-[calc((100%-60px)*0.1)]">
+                                      {(payment as any).installment_number &&
+                                      (payment as any).total_installments ? (
+                                        <span className="text-xs text-muted-foreground">
+                                          {(payment as any).installment_number}/
+                                          {(payment as any).total_installments}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">
+                                          -
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              : []),
+                          ];
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             </div>

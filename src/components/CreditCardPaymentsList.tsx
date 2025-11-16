@@ -318,7 +318,95 @@ export function CreditCardPaymentsList({
         ) : (
           <div className="flex h-full flex-col">
             <div className="flex-1 min-h-0">
-              <div className="h-full overflow-x-auto overflow-y-auto rounded-xl border border-border bg-background/60 backdrop-blur-sm shadow-sm">
+              {/* Mobile layout */}
+              <div className="md:hidden flex h-full max-h-[70vh] flex-col gap-3 overflow-y-auto pb-4 pr-1">
+                <div className="flex items-center justify-between rounded-lg border border-border/70 bg-background/70 px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={
+                        isAllSelectedOnPage
+                          ? true
+                          : isSomeSelectedOnPage
+                          ? "indeterminate"
+                          : false
+                      }
+                      onCheckedChange={toggleSelectAllOnPage}
+                      aria-label="Select visible payments"
+                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary"
+                    />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      このページを全選択/解除
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    {rangeStart}-{rangeEnd} / {totalPayments}
+                  </span>
+                </div>
+
+                {paginatedPayments.map((p) => {
+                  const isSelected = selectedRows.has(p.id);
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="rounded-xl border border-border bg-background/70 p-4 shadow-sm backdrop-blur-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleRowSelection(p.id)}
+                            aria-label={`Select ${p.title} payment`}
+                            className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {p.title} ({p.installment_number}/
+                                {p.total_installments})
+                              </p>
+                              {p.paid ? (
+                                <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/80 text-emerald-700 px-2.5 py-1 text-[11px] font-semibold shadow-sm ring-1 ring-inset ring-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-500/30">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Paid
+                                </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-1.5 rounded-lg bg-yellow-50/80 text-yellow-700 px-2.5 py-1 text-[11px] font-semibold shadow-sm ring-1 ring-inset ring-yellow-200/60 dark:bg-yellow-950/40 dark:text-yellow-400 dark:ring-yellow-500/30">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  Pending
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Due {formatDate(p.due_date)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-right shrink-0">
+                          {!p.paid && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={updatingId === p.id}
+                              onClick={() => handleMarkAsPaid(p.id)}
+                              className="w-28 gap-2 border-border/60 hover:bg-accent/50"
+                            >
+                              {updatingId === p.id ? "Updating..." : "Pay"}
+                            </Button>
+                          )}
+                          <span className="text-base font-semibold text-foreground">
+                            {currencySymbol}
+                            {p.amount.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop layout */}
+              <div className="hidden md:block h-full max-h-[70vh] overflow-x-auto overflow-y-auto rounded-xl border border-border bg-background/60 backdrop-blur-sm shadow-sm">
                 <Table className="table-fixed w-full">
                   <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
                     <TableRow className="hover:bg-transparent bg-muted/80 border-border">

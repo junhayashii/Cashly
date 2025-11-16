@@ -64,6 +64,8 @@ const AppSidebar = () => {
   const isMobile = useIsMobile();
   const isCollapsed = !isMobile && state === "collapsed";
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const closeMobile = () => setMobileOpen(false);
 
   const userId = useCurrentUserId();
   const { unreadCount } = useUnreadNotifications(userId);
@@ -108,7 +110,7 @@ const AppSidebar = () => {
 
   if (isMobile) {
     return (
-      <Sheet>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
           <Button
             variant="ghost"
@@ -152,6 +154,7 @@ const AppSidebar = () => {
                               "group flex w-full items-center gap-2",
                               isCollapsed && "justify-center gap-0"
                             )}
+                            onClick={closeMobile}
                           >
                             {renderNavIcon(item.icon)}
                             {!isCollapsed && (
@@ -181,6 +184,7 @@ const AppSidebar = () => {
                         <Link
                           href={notificationItem.url}
                           className="group flex w-full items-center gap-2"
+                          onClick={closeMobile}
                         >
                           {renderNavIcon(notificationItem.icon, {
                             iconClassName:
@@ -220,6 +224,7 @@ const AppSidebar = () => {
                             "group flex w-full items-center gap-2",
                             isCollapsed && "justify-center gap-0"
                           )}
+                          onClick={closeMobile}
                         >
                           {renderNavIcon(settingsItem.icon)}
                           {!isCollapsed && (

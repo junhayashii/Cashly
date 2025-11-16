@@ -286,130 +286,132 @@ export function RecurringBillsManageTable({
 
   return (
     <>
-      <div className="space-y-3 pb-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-0.5">
-            <h2 className="text-xl font-semibold text-foreground">
-              Recurring Bills
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {today.toLocaleDateString(undefined, {
-                month: "long",
-                year: "numeric",
-              })}
-              :{" "}
-              <span className="font-semibold text-foreground">
-                {managedCountLabel}
-              </span>{" "}
-              {displayedCount === 1 ? "bill" : "bills"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setIsAddOpen(true)}
-              size="sm"
-              className="h-9 gap-2 border-border/60 hover:bg-accent/40"
-            >
-              <Plus className="h-4 w-4" />
-              Add Recurring Bill
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-          {stats.map(({ label, value, helper, icon: Icon, iconWrapper }) => (
-            <div
-              key={label}
-              className="flex flex-col gap-1.5 rounded-xl border border-border/40 bg-background/60 p-3 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground/80">
-                    {label}
-                  </p>
-                  <p className="mt-0.5 text-xl font-semibold text-foreground">
-                    {value}
-                  </p>
-                </div>
-                <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs ${iconWrapper}`}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-              </div>
-              <p className="text-xs font-medium text-muted-foreground/80">
-                {helper}
+      <div className="flex flex-wrap gap-3 max-[1320px]:items-start min-[1320px]:flex-col min-[1320px]:flex-nowrap">
+        <div className="space-y-3 pb-3 max-[1320px]:pb-0 max-[1320px]:flex-1 max-[1320px]:min-w-[260px]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-0.5">
+              <h2 className="text-xl font-semibold text-foreground">
+                Recurring Bills
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {today.toLocaleDateString(undefined, {
+                  month: "long",
+                  year: "numeric",
+                })}
+                :{" "}
+                <span className="font-semibold text-foreground">
+                  {managedCountLabel}
+                </span>{" "}
+                {displayedCount === 1 ? "bill" : "bills"}
               </p>
             </div>
-          ))}
-        </div>
-      </div>
-
-      <Card className="flex h-full flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm">
-        <div className="bg-background/50 backdrop-blur-sm">
-          <div className="flex flex-col gap-3 px-4 py-3">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="relative w-full md:max-w-xs">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-                <Input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search recurring bills"
-                  className="pl-9"
-                />
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={(value) =>
-                      setStatusFilter(value as StatusFilter)
-                    }
-                  >
-                    <SelectTrigger size="sm" className="min-w-[150px]">
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All statuses</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={methodFilter}
-                    onValueChange={(value) =>
-                      setMethodFilter(value as MethodFilter)
-                    }
-                  >
-                    <SelectTrigger size="sm" className="min-w-[170px]">
-                      <SelectValue placeholder="All payment methods" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All payment methods</SelectItem>
-                      <SelectItem value="credit">Credit only</SelectItem>
-                      <SelectItem value="other">Non-credit methods</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {filtersActive && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetFilters}
-                    className="gap-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Reset filters
-                  </Button>
-                )}
-              </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsAddOpen(true)}
+                size="sm"
+                className="h-9 gap-2 border-border/60 hover:bg-accent/40"
+              >
+                <Plus className="h-4 w-4" />
+                Add Recurring Bill
+              </Button>
             </div>
+          </div>
+
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 max-[1320px]:flex max-[1320px]:flex-col">
+            {stats.map(({ label, value, helper, icon: Icon, iconWrapper }) => (
+              <div
+                key={label}
+                className="flex flex-col gap-1.5 rounded-xl border border-border/40 bg-background/60 p-3 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground/80">
+                      {label}
+                    </p>
+                    <p className="mt-0.5 text-xl font-semibold text-foreground">
+                      {value}
+                    </p>
+                  </div>
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs ${iconWrapper}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                </div>
+                <p className="text-xs font-medium text-muted-foreground/80">
+                  {helper}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
-          {initialLoading ? (
+        <div className="flex-1 max-[1320px]:flex-[2] max-[1320px]:min-w-[320px] min-[1320px]:w-full">
+        <Card className="flex h-full flex-col overflow-hidden rounded-xl border border-border/40 bg-background/60 shadow-sm backdrop-blur-sm max-[1320px]:h-auto max-[1320px]:min-h-fit">
+          <div className="bg-background/50 backdrop-blur-sm">
+            <div className="flex flex-col gap-3 px-4 py-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="relative w-full md:max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+                  <Input
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Search recurring bills"
+                    className="pl-9"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Select
+                      value={statusFilter}
+                      onValueChange={(value) =>
+                        setStatusFilter(value as StatusFilter)
+                      }
+                    >
+                      <SelectTrigger size="sm" className="min-w-[150px]">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={methodFilter}
+                      onValueChange={(value) =>
+                        setMethodFilter(value as MethodFilter)
+                      }
+                    >
+                      <SelectTrigger size="sm" className="min-w-[170px]">
+                        <SelectValue placeholder="All payment methods" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All payment methods</SelectItem>
+                        <SelectItem value="credit">Credit only</SelectItem>
+                        <SelectItem value="other">Non-credit methods</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {filtersActive && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                      className="gap-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reset filters
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 max-h-[420px] lg:max-h-[480px]">
+            {initialLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
@@ -696,6 +698,8 @@ export function RecurringBillsManageTable({
           )}
         </div>
       </Card>
+        </div>
+      </div>
 
       <AddRecurringBillDialog
         open={isAddOpen}
