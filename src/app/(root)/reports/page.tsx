@@ -2,10 +2,18 @@
 import { BudgetSection } from "@/components/BudgetSection";
 import { SpendingChart } from "@/components/SpendingChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Download } from "lucide-react";
+import { AlertCircle, Calendar, Download } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useSidebar } from "@/components/ui/sidebar";
 
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -26,6 +34,20 @@ import {
 const ReportsPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const { state: sidebarState, isMobile } = useSidebar();
+  const [isBelow920, setIsBelow920] = useState(false);
+  const headerClass = isMobile
+    ? "flex items-start justify-between gap-4 pl-12"
+    : "flex items-start justify-between gap-4";
+  const isSidebarCollapsed = sidebarState === "collapsed";
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 919px)");
+    const onChange = (event: MediaQueryListEvent) => setIsBelow920(event.matches);
+    setIsBelow920(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -155,6 +177,25 @@ const ReportsPage = () => {
   }, [periodTransactions, periodEnd, categories]);
 
   const currencySymbol = settings?.currency === "BRL" ? "R$" : "$";
+  const monthOptions = useMemo(() => {
+    const now = dayjs();
+    return Array.from({ length: 12 }).map((_, index) => {
+      const d = now.subtract(index, "month");
+      return {
+        value: d.format("YYYY-MM"),
+        label: d.format("MMMM YYYY"),
+      };
+    });
+  }, []);
+  const useCompactPeriodLabels = isMobile;
+  const periodSelectWidth = useCompactPeriodLabels ? "w-16" : "w-48";
+  const periodSelectAriaLabel =
+    monthOptions.find((m) => m.value === selectedMonth)?.label ||
+    "Select period";
+  const metricsGridClass =
+    isSidebarCollapsed && isBelow920
+      ? "grid grid-cols-1 min-[500px]:grid-cols-2 gap-6"
+      : "grid grid-cols-1 md:grid-cols-4 gap-6";
 
   const insightInput = useMemo(
     () => ({
@@ -281,8 +322,8 @@ const ReportsPage = () => {
   return (
     <div id="report-section" className="space-y-8">
       {/* Title + Period Selector*/}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className={headerClass}>
+        <div className="space-y-1">
           <h2 className="text-3xl font-bold text-foreground mb-2">
             Reports & Analytics
           </h2>
@@ -290,27 +331,52 @@ const ReportsPage = () => {
             Detailed insights into your financial habits
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="month" className="text-sm text-muted-foreground">
-            Period
-          </label>
-          <input
-            id="month"
-            type="month"
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          />
-          <Button
-            onClick={handleExportPDF}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={isExporting}
-          >
-            <Download className="h-4 w-4" />
-            {isExporting ? "Generating..." : "Export PDF"}
-          </Button>
+        <div className="flex items-center gap-2 sm:gap-3 flex-nowrap shrink-0">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger
+              aria-label={periodSelectAriaLabel}
+              className={`${periodSelectWidth} justify-between pl-2 whitespace-nowrap`}
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                {useCompactPeriodLabels ? (
+                  <span className="sr-only">{periodSelectAriaLabel}</span>
+                ) : (
+                  <SelectValue placeholder="Select period" />
+                )}
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((month) => (
+                <SelectItem key={month.value} value={month.value}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {useCompactPeriodLabels ? (
+            <Button
+              onClick={handleExportPDF}
+              variant="outline"
+              size="icon"
+              disabled={isExporting}
+              className="h-9 w-9 shrink-0"
+              aria-label={isExporting ? "Generating PDF" : "Export PDF"}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleExportPDF}
+              variant="outline"
+              size="sm"
+              className="gap-2 whitespace-nowrap shrink-0"
+              disabled={isExporting}
+            >
+              <Download className="h-4 w-4" />
+              {isExporting ? "Generating..." : "Export PDF"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -325,7 +391,7 @@ const ReportsPage = () => {
       </Alert>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className={metricsGridClass}>
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -385,27 +451,28 @@ const ReportsPage = () => {
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 min-[1275px]:grid-cols-3 gap-6">
+        <div className="min-[1275px]:col-span-3 order-1">
+          <div className="grid grid-cols-1 gap-4 min-[1275px]:grid-cols-2">
             <SpendingChart currencySymbol={currencySymbol} />
             <PeriodComparison currencySymbol={currencySymbol} />
           </div>
         </div>
-        <div className="flex flex-col gap-4 lg:col-span-2">
-          <TransactionList
-            transactions={transactions || []}
-            currencySymbol={currencySymbol}
-            initialStartDate={periodStartISO}
-            initialEndDate={periodEndISO}
-          />
-        </div>
-        <div className="lg:col-span-1 h-full">
+        <div className="min-[1275px]:col-span-1 h-full order-2 min-[1275px]:order-3">
           <BudgetSection
             currencySymbol={currencySymbol}
             year={dayjs(selectedMonth + "-01").year()}
             month={dayjs(selectedMonth + "-01").month() + 1}
             label={periodLabel}
+          />
+        </div>
+        <div className="flex flex-col gap-4 min-[1275px]:col-span-2 order-3 min-[1275px]:order-2">
+          <TransactionList
+            transactions={transactions || []}
+            currencySymbol={currencySymbol}
+            initialStartDate={periodStartISO}
+            initialEndDate={periodEndISO}
+            expandToContentHeight={isMobile}
           />
         </div>
       </div>

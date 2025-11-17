@@ -712,7 +712,7 @@ export function TransactionList({
               expandToContentHeight && "h-auto max-h-none overflow-visible"
             )}
           >
-            <div className="divide-y divide-border/30 sm:hidden">
+            <div className="divide-y divide-border/30 min-[880px]:hidden">
               {paginatedTransactions.map((transaction) => {
                 const categoryName = transaction.category?.name || "Other";
                 const account = getAccountById(transaction.account_id);
@@ -776,7 +776,7 @@ export function TransactionList({
               })}
             </div>
 
-            <div className="hidden sm:block">
+            <div className="hidden min-[880px]:block">
               <Table className="table-auto w-full" enableScroll={false}>
                 <TableHeader className="sticky top-0 z-20 border-b border-border/50 bg-muted/80 backdrop-blur-md shadow-sm">
                   <TableRow className="hover:bg-transparent bg-muted/80">

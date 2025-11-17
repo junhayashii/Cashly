@@ -17,7 +17,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 
-import { type ComponentType, useMemo } from "react";
+import { type ComponentType, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { ExpensePieChart } from "@/components/BudgetPieChart";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,14 @@ export function BudgetSection({
 }: BudgetSectionProps) {
   const { categories } = useCategories();
   const { transactions } = useTransaction();
+  const [viewportWidth, setViewportWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const updateWidth = () => setViewportWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
 
   // === 月の開始日 ===
   const periodStart = useMemo(() => {
@@ -115,6 +123,16 @@ export function BudgetSection({
     return `${year}-${String(month).padStart(2, "0")}`;
   }, [year, month]);
 
+  const width = viewportWidth ?? 0;
+  const isBetween850And1274 = width >= 850 && width < 1275;
+  const isAtLeast1275 = width >= 1275;
+  const layoutClass = isBetween850And1274
+    ? "grid grid-cols-[minmax(260px,0.9fr)_minmax(0,1.1fr)] items-start gap-6"
+    : "flex flex-col gap-6";
+  const chartWrapperClass = isBetween850And1274
+    ? "w-full flex justify-start pl-2"
+    : "w-full flex justify-center";
+
   return (
     <Card
       className={cn(
@@ -129,61 +147,71 @@ export function BudgetSection({
         </span>
       </div>
 
-      {/* === パイチャート追加 === */}
-      <div className="w-full flex justify-center">
-        <ExpensePieChart
-          transactions={transactions}
-          categories={categories}
-          currencySymbol={currencySymbol}
-          selectedMonth={selectedMonth}
-        />
-      </div>
+      <div className={cn("flex flex-1 min-h-0", layoutClass)}>
+        {/* === パイチャート === */}
+        <div className={chartWrapperClass}>
+          <ExpensePieChart
+            transactions={transactions}
+            categories={categories}
+            currencySymbol={currencySymbol}
+            selectedMonth={selectedMonth}
+          />
+        </div>
 
-      {/* === カテゴリ別リスト === */}
-      <div
-        className={cn(
-          "flex-1 space-y-6 overflow-y-auto pr-2",
-          expandAll && "max-h-none overflow-visible pr-0"
-        )}
-      >
-        {stats.categoryStats.map((category) => {
-          const percentage =
-            category.monthlyBudget > 0
-              ? (category.spent / category.monthlyBudget) * 100
-              : 0;
-          const isOverBudget = percentage > 100;
-          const Icon = getIconComponent(category.icon || "ShoppingCart");
+        {/* === カテゴリ別リスト === */}
+        <div className="flex-1 min-h-0">
+          <div
+            className={cn(
+              "space-y-6 pr-2",
+              expandAll
+                ? "max-h-none overflow-visible pr-0"
+                : isAtLeast1275
+                ? "max-h-none overflow-visible"
+                : "max-h-[360px] overflow-y-auto"
+            )}
+          >
+            {stats.categoryStats.map((category) => {
+              const percentage =
+                category.monthlyBudget > 0
+                  ? (category.spent / category.monthlyBudget) * 100
+                  : 0;
+              const isOverBudget = percentage > 100;
+              const Icon = getIconComponent(category.icon || "ShoppingCart");
 
-          return (
-            <div key={category.id} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg bg-muted`}>
-                    <Icon className={`h-4 w-4 ${category.color}`} />
+              return (
+                <div key={category.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg bg-muted`}>
+                        <Icon className={`h-4 w-4 ${category.color}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {category.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {currencySymbol}
+                          {category.spent.toFixed(0)} of {currencySymbol}
+                          {category.monthlyBudget.toFixed(0)}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`text-sm font-semibold ${
+                        isOverBudget
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {percentage.toFixed(0)}%
+                    </span>
                   </div>
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {category.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {currencySymbol}
-                      {category.spent.toFixed(0)} of {currencySymbol}
-                      {category.monthlyBudget.toFixed(0)}
-                    </p>
-                  </div>
+                  <Progress value={Math.min(percentage, 100)} className="h-2" />
                 </div>
-                <span
-                  className={`text-sm font-semibold ${
-                    isOverBudget ? "text-destructive" : "text-muted-foreground"
-                  }`}
-                >
-                  {percentage.toFixed(0)}%
-                </span>
-              </div>
-              <Progress value={Math.min(percentage, 100)} className="h-2" />
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
     </Card>
   );
