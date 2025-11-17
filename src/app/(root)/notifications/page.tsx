@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Notification } from "@/types";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const formatType = (type: string) =>
   type
@@ -39,6 +40,10 @@ export default function NotificationsPage() {
   const [tab, setTab] = useState<"all" | "unread">("all");
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const router = useRouter();
+  const { isMobile } = useSidebar();
+  const headerClass = isMobile
+    ? "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pl-12"
+    : "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between";
 
   useEffect(() => {
     let isMounted = true;
@@ -195,7 +200,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6 flex flex-col h-[95vh]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className={headerClass}>
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">
             Notifications
