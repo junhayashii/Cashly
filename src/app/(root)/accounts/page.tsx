@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, type ComponentType } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   CreditCard,
@@ -32,6 +31,7 @@ import {
 
 import { supabase } from "@/lib/supabaseClient";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -104,6 +104,10 @@ const Accounts = () => {
     refresh,
   } = useAccounts();
   const { transactions } = useTransaction();
+  const { isMobile } = useSidebar();
+  const headerClass = isMobile
+    ? "flex items-center justify-between pl-12"
+    : "flex items-center justify-between";
 
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -132,8 +136,6 @@ const Accounts = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  const [monthlyDue, setMonthlyDue] = useState(0);
-
   useEffect(() => {
     if (!selectedAccount) return;
 
@@ -151,43 +153,6 @@ const Accounts = () => {
     : null;
 
   const activeAccount = selectedAccountFromList ?? null;
-  const activeAccountId = activeAccount?.id;
-  const hasActiveCreditAccount = activeAccount?.type === "credit_card";
-
-  useEffect(() => {
-    const fetchMonthlyDue = async () => {
-      if (!activeAccountId || !hasActiveCreditAccount) {
-        setMonthlyDue(0);
-        return;
-      }
-
-      const start = new Date();
-      start.setDate(1);
-      const end = new Date(start);
-      end.setMonth(start.getMonth() + 1);
-
-      const { data, error } = await supabase
-        .from("credit_card_payments")
-        .select("amount")
-        .eq("card_id", activeAccountId)
-        .eq("paid", false)
-        .gte("due_date", start.toISOString())
-        .lt("due_date", end.toISOString());
-
-      if (error) {
-        console.error("Error fetching monthly due:", error);
-        setMonthlyDue(0);
-        return;
-      }
-
-      const total = data?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
-      setMonthlyDue(total);
-    };
-
-    fetchMonthlyDue();
-  }, [activeAccountId, hasActiveCreditAccount]);
-
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
   const handleAddAccount = (newAccount: Account) => {
     addAccount(newAccount);
@@ -224,38 +189,10 @@ const Accounts = () => {
       )
     : transactions;
 
-  const aggregateBalanceLabel = activeAccount
-    ? "Current Balance"
-    : "Total Balance";
-  const aggregateBalanceDescription = activeAccount
-    ? `Balance available in ${activeAccount.name}`
-    : "Combined balance across all accounts";
-  const aggregateBalanceValue = activeAccount
-    ? activeAccount.balance
-    : totalBalance;
-
-  const canShowCreditLimit =
-    hasActiveCreditAccount && typeof activeAccount?.credit_limit === "number";
-  const creditLimitValue = canShowCreditLimit
-    ? Number(activeAccount?.credit_limit ?? 0)
-    : 0;
-  const availableLimit =
-    canShowCreditLimit && typeof activeAccount?.available_limit === "number"
-      ? Number(activeAccount?.available_limit)
-      : null;
-  const usedLimit =
-    canShowCreditLimit && availableLimit !== null
-      ? Math.max(creditLimitValue - availableLimit, 0)
-      : null;
-  const usagePercent =
-    usedLimit !== null && creditLimitValue > 0
-      ? Math.min((usedLimit / creditLimitValue) * 100, 100)
-      : 0;
-
   return (
-    <div className="flex h-[95vh] flex-col gap-8 overflow-hidden">
+    <div className="flex w-full min-w-0 flex-col gap-8 overflow-x-hidden h-[95vh] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className={headerClass}>
         <div>
           <div className="mb-2 flex items-center gap-3">
             <h2 className="text-3xl font-bold text-foreground">Accounts</h2>
@@ -264,8 +201,9 @@ const Accounts = () => {
             Manage your bank accounts, cards, and wallets
           </p>
         </div>
-
-        <AddAccountDialog onAddAccount={handleAddAccount} />
+        <div className="hidden sm:block">
+          <AddAccountDialog onAddAccount={handleAddAccount} />
+        </div>
       </div>
 
       {/* Summary Cards
@@ -294,10 +232,10 @@ const Accounts = () => {
       </div> */}
 
       {/* Main Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
+      <div className="flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden min-[1420px]:flex-row min-[1420px]:min-h-0 min-[1420px]:gap-6">
         {/* Left Sidebar - Accounts List */}
-        <div className="lg:col-span-1 min-h-0">
-          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/40 bg-card/50">
+        <div className="w-full min-w-0 min-[1420px]:flex-[1] min-[1420px]:min-h-0 min-[1420px]:overflow-hidden">
+          <div className="flex flex-col overflow-visible rounded-2xl border border-border/40 bg-card/50">
             <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">Accounts</p>
               <span className="text-xs text-muted-foreground">
@@ -313,286 +251,184 @@ const Accounts = () => {
                 No accounts yet. Add your first one!
               </div>
             ) : (
-              <div className="flex-1 space-y-3 overflow-y-auto px-2 py-4 pr-3">
-                {accounts.map((account) => {
-                  const {
-                    gradient,
-                    icon: Icon,
-                    label,
-                  } = getAccountPreset(account.type);
-                  const isSelected = activeAccount?.id === account.id;
-                  const creditLimit =
-                    typeof account.credit_limit === "number"
-                      ? account.credit_limit
-                      : null;
-                  const availableLimit =
-                    typeof account.available_limit === "number"
-                      ? account.available_limit
-                      : null;
-                  const usedAmount =
-                    creditLimit !== null && availableLimit !== null
-                      ? Math.max(creditLimit - availableLimit, 0)
-                      : null;
+              <div className="w-full max-w-full overflow-x-hidden overflow-y-auto max-h-[80vh] min-[1420px]:max-h-[85vh] px-2 sm:px-2.5 md:px-3 py-2 sm:py-2.5 md:py-3 pr-2 sm:pr-3">
+                <div className="grid w-full min-w-0 grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+                  {accounts.map((account) => {
+                    const {
+                      gradient,
+                      icon: Icon,
+                      label,
+                    } = getAccountPreset(account.type);
+                    const isSelected = activeAccount?.id === account.id;
+                    const creditLimit =
+                      typeof account.credit_limit === "number"
+                        ? account.credit_limit
+                        : null;
+                    const availableLimit =
+                      typeof account.available_limit === "number"
+                        ? account.available_limit
+                        : null;
+                    const usedAmount =
+                      creditLimit !== null && availableLimit !== null
+                        ? Math.max(creditLimit - availableLimit, 0)
+                        : null;
 
-                  return (
-                    <div
-                      key={account.id}
-                      role="button"
-                      tabIndex={0}
-                      aria-pressed={isSelected}
-                      aria-label={`Select ${account.name}`}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          handleAccountSelect(account);
-                        }
-                      }}
-                      onClick={() => handleAccountSelect(account)}
-                      className={`group relative cursor-pointer rounded-2xl border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                        isSelected
-                          ? "border-primary/80 bg-primary/5 ring-2 ring-primary/30 shadow-lg shadow-primary/20"
-                          : "border-border/40 hover:border-border hover:shadow-md"
-                      }`}
-                    >
+                    return (
                       <div
-                        className={`relative flex h-full min-h-[200px] flex-col overflow-hidden rounded-2xl ${gradient} p-4 text-white transition-transform duration-300 ${
+                        key={account.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={isSelected}
+                        aria-label={`Select ${account.name}`}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleAccountSelect(account);
+                          }
+                        }}
+                        onClick={() => handleAccountSelect(account)}
+                        className={`group relative w-full min-w-0 h-[140px] sm:h-[160px] md:h-[175px] lg:h-[185px] xl:h-[195px] cursor-pointer rounded-xl sm:rounded-2xl border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                           isSelected
-                            ? "scale-[1.02]"
-                            : "group-hover:-translate-y-0.5"
+                            ? "border-primary/80 bg-primary/5 ring-2 ring-primary/30 shadow-lg shadow-primary/20"
+                            : "border-border/40 hover:border-border hover:shadow-md"
                         }`}
                       >
                         <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-2 top-2 z-20"
+                          className={`relative flex h-full flex-col overflow-hidden rounded-xl sm:rounded-2xl ${gradient} p-2 sm:p-2.5 md:p-2.5 lg:p-3 xl:p-3 2xl:p-4 text-white transition-transform duration-300 ${
+                            isSelected
+                              ? "scale-[1.02]"
+                              : "group-hover:-translate-y-0.5"
+                          }`}
                         >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 rounded-full p-0 text-white hover:bg-white/20"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0.5 top-0.5 sm:right-1 sm:top-1 md:right-1 md:top-1 lg:right-1.5 lg:top-1.5 2xl:right-1.5 2xl:top-1.5 z-20"
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 2xl:h-6 2xl:w-6 rounded-full p-0 text-white hover:bg-white/20"
+                                >
+                                  <MoreVertical className="h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 lg:h-3.5 lg:w-3.5 2xl:h-3.5 2xl:w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
 
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  handleEditAccount(account);
-                                }}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Account
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    handleEditAccount(account);
+                                  }}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
 
-                        {isSelected && (
-                          <div className="absolute bottom-3 right-3 z-20">
-                            <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                              Selected
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="flex items-start justify-between gap-3 pr-10">
-                          <div className="space-y-1">
-                            <p className="text-[11px] uppercase tracking-wide opacity-80">
-                              {account.institution || "Manual account"}
-                            </p>
-                            <p className="text-lg font-semibold leading-tight">
-                              {account.name}
-                            </p>
-                          </div>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-                            <Icon className="h-5 w-5" />
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex items-end justify-between gap-3">
-                          <div>
-                            <p className="text-xs opacity-70">Balance</p>
-                            <p className="text-2xl font-semibold">
-                              {formatCurrency(account.balance, currencySymbol)}
-                            </p>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <Badge
-                              variant="secondary"
-                              className="border-0 bg-white/20 text-white backdrop-blur"
-                            >
-                              {label}
-                            </Badge>
-                            {creditLimit !== null && (
-                              <p className="text-xs opacity-80">
-                                Limit{" "}
-                                {formatCurrency(creditLimit, currencySymbol)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {account.type === "credit_card" &&
-                          creditLimit !== null &&
-                          availableLimit !== null && (
-                            <div className="mt-4 rounded-xl bg-white/15 p-3 text-[11px] uppercase tracking-wide">
-                              <div className="flex items-center justify-between text-white">
-                                <div>
-                                  <p className="opacity-80">Used</p>
-                                  <p className="text-sm font-semibold">
-                                    {formatCurrency(
-                                      usedAmount || 0,
-                                      currencySymbol
-                                    )}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="opacity-80">Available</p>
-                                  <p className="text-sm font-semibold">
-                                    {formatCurrency(
-                                      availableLimit,
-                                      currencySymbol
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
+                          {isSelected && (
+                            <div className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 md:bottom-1.5 md:right-1.5 lg:bottom-2 lg:right-2 2xl:bottom-2 2xl:right-2 z-20">
+                              <span className="rounded-full bg-white/90 px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 text-[6px] sm:text-[7px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                Selected
+                              </span>
                             </div>
                           )}
 
-                        <div className="pointer-events-none absolute inset-0 opacity-10">
-                          <CreditCard className="absolute -right-6 -top-6 h-24 w-24" />
+                          <div className="flex items-start justify-between gap-1.5 sm:gap-2 pr-4 sm:pr-5 md:pr-6 lg:pr-8 xl:pr-9 2xl:pr-10">
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <p className="text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-wide opacity-80 truncate">
+                                {account.institution || "Manual account"}
+                              </p>
+                              <p className="text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-sm 2xl:text-base font-semibold leading-tight truncate">
+                                {account.name}
+                              </p>
+                            </div>
+                            <div className="flex h-5 w-5 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 xl:h-9 xl:w-9 2xl:h-10 2xl:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-white/15 backdrop-blur flex-shrink-0">
+                              <Icon className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5 lg:h-3.5 lg:w-3.5 xl:h-3.5 xl:w-3.5 2xl:h-4 2xl:w-4" />
+                            </div>
+                          </div>
+
+                          <div className="mt-1 sm:mt-1.5 md:mt-2 lg:mt-2.5 xl:mt-3 2xl:mt-4 flex items-end justify-between gap-1.5 sm:gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] opacity-70">
+                                Balance
+                              </p>
+                              <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-xl font-semibold truncate">
+                                {formatCurrency(
+                                  account.balance,
+                                  currencySymbol
+                                )}
+                              </p>
+                            </div>
+                            <div className="text-right space-y-0.5 flex-shrink-0">
+                              <Badge
+                                variant="secondary"
+                                className="border-0 bg-white/20 text-white backdrop-blur text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] px-0.5 sm:px-1 md:px-1.5 py-0.5"
+                              >
+                                {label}
+                              </Badge>
+                              {creditLimit !== null && (
+                                <p className="text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] opacity-80">
+                                  Limit{" "}
+                                  {formatCurrency(creditLimit, currencySymbol)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {account.type === "credit_card" &&
+                            creditLimit !== null &&
+                            availableLimit !== null && (
+                              <div className="mt-1 sm:mt-1.5 md:mt-2 lg:mt-2.5 xl:mt-3 2xl:mt-4 rounded-md sm:rounded-lg bg-white/15 p-0.5 sm:p-1 md:p-1.5 lg:p-2 xl:p-2 2xl:p-2.5 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-wide">
+                                <div className="flex items-center justify-between text-white gap-1 sm:gap-1.5">
+                                  <div className="min-w-0">
+                                    <p className="opacity-80 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px]">
+                                      Used
+                                    </p>
+                                    <p className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] xl:text-[10px] 2xl:text-xs font-semibold truncate">
+                                      {formatCurrency(
+                                        usedAmount || 0,
+                                        currencySymbol
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="text-right min-w-0">
+                                    <p className="opacity-80 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px]">
+                                      Available
+                                    </p>
+                                    <p className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] xl:text-[10px] 2xl:text-xs font-semibold truncate">
+                                      {formatCurrency(
+                                        availableLimit,
+                                        currencySymbol
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                          <div className="pointer-events-none absolute inset-0 opacity-10">
+                            <CreditCard className="absolute -right-3 -top-3 sm:-right-4 sm:-top-4 md:-right-5 md:-top-5 lg:-right-6 lg:-top-6 xl:-right-6 xl:-top-6 2xl:-right-6 2xl:-top-6 h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-20 lg:w-20 xl:h-24 xl:w-24 2xl:h-24 2xl:w-24" />
+                          </div>
+                          <div className="mt-auto" aria-hidden="true" />
                         </div>
-                        <div className="mt-auto" aria-hidden="true" />
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Content Area */}
-        <div className="lg:col-span-3 flex flex-col gap-6 min-h-0">
-          {/* Selected Account Info */}
-          <div className="shrink-0">
-            {accounts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/60 p-6 text-center">
-                <h3 className="text-xl font-semibold text-foreground mb-2">
-                  No accounts yet
-                </h3>
-                <p className="text-muted-foreground">
-                  Add your first account to start tracking balances and
-                  activity.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:auto-rows-fr">
-                {/* 💰 Balance overview */}
-                <Card className="bg-card border-border h-full">
-                  <CardHeader>
-                    <CardTitle className="text-sm text-muted-foreground">
-                      {aggregateBalanceLabel}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">
-                      {currencySymbol}
-                      {aggregateBalanceValue.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {aggregateBalanceDescription}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* 💳 Credit Limit */}
-                <Card className="bg-card border-border h-full">
-                  <CardHeader>
-                    <CardTitle className="text-sm text-muted-foreground">
-                      Credit Activity
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {canShowCreditLimit && availableLimit !== null ? (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {currencySymbol}
-                          {creditLimitValue.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        <div className="mt-3">
-                          <p className="text-sm text-muted-foreground mb-1">
-                            Used: {currencySymbol}
-                            {usedLimit?.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}{" "}
-                            ({usagePercent.toFixed(0)}%)
-                          </p>
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary transition-all duration-500"
-                              style={{ width: `${usagePercent}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {activeAccount
-                          ? "This account doesn't include credit limit tracking."
-                          : "Select a credit card to see limit usage."}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* 📅 Upcoming Payment */}
-                <Card className="bg-card border-border h-full">
-                  <CardHeader>
-                    <CardTitle className="text-sm text-muted-foreground">
-                      Upcoming Payment
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {hasActiveCreditAccount ? (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {currencySymbol}
-                          {monthlyDue.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Due this month
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {activeAccount
-                          ? "Upcoming payment data appears for credit cards."
-                          : "Choose a credit card to see upcoming payments."}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-
+        <div className="flex flex-col gap-6 w-full min-w-0 min-[1420px]:flex-[3] min-[1420px]:min-h-0 min-[1420px]:overflow-hidden">
           {/* Transactions*/}
 
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="w-full min-w-0 overflow-visible min-[1420px]:overflow-hidden">
             <TransactionList
               transactions={selectedAccountTransactions}
               title={
@@ -601,9 +437,23 @@ const Accounts = () => {
                   : "All Transactions"
               }
               currencySymbol={currencySymbol}
+              mobileBreakpoint={1365}
             />
           </div>
         </div>
+      </div>
+      <div className="sm:hidden fixed bottom-4 right-4 z-50">
+        <AddAccountDialog
+          onAddAccount={handleAddAccount}
+          trigger={
+            <Button className="h-12 w-12 rounded-full shadow-lg shadow-primary/40 bg-primary text-primary-foreground">
+              <span className="sr-only">Add Account</span>
+              <span aria-hidden className="text-xl leading-none">
+                +
+              </span>
+            </Button>
+          }
+        />
       </div>
 
       <EditAccountDialog

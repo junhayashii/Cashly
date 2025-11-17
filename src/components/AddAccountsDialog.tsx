@@ -141,14 +141,18 @@ export function AddAccountDialog({ onAddAccount }: AddAccountDialogProps) {
     }
   };
 
+  const trigger = (
+    <DialogTrigger asChild>
+      <Button className="gap-2 sm:gap-2 h-12 sm:h-10 w-12 sm:w-auto rounded-full sm:rounded-md px-0 sm:px-4">
+        <Plus className="h-5 w-5" />
+        <span className="hidden sm:inline">New Account</span>
+      </Button>
+    </DialogTrigger>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Account
-        </Button>
-      </DialogTrigger>
+      {trigger}
       <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
