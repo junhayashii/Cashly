@@ -29,6 +29,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useTheme } from "@/components/ThemeProvider";
 import PluggyConnectLauncher from "@/components/PluggyConnectLauncher";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const PRO_FEATURES = [
   "Unlimited bank and wallet accounts",
@@ -50,6 +51,8 @@ type SubscriptionInfo = {
 
 const Settings = () => {
   const { toast } = useToast();
+  const { isMobile } = useSidebar();
+  const headerClass = isMobile ? "pl-12 space-y-2" : "space-y-2";
   const [loading, setLoading] = useState(false);
   const [notificationsUpdating, setNotificationsUpdating] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -445,7 +448,7 @@ const Settings = () => {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className={headerClass}>
         <h2 className="text-3xl font-bold text-foreground mb-2">Settings</h2>
         <p className="text-muted-foreground">
           Manage your account preferences and settings
