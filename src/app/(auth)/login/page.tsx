@@ -3,11 +3,13 @@ import { AuthForm } from "@/components/AuthForm";
 import { AuthPageTemplate } from "@/components/AuthPageTemplate";
 
 type PageProps = {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-const LoginPage = ({ searchParams }: PageProps) => {
-  const rawNext = searchParams?.next;
+const LoginPage = async ({ searchParams }: PageProps) => {
+  const params = await searchParams;
+
+  const rawNext = params?.next;
   const nextPath =
     typeof rawNext === "string"
       ? rawNext

@@ -68,9 +68,6 @@ const Settings = () => {
 
   const { theme, setTheme } = useTheme();
 
-  // ダークモード切替
-  setTheme(theme === "light" ? "dark" : "light");
-
   // Supabase AuthからユーザーID取得
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -82,7 +79,7 @@ const Settings = () => {
       }
       if (user) {
         setUserId(user.id);
-        setUserEmail(user.email);
+        setUserEmail(user.email ?? null);
       }
     });
   }, [toast]);
@@ -407,7 +404,9 @@ const Settings = () => {
     setCheckoutLoading(true);
     try {
       if (!userId || !userEmail) {
-        throw new Error("Your session is missing user details. Please sign in again.");
+        throw new Error(
+          "Your session is missing user details. Please sign in again."
+        );
       }
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -694,18 +693,14 @@ const Settings = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setPaymentDialogOpen(false)}
-                disabled={
-                  checkoutLoading || confirmingUpgrade || portalLoading
-                }
+                disabled={checkoutLoading || confirmingUpgrade || portalLoading}
               >
                 Maybe later
               </Button>
               <Button
                 type="button"
                 onClick={handleStripeCheckout}
-                disabled={
-                  checkoutLoading || confirmingUpgrade || portalLoading
-                }
+                disabled={checkoutLoading || confirmingUpgrade || portalLoading}
               >
                 {checkoutLoading
                   ? "Redirecting..."
