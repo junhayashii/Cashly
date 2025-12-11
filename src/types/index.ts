@@ -82,6 +82,9 @@ export interface Goal {
   created_at: string;
   updated_at: string;
   status: "active" | "completed" | "paused";
+  auto_saving_amount?: number;
+  auto_saving_frequency?: string;
+  next_auto_saving_date?: string;
   // UI properties (not in database)
   icon?: React.ComponentType<{ className?: string }>;
   color?: string;
@@ -93,4 +96,14 @@ export interface Budget {
   limit: number;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
+}
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  currency_symbol: string;
+  theme: "light" | "dark" | "system";
+  email_notifications: boolean;
+  push_notifications: boolean;
+  created_at: string;
+  updated_at: string;
 }

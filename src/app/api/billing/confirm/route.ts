@@ -7,7 +7,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2024-10-28.acacia" })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ? new Stripe(stripeSecretKey, { apiVersion: "2024-10-28.acacia" as any })
   : null;
 
 const supabaseAdmin =
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
         },
-        { onConflict: ["user_id"] }
+        { onConflict: "user_id" }
       );
 
     if (error) {

@@ -1,12 +1,23 @@
 import React from "react";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthPageTemplate } from "@/components/AuthPageTemplate";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 const LoginPage = async ({ searchParams }: PageProps) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
+
   const params = await searchParams;
 
   const rawNext = params?.next;

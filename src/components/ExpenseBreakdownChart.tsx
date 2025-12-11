@@ -3,8 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { useCategories } from "@/hooks/useCategories";
-import { useTransaction } from "@/hooks/useTransactions";
+import { Category, Transaction } from "@/types";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import {
@@ -13,7 +12,6 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
-  LabelList,
 } from "recharts";
 
 import {
@@ -51,15 +49,16 @@ const getIconComponent = (iconName: string): IconComponent => {
 type ExpenseBreakdownChartProps = {
   currencySymbol: string;
   selectedPeriod?: string;
+  transactions: Transaction[];
+  categories: Category[];
 };
 
 export function ExpenseBreakdownChart({
   selectedPeriod = "current-month",
   currencySymbol,
+  transactions = [],
+  categories = [],
 }: ExpenseBreakdownChartProps) {
-  const { categories } = useCategories();
-  const { transactions } = useTransaction();
-
   const expenseCategories = categories.filter(
     (category) => category.type === "expense"
   );

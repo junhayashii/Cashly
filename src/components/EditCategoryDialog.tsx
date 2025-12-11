@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 import { Category } from "@/types";
-import { supabase } from "@/lib/supabaseClient";
+import { updateCategory } from "@/app/actions/categories";
 
 interface EditCategoryDialogProps {
   category: Category | null;
@@ -112,34 +112,32 @@ export function EditCategoryDialog({
 
     console.log("Attempting to update category:", updatedData);
 
-    const { data: updatedCategory, error } = await supabase
-      .from("categories")
-      .update(updatedData)
-      .eq("id", category.id)
-      .select()
-      .single();
+    try {
+      const result = await updateCategory(category.id, updatedData);
 
-    if (error) {
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to update category");
+      }
+
+      console.log("Updated category data:", result.data);
+
+      onCategoryUpdated(result.data);
+      toast({
+        title: "Category updated",
+        description: `${formData.name} has been updated successfully`,
+      });
+
+      onOpenChange(false);
+    } catch (error) {
       console.error("Failed to update category:", error);
       toast({
         title: "Error",
-        description: "Failed to update category",
+        description: error instanceof Error ? error.message : "Failed to update category",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    console.log("Updated category data:", updatedCategory);
-
-    onCategoryUpdated(updatedCategory);
-    toast({
-      title: "Category updated",
-      description: `${formData.name} has been updated successfully`,
-    });
-
-    onOpenChange(false);
-    setLoading(false);
   };
 
   if (!category) return null;

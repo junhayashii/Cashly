@@ -253,7 +253,6 @@ const ReportsPage = () => {
 
   useEffect(() => {
     let isMounted = true;
-
     setSmartInsight(fallbackInsight);
 
     if (!periodTransactions || periodTransactions.length === 0) {
@@ -454,7 +453,7 @@ const ReportsPage = () => {
       <div className="grid grid-cols-1 min-[1275px]:grid-cols-3 gap-6">
         <div className="min-[1275px]:col-span-3 order-1">
           <div className="grid grid-cols-1 gap-4 min-[1275px]:grid-cols-2">
-            <SpendingChart currencySymbol={currencySymbol} />
+            <SpendingChart currencySymbol={currencySymbol} transactions={transactions || []} />
             <PeriodComparison currencySymbol={currencySymbol} />
           </div>
         </div>

@@ -20,27 +20,34 @@ import {
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-import { Transaction } from "@/types";
+import { Transaction, Category, Account, Goal } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
-import { useCategories } from "@/hooks/useCategories";
-import { useAccounts } from "@/hooks/useAccounts";
-import { useGoals } from "@/hooks/useGoals";
 
 interface AddTransactionDialogProps {
   onAddTransaction: (transaction: Transaction) => void;
   trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  categories?: Category[];
+  accounts?: Account[];
+  goals?: Goal[];
 }
 
 export function AddTransactionDialog({
   onAddTransaction,
   trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+  categories = [],
+  accounts = [],
+  goals = [],
 }: AddTransactionDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = setControlledOpen ?? setInternalOpen;
+
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { accounts } = useAccounts();
-  const { goals } = useGoals();
-  const { categories } = useCategories(); // ✅ ← 追加！
 
   // ✅ 初期フォーム
   const [formData, setFormData] = useState<{
@@ -524,7 +531,7 @@ export function AddTransactionDialog({
             <Select
               value={formData.payment_method}
               onValueChange={(value) =>
-                setFormData({ ...formData, payment_method: value as any })
+                setFormData({ ...formData, payment_method: value as "debito" | "credito" | "pix" | "cash" })
               }
             >
               <SelectTrigger

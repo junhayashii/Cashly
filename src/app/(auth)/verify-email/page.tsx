@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 
 type VerifyStatus = "loading" | "success" | "error";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<VerifyStatus>("loading");
@@ -82,29 +82,37 @@ export default function VerifyEmailPage() {
   }, [redirectTarget, router, status]);
 
   return (
+    <div className="w-[360px] rounded-2xl border bg-white p-6 shadow-sm text-center">
+      <h1 className="mb-2 text-xl font-semibold">Email Verification</h1>
+      {status === "loading" && (
+        <p className="text-sm text-muted-foreground">
+          Verifying your email address...
+        </p>
+      )}
+      {status === "success" && (
+        <p className="text-sm text-green-600">
+          Email verified successfully. Redirecting to your dashboard...
+        </p>
+      )}
+      {status === "error" && (
+        <div className="space-y-4">
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <Button variant="outline" onClick={() => router.push("/signup")}>
+            Request new email
+          </Button>
+          <Button onClick={() => router.push("/login")}>Go to login</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-[360px] rounded-2xl border bg-white p-6 shadow-sm text-center">
-        <h1 className="mb-2 text-xl font-semibold">Email Verification</h1>
-        {status === "loading" && (
-          <p className="text-sm text-muted-foreground">
-            Verifying your email address...
-          </p>
-        )}
-        {status === "success" && (
-          <p className="text-sm text-green-600">
-            Email verified successfully. Redirecting to your dashboard...
-          </p>
-        )}
-        {status === "error" && (
-          <div className="space-y-4">
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button variant="outline" onClick={() => router.push("/signup")}>
-              Request new email
-            </Button>
-            <Button onClick={() => router.push("/login")}>Go to login</Button>
-          </div>
-        )}
-      </div>
+      <Suspense fallback={<div className="text-center">Loading...</div>}>
+        <VerifyEmailContent />
+      </Suspense>
     </main>
   );
 }

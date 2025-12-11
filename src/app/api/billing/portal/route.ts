@@ -9,7 +9,8 @@ const defaultAppUrl =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2024-10-28.acacia" })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ? new Stripe(stripeSecretKey, { apiVersion: "2024-10-28.acacia" as any })
   : null;
 
 const supabaseAdmin =
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
             stripe_customer_id: stripeCustomerId,
             stripe_subscription_id: stripeSubscriptionId,
           },
-          { onConflict: ["user_id"] }
+          { onConflict: "user_id" }
         );
     }
   } catch (lookupError) {

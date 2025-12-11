@@ -3,9 +3,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export function useCreditCardPayments() {
-  const [payments, setPayments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export interface CreditCardPayment {
+  id: string;
+  user_id: string;
+  card_id: string;
+  title: string;
+  amount: number;
+  installment_number: number;
+  total_installments: number;
+  due_date: string;
+  paid: boolean;
+  created_at?: string;
+}
+
+export function useCreditCardPayments(initialPayments: CreditCardPayment[] = []) {
+  const [payments, setPayments] = useState<CreditCardPayment[]>(initialPayments);
+  const [loading, setLoading] = useState(initialPayments.length === 0);
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -25,8 +38,13 @@ export function useCreditCardPayments() {
   };
 
   useEffect(() => {
-    fetchPayments();
-  }, []);
+    if (initialPayments.length > 0) {
+      setPayments(initialPayments);
+      setLoading(false);
+    } else {
+      fetchPayments();
+    }
+  }, [initialPayments]);
 
   return { payments, loading, refresh: fetchPayments };
 }

@@ -639,11 +639,11 @@ const UpcomingBills = ({
                                         {payment.amount.toFixed(2)}
                                       </div>
                                     </div>
-                                    {(payment as any).installment_number &&
-                                    (payment as any).total_installments ? (
+                                    {"installment_number" in payment &&
+                                    "total_installments" in payment ? (
                                       <div className="mt-1 text-[11px] text-muted-foreground">
-                                        {(payment as any).installment_number}/
-                                        {(payment as any).total_installments}{" "}
+                                        {(payment as CreditCardPaymentActionItem & { installment_number: number; total_installments: number }).installment_number}/
+                                        {(payment as CreditCardPaymentActionItem & { installment_number: number; total_installments: number }).total_installments}{" "}
                                         installments
                                       </div>
                                     ) : null}
@@ -896,11 +896,11 @@ const UpcomingBills = ({
                                       </span>
                                     </TableCell>
                                     <TableCell className="py-3 text-center w-[calc((100%-60px)*0.1)]">
-                                      {(payment as any).installment_number &&
-                                      (payment as any).total_installments ? (
+                                      {"installment_number" in payment &&
+                                      "total_installments" in payment ? (
                                         <span className="text-xs text-muted-foreground">
-                                          {(payment as any).installment_number}/
-                                          {(payment as any).total_installments}
+                                          {(payment as CreditCardPaymentActionItem & { installment_number: number; total_installments: number }).installment_number}/
+                                          {(payment as CreditCardPaymentActionItem & { installment_number: number; total_installments: number }).total_installments}
                                         </span>
                                       ) : (
                                         <span className="text-xs text-muted-foreground">

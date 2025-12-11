@@ -13,8 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { Transaction } from "@/types";
-import { useAccounts } from "@/hooks/useAccounts";
+import { Transaction, Account } from "@/types";
 
 const categoryIcons: Record<
   string,
@@ -36,14 +35,19 @@ const categoryIcons: Record<
 
 interface TransactionListSimpleProps {
   transactions: Transaction[];
+  accounts: Account[];
   currencySymbol?: string;
 }
 
 export function TransactionListSimple({
   transactions,
+  accounts,
   currencySymbol,
 }: TransactionListSimpleProps) {
-  const { getAccountById } = useAccounts();
+  const getAccountById = (id: string | null) => {
+    if (!id) return null;
+    return accounts.find((acc) => acc.id === id);
+  };
 
   const sortedTransactions = [...transactions].sort((a, b) => {
     const dateA = new Date(a.date || "").getTime();

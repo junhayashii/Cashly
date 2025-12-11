@@ -8,7 +8,8 @@ const defaultAppUrl =
 
 const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
-      apiVersion: "2024-10-28.acacia",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      apiVersion: "2024-10-28.acacia" as any,
     })
   : null;
 

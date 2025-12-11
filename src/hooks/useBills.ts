@@ -24,11 +24,35 @@ export interface RecurringBill {
   payment_method?: PaymentMethod | null;
 }
 
-export function useBills() {
+export function useBills(initialBills: RecurringBill[] = []) {
   const [bills, setBills] = useState<RecurringBill[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialBills.length === 0);
   const [paidCycles, setPaidCycles] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
+  const normalizeBills = useCallback((rawBills: RecurringBill[], cycles: Record<string, string>) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      return rawBills.map((bill) => {
+        const dueDate = new Date(bill.next_due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        const futureDue = dueDate > today;
+        const cyclePaid = cycles[bill.id] === bill.next_due_date;
+
+        return {
+          ...bill,
+          is_paid: cyclePaid && futureDue,
+        };
+      });
+  }, []);
+
+  useEffect(() => {
+    if (initialBills.length > 0) {
+      setBills(normalizeBills(initialBills, paidCycles));
+      setLoading(false);
+    }
+  }, [initialBills, normalizeBills, paidCycles]);
 
   const markBillCyclePaid = useCallback(
     (
@@ -36,10 +60,13 @@ export function useBills() {
       nextDueDate: string,
       updates: Partial<RecurringBill> = {}
     ) => {
-      setPaidCycles((previous) => ({
-        ...previous,
-        [bill.id]: nextDueDate,
-      }));
+      setPaidCycles((previous) => {
+        const newCycles = {
+          ...previous,
+          [bill.id]: nextDueDate,
+        };
+        return newCycles;
+      });
 
       setBills((previous) =>
         previous.map((existing) =>
@@ -81,29 +108,14 @@ export function useBills() {
         return;
       }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const normalized = (data || []).map((bill) => {
-        const dueDate = new Date(bill.next_due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        const futureDue = dueDate > today;
-        const cyclePaid = paidCycles[bill.id] === bill.next_due_date;
-
-        return {
-          ...bill,
-          is_paid: cyclePaid && futureDue,
-        };
-      });
-
-      setBills(normalized);
+      setBills(normalizeBills(data || [], paidCycles));
     } catch (error) {
       console.error("Error fetching bills:", error);
       toast({ title: "Error fetching bills", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [toast, paidCycles]);
+  }, [toast, paidCycles, normalizeBills]);
 
   const payBill = async (
     bill: RecurringBill,
@@ -121,7 +133,7 @@ export function useBills() {
       if (!userId) throw new Error("User not found");
 
       const resolvedPaymentMethod =
-        options.paymentMethod && options.paymentMethod !== ""
+        options.paymentMethod && options.paymentMethod.length > 0
           ? options.paymentMethod
           : bill.payment_method || null;
 
@@ -317,3 +329,5 @@ export function useBills() {
     totalOverdueAmount,
   };
 }
+
+export type BillsHook = ReturnType<typeof useBills>;

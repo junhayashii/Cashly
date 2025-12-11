@@ -21,7 +21,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { Category } from "@/types";
-import { supabase } from "@/lib/supabaseClient";
+import { createCategory } from "@/app/actions/categories";
 
 interface AddCategoryDialogProps {
   onAddCategory: (category: Category) => void;
@@ -89,35 +89,26 @@ export function AddCategoryDialog({
     }
 
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const userId = userData?.user?.id;
-      if (!userId) throw new Error("User not found");
-
-      const category = {
+      const categoryData = {
         name: formData.name,
         type: formData.type,
         icon: formData.icon,
         color: formData.color,
         monthly_budget: formData.monthly_budget,
-        user_id: userId,
+        user_id: "", // Server action handles user_id
       };
 
-      console.log("Attempting to insert category:", category);
+      console.log("Attempting to insert category:", categoryData);
 
-      const { data: insertedData, error } = await supabase
-        .from("categories")
-        .insert([category])
-        .select();
+      const result = await createCategory(categoryData);
 
-      if (error || !insertedData || insertedData.length === 0) {
-        throw error || new Error("Failed to save category");
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to save category");
       }
 
-      console.log("Inserted category data:", insertedData[0]);
+      console.log("Inserted category data:", result.data);
 
-      onAddCategory(insertedData[0]);
+      onAddCategory(result.data);
       toast({
         title: "Category added",
         description: `${formData.name} category has been created`,

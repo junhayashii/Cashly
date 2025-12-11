@@ -71,7 +71,7 @@ export function useUserSettings(userId?: string) {
 
       const { data, error } = await supabase
         .from("settings")
-        .upsert({ user_id: userId, ...updates }, { onConflict: ["user_id"] })
+        .upsert({ user_id: userId, ...updates }, { onConflict: "user_id" })
         .select()
         .single();
 

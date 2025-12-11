@@ -952,7 +952,7 @@ const loadLinkedItemsFromStorage = (userId: string): LinkedItem[] => {
               ? entry.status
               : null,
         }))
-        .filter((entry): entry is LinkedItem => Boolean(entry.itemId));
+        .filter((entry) => Boolean(entry.itemId)) as LinkedItem[];
     } catch (error) {
       console.error("[Pluggy] Failed to load linked items from storage.", error);
       return [];
@@ -1041,7 +1041,7 @@ const loadLinkedItemsFromSupabase = async (
 
         return candidate;
       })
-      .filter((entry): entry is LinkedItem => Boolean(entry));
+      .filter((entry) => Boolean(entry)) as LinkedItem[];
   } catch (error) {
     console.error("[Pluggy] Unexpected error loading Supabase connections.", error);
     return null;
@@ -1272,8 +1272,8 @@ const mergeLinkedItemSources = ({
         });
       } else {
         merged.set(remoteItem.itemId, {
-          accountMapping: {},
           ...remoteItem,
+          accountMapping: {},
         });
       }
     }
@@ -1288,7 +1288,7 @@ const normalizeAccountMapping = (input: unknown): Record<string, string> => {
     Object.entries(input as Record<string, unknown>).filter(
       ([key, value]) => typeof key === "string" && typeof value === "string"
     )
-  );
+  ) as Record<string, string>;
 };
 
 const COLOR_CLASSES = [

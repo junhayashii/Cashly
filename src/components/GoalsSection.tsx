@@ -3,51 +3,36 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, PencilLine } from "lucide-react";
-import { useGoals } from "@/hooks/useGoals";
 import Link from "next/link";
 import { useState } from "react";
 import EditGoalsDialog from "@/components/EditGoalsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Goal } from "@/types";
 
 type GoalsSectionProps = {
   currencySymbol: string;
+  goals: Goal[];
+  updateGoal: (id: string, updates: Partial<Goal>) => Promise<Goal>;
+  deleteGoal: (id: string) => Promise<void>;
 };
 
 type GoalTab = "active" | "completed";
 
-export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
-  const { getActiveGoals, getCompletedGoals, loading, updateGoal, deleteGoal } =
-    useGoals();
-
-  const [editingGoal, setEditingGoal] = useState<any | null>(null);
+export function GoalsSection({ currencySymbol, goals, updateGoal, deleteGoal }: GoalsSectionProps) {
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [goalTab, setGoalTab] = useState<GoalTab>("active");
 
-  const activeGoals = getActiveGoals();
-  const completedGoals = getCompletedGoals();
+  const isGoalCompleted = (goal: Goal) => {
+    return goal.status === "completed" || goal.current_amount >= goal.target_amount;
+  };
 
-  if (loading) {
-    return (
-      <Card className="p-4 bg-card border-border h-96 flex flex-col relative">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Savings Goals</h2>
-            <div className="text-sm text-muted-foreground">Loading...</div>
-          </div>
-        </div>
-        <div className="space-y-3 flex-1">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-4 bg-muted animate-pulse rounded" />
-              <div className="h-2 bg-muted animate-pulse rounded" />
-            </div>
-          ))}
-        </div>
-      </Card>
-    );
-  }
+  const activeGoals = goals.filter((goal) => goal.status === "active" && !isGoalCompleted(goal));
+  const completedGoals = goals.filter((goal) => isGoalCompleted(goal));
 
-  const renderGoal = (goal: any) => {
+
+
+  const renderGoal = (goal: Goal) => {
     const percentage = (goal.current_amount / goal.target_amount) * 100;
     const Icon = goal.icon;
     const remaining = goal.target_amount - goal.current_amount;
@@ -72,7 +57,7 @@ export function GoalsSection({ currencySymbol }: GoalsSectionProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-muted">
-              <Icon className={`h-4 w-4 ${goal.color}`} />
+              {Icon && <Icon className={`h-4 w-4 ${goal.color}`} />}
             </div>
             <div>
               <p className="font-semibold text-foreground">{goal.name}</p>

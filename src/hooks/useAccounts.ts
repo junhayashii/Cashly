@@ -1,25 +1,27 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Account } from "@/types";
+import { createAccount as createAccountAction, updateAccount as updateAccountAction, deleteAccount as deleteAccountAction } from "@/app/actions/accounts";
 
-export function useAccounts() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useAccounts(initialAccounts: Account[] = []) {
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
+  const [loading, setLoading] = useState(initialAccounts.length === 0);
+
+  useEffect(() => {
+    if (initialAccounts.length > 0) {
+      setAccounts(initialAccounts);
+      setLoading(false);
+    }
+  }, [initialAccounts]);
 
   const fetchAccounts = useCallback(async () => {
-    setLoading(true);
-
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
+      const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
-      if (!userId) {
-        setAccounts([]);
-        return;
-      }
+      if (!userId) return;
 
       const { data, error } = await supabase
         .from("accounts")
@@ -27,23 +29,28 @@ export function useAccounts() {
         .eq("user_id", userId)
         .order("name");
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       setAccounts(data ?? []);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching accounts:", error);
-    } finally {
       setLoading(false);
     }
   }, []);
+
+  // Only fetch on mount if no initial data
+  useEffect(() => {
+    if (initialAccounts.length === 0) {
+      fetchAccounts();
+    }
+  }, [fetchAccounts, initialAccounts.length]);
 
   const getAccountById = (id: string) => {
     return accounts.find((account) => account.id === id);
   };
 
-  const addAccount = (newAccount: Account) => {
+  const addAccount = async (newAccount: Account) => {
+    // Optimistic update
     setAccounts((prev) => [...prev, newAccount]);
   };
 
@@ -52,10 +59,6 @@ export function useAccounts() {
       prev.map((a) => (a.id === id ? { ...a, balance: newBalance } : a))
     );
   };
-
-  useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);
 
   return {
     accounts,
@@ -66,3 +69,4 @@ export function useAccounts() {
     updateAccountBalance,
   };
 }
+

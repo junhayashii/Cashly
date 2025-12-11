@@ -1,8 +1,9 @@
 import Papa from "papaparse";
 import { saveAs } from "file-saver";
+import { Transaction } from "@/types";
 
 export const exportTransactionsCSV = (
-  transactions: any[],
+  transactions: Transaction[],
   fileName = "transactions.csv"
 ) => {
   if (!transactions || transactions.length === 0) return;
@@ -11,7 +12,7 @@ export const exportTransactionsCSV = (
   const csvData = transactions.map((t) => ({
     Date: t.date,
     Type: t.type,
-    Category: t.category_name,
+    Category: t.category?.name || "",
     Amount: t.amount,
     Description: t.title || "",
   }));

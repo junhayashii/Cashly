@@ -7,7 +7,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2024-10-28.acacia" })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ? new Stripe(stripeSecretKey, { apiVersion: "2024-10-28.acacia" as any })
   : null;
 
 const supabaseAdmin =
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
           stripe_subscription_id: subscription.id,
           stripe_customer_id: customerId,
         },
-        { onConflict: ["user_id"] }
+        { onConflict: "user_id" }
       );
 
     return NextResponse.json(
@@ -106,7 +107,6 @@ export async function POST(request: NextRequest) {
         status: subscription.status,
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         cancelAt: subscription.cancel_at,
-        currentPeriodEnd: subscription.current_period_end,
         latestInvoiceUrl:
           typeof subscription.latest_invoice === "string"
             ? null

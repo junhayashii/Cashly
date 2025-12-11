@@ -28,7 +28,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useTheme } from "@/components/ThemeProvider";
-import PluggyConnectLauncher from "@/components/PluggyConnectLauncher";
+import dynamic from "next/dynamic";
+const PluggyConnectLauncher = dynamic(
+  () => import("@/components/PluggyConnectLauncher"),
+  { ssr: false }
+);
 import { useSidebar } from "@/components/ui/sidebar";
 
 const PRO_FEATURES = [

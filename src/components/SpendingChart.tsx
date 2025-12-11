@@ -10,16 +10,16 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useTransaction } from "@/hooks/useTransactions";
+import { Transaction } from "@/types";
 import { useMemo } from "react";
 import dayjs from "dayjs";
 
 type SpendingChartProps = {
   currencySymbol: string;
+  transactions: Transaction[];
 };
 
-export const SpendingChart = ({ currencySymbol }: SpendingChartProps) => {
-  const { transactions } = useTransaction();
+export const SpendingChart = ({ currencySymbol, transactions = [] }: SpendingChartProps) => {
 
   // 過去12ヶ月の集計データを生成
   const data = useMemo(() => {

@@ -21,7 +21,7 @@ import {
 
 import { type ComponentType } from "react";
 import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, TooltipItem } from "chart.js";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -94,7 +94,7 @@ export function BudgetSectionSimple() {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: function (context: any) {
+          label: function (context: TooltipItem<"pie">) {
             const category = stats.categoryStats[context.dataIndex];
             const percentage = (
               (category.spent / stats.totalSpent) *

@@ -51,7 +51,16 @@ export function AddRecurringBillDialog({
   const NONE_VALUE = "__none__";
   const today = new Date().toISOString().split("T")[0];
   const defaultFrequency: Frequency = "monthly";
-  const [formData, setFormData] = useState(() => ({
+  const [formData, setFormData] = useState<{
+    title: string;
+    amount: string;
+    account_id: string;
+    category_id: string;
+    start_date: string;
+    next_due_date: string;
+    frequency: Frequency;
+    payment_method: "" | PaymentMethod;
+  }>({
     title: "",
     amount: "",
     account_id: "",
@@ -59,8 +68,8 @@ export function AddRecurringBillDialog({
     start_date: today,
     next_due_date: calculateNextDueDate(today, defaultFrequency),
     frequency: defaultFrequency,
-    payment_method: "" as "" | PaymentMethod,
-  }));
+    payment_method: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,11 +166,11 @@ export function AddRecurringBillDialog({
 
       setIsOpen(false);
       onAdded();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("💥 Unexpected error:", error);
       toast({
         title: "Error",
-        description: error.message || "An unexpected error occurred.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {

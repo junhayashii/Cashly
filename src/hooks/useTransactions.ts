@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Transaction } from "@/types";
 
-export function useTransaction() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useTransaction(initialTransactions: Transaction[] = []) {
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [loading, setLoading] = useState(initialTransactions.length === 0);
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -31,8 +31,17 @@ export function useTransaction() {
   };
 
   useEffect(() => {
-    fetchTransactions();
-  }, []);
+    if (initialTransactions.length > 0) {
+      setTransactions(initialTransactions);
+      setLoading(false);
+    } else {
+      fetchTransactions();
+    }
+  }, [initialTransactions]);
 
-  return { transactions, loading, refresh: fetchTransactions, setTransactions };
+  const addTransaction = (transaction: Transaction) => {
+    setTransactions((prev) => [transaction, ...prev]);
+  };
+
+  return { transactions, loading, refresh: fetchTransactions, setTransactions, addTransaction };
 }

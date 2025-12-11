@@ -74,7 +74,7 @@ export const generateReportsPdf = ({
 
   const addBodyText = (text: string) => {
     const lines = pdf.splitTextToSize(text, pageWidth - margin * 2);
-    lines.forEach((line) => {
+    lines.forEach((line: string) => {
       ensureSpace(6);
       pdf.setFontSize(10);
       pdf.setTextColor(60);
